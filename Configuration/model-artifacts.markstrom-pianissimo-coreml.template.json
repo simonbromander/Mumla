@@ -1,0 +1,38 @@
+{
+  "id": "markstrom/pianissimo-sv-coreml",
+  "sourceURL": "https://huggingface.co/markstrom/pianissimo-sv-coreml",
+  "revision": "106fa163a138a0db6737e0c50494269e07f508d0",
+  "files": [
+    {
+      "path": "Preprocessor.mlpackage/Data/com.apple.CoreML/model.mlmodel"
+    },
+    {
+      "path": "Preprocessor.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
+    },
+    {
+      "path": "Encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel"
+    },
+    {
+      "path": "Encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
+    },
+    {
+      "path": "Decoder.mlpackage/Data/com.apple.CoreML/model.mlmodel"
+    },
+    {
+      "path": "Decoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
+    },
+    {
+      "path": "JointDecisionv3.mlpackage/Data/com.apple.CoreML/model.mlmodel"
+    },
+    {
+      "path": "JointDecisionv3.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
+    },
+    {
+      "path": "parakeet_vocab.json"
+    },
+    {
+      "path": "LICENSE-and-attribution.txt"
+    }
+  ]
+}
+

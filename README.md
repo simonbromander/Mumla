@@ -33,8 +33,9 @@ Run the current harness:
 swift test
 swift run mumla-phase0 validate Evaluation/phase0-manifest.example.json
 swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/phase0-predictions.example.json
+swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/phase0-predictions.example.json --json
+swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json /path/to/downloaded/model
 ```
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) and
 [docs/phase-0-evaluation.md](docs/phase-0-evaluation.md).
-

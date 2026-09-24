@@ -1,6 +1,6 @@
 import Foundation
 
-public struct WordErrorRateResult: Equatable, Sendable {
+public struct WordErrorRateResult: Codable, Equatable, Sendable {
     public var substitutions: Int
     public var insertions: Int
     public var deletions: Int
@@ -145,4 +145,3 @@ private struct Cell: Comparable {
         )
     }
 }
-

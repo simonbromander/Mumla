@@ -26,6 +26,10 @@ Checked on 2026-09-24.
     `Decoder.mlpackage`, `JointDecisionv3.mlpackage`, `parakeet_vocab.json`,
     and attribution/license files.
   - API snapshot SHA: `106fa163a138a0db6737e0c50494269e07f508d0`.
+  - Initial artifact template:
+    `Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json`.
+    It pins filenames and revision now; byte sizes and SHA-256 values must be
+    filled after download before product use.
 
 ## Fallback And Comparison Sources
 
@@ -47,4 +51,3 @@ Checked on 2026-09-24.
   - Klang's offline CLI and worker setup.
 - `/Users/bob/projects/_references/pianissimo-examples`
   - Minimal local NeMo transcription example and audio-format notes.
-

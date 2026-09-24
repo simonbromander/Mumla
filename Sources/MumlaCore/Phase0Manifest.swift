@@ -107,40 +107,32 @@ public struct Phase0Prediction: Codable, Equatable, Sendable {
     }
 }
 
-public struct Phase0Score: Equatable, Sendable {
-    public var model: String
-    public var clipCount: Int
-    public var wordErrorRate: WordErrorRateResult
-    public var missingPredictionIDs: [String]
-    public var p95LatencyMilliseconds: Double?
-
-    public init(
-        model: String,
-        clipCount: Int,
-        wordErrorRate: WordErrorRateResult,
-        missingPredictionIDs: [String],
-        p95LatencyMilliseconds: Double?
-    ) {
-        self.model = model
-        self.clipCount = clipCount
-        self.wordErrorRate = wordErrorRate
-        self.missingPredictionIDs = missingPredictionIDs
-        self.p95LatencyMilliseconds = p95LatencyMilliseconds
-    }
-}
-
 public enum Phase0Scorer {
     public static func score(
         manifest: Phase0Manifest,
         predictions: [Phase0Prediction],
         normalizer: TranscriptNormalizer = TranscriptNormalizer()
     ) -> Phase0Score {
-        let predictionsByID = Dictionary(uniqueKeysWithValues: predictions.map { ($0.clipId, $0) })
+        var predictionsByID: [String: Phase0Prediction] = [:]
+        var duplicateIDs: [String] = []
+        for prediction in predictions {
+            if predictionsByID[prediction.clipId] != nil {
+                duplicateIDs.append(prediction.clipId)
+            } else {
+                predictionsByID[prediction.clipId] = prediction
+            }
+        }
+
         var referenceWords: [String] = []
         var hypothesisWords: [String] = []
         var missing: [String] = []
         var latencies: [Double] = []
         let model = predictions.first?.model ?? "unknown"
+        var languageBuckets: [MumlaLanguage: (clips: Int, reference: [String], hypothesis: [String])] = [:]
+        var languageCorrect = 0
+        var languageEvaluated = 0
+        var languageMissing = 0
+        var languageMismatches: [LanguageMismatch] = []
 
         for clip in manifest.clips {
             guard let prediction = predictionsByID[clip.id] else {
@@ -153,27 +145,64 @@ public enum Phase0Scorer {
             referenceWords.append(contentsOf: WordErrorRate.tokenize(reference))
             hypothesisWords.append(contentsOf: WordErrorRate.tokenize(hypothesis))
 
+            let clipReferenceWords = WordErrorRate.tokenize(reference)
+            let clipHypothesisWords = WordErrorRate.tokenize(hypothesis)
+            var bucket = languageBuckets[clip.expectedLanguage] ?? (clips: 0, reference: [], hypothesis: [])
+            bucket.clips += 1
+            bucket.reference.append(contentsOf: clipReferenceWords)
+            bucket.hypothesis.append(contentsOf: clipHypothesisWords)
+            languageBuckets[clip.expectedLanguage] = bucket
+
             if let latency = prediction.latencyMilliseconds {
                 latencies.append(latency)
             }
+
+            if let detectedLanguage = prediction.detectedLanguage {
+                languageEvaluated += 1
+                if detectedLanguage == clip.expectedLanguage {
+                    languageCorrect += 1
+                } else {
+                    languageMismatches.append(
+                        LanguageMismatch(
+                            clipID: clip.id,
+                            expected: clip.expectedLanguage,
+                            detected: detectedLanguage
+                        )
+                    )
+                }
+            } else {
+                languageMissing += 1
+            }
         }
+
+        let languageScores = languageBuckets
+            .map { language, bucket in
+                Phase0LanguageScore(
+                    language: language,
+                    clipCount: bucket.clips,
+                    wordErrorRate: WordErrorRate.score(
+                        referenceWords: bucket.reference,
+                        hypothesisWords: bucket.hypothesis
+                    )
+                )
+            }
+            .sorted { $0.language.rawValue < $1.language.rawValue }
 
         return Phase0Score(
             model: model,
             clipCount: manifest.clips.count - missing.count,
+            totalClipCount: manifest.clips.count,
             wordErrorRate: WordErrorRate.score(referenceWords: referenceWords, hypothesisWords: hypothesisWords),
+            languageScores: languageScores,
+            latency: LatencySummary.make(values: latencies),
+            languageAccuracy: LanguageAccuracySummary(
+                evaluatedCount: languageEvaluated,
+                correctCount: languageCorrect,
+                missingCount: languageMissing,
+                mismatches: languageMismatches
+            ),
             missingPredictionIDs: missing,
-            p95LatencyMilliseconds: percentile(latencies.sorted(), percentile: 0.95)
+            duplicatePredictionIDs: Array(Set(duplicateIDs)).sorted()
         )
     }
-
-    private static func percentile(_ sortedValues: [Double], percentile: Double) -> Double? {
-        guard !sortedValues.isEmpty else {
-            return nil
-        }
-
-        let index = Int(ceil(percentile * Double(sortedValues.count))) - 1
-        return sortedValues[max(0, min(index, sortedValues.count - 1))]
-    }
 }
-
