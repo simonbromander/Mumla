@@ -1,0 +1,13 @@
+{
+  "createdAt": "2026-09-24T00:00:00Z",
+  "clips": [
+    {
+      "id": "fixture-sv-001",
+      "audioPath": "fixture-sv-001.wav",
+      "reference": "hej det här är ett test",
+      "expectedLanguage": "sv",
+      "durationSeconds": 2.5
+    }
+  ]
+}
+

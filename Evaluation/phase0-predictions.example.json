@@ -1,0 +1,17 @@
+[
+  {
+    "clipId": "sample-sv-001",
+    "model": "fixture",
+    "transcript": "hej det här är ett test av mumla",
+    "latencyMilliseconds": 320,
+    "detectedLanguage": "sv"
+  },
+  {
+    "clipId": "sample-en-001",
+    "model": "fixture",
+    "transcript": "hello this is test of mumla",
+    "latencyMilliseconds": 280,
+    "detectedLanguage": "en"
+  }
+]
+

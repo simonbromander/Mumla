@@ -1,0 +1,20 @@
+{
+  "createdAt": "2026-09-24T00:00:00Z",
+  "clips": [
+    {
+      "id": "sample-sv-001",
+      "audioPath": "sample-sv-001.wav",
+      "reference": "hej det här är ett test av mumla",
+      "expectedLanguage": "sv",
+      "durationSeconds": 3.2
+    },
+    {
+      "id": "sample-en-001",
+      "audioPath": "sample-en-001.wav",
+      "reference": "hello this is a test of mumla",
+      "expectedLanguage": "en",
+      "durationSeconds": 3.0
+    }
+  ]
+}
+
