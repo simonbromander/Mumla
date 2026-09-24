@@ -36,6 +36,9 @@ Checked on 2026-09-24.
     `scripts/resolve_hf_artifact_manifest.py`. It fills sizes and SHA-256 values
     from the pinned Hugging Face revision, using LFS metadata for large model
     files and hashing small non-LFS files directly.
+  - Artifact downloader:
+    `scripts/download_hf_artifact.py`. It downloads only the manifest files,
+    resumes `.part` files, and verifies SHA-256 before moving files into place.
 
 ## Fallback And Comparison Sources
 

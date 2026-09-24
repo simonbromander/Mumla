@@ -24,6 +24,10 @@ echo "Resolve candidate artifact metadata"
 python3 scripts/resolve_hf_artifact_manifest.py \
   Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json \
   /tmp/mumla-markstrom-pianissimo-coreml.resolved.json
+python3 scripts/download_hf_artifact.py \
+  Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json \
+  /tmp/mumla-markstrom-pianissimo-coreml \
+  --dry-run
 
 echo
 echo "Harness tests"
