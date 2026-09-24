@@ -10,10 +10,16 @@
       "path": "Preprocessor.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
     },
     {
+      "path": "Preprocessor.mlpackage/Manifest.json"
+    },
+    {
       "path": "Encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel"
     },
     {
       "path": "Encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
+    },
+    {
+      "path": "Encoder.mlpackage/Manifest.json"
     },
     {
       "path": "Decoder.mlpackage/Data/com.apple.CoreML/model.mlmodel"
@@ -22,10 +28,16 @@
       "path": "Decoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
     },
     {
+      "path": "Decoder.mlpackage/Manifest.json"
+    },
+    {
       "path": "JointDecisionv3.mlpackage/Data/com.apple.CoreML/model.mlmodel"
     },
     {
       "path": "JointDecisionv3.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
+    },
+    {
+      "path": "JointDecisionv3.mlpackage/Manifest.json"
     },
     {
       "path": "parakeet_vocab.json"
@@ -35,4 +47,3 @@
     }
   ]
 }
-

@@ -39,6 +39,10 @@ Checked on 2026-09-24.
   - Artifact downloader:
     `scripts/download_hf_artifact.py`. It downloads only the manifest files,
     resumes `.part` files, and verifies SHA-256 before moving files into place.
+  - Bring-up status:
+    downloaded, checksum-verified, compiled with `xcrun coremlcompiler`, loaded
+    through FluidAudio, and transcribed the local Swedish smoke clip on
+    2026-09-24.
 
 ## Fallback And Comparison Sources
 

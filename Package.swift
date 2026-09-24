@@ -10,13 +10,23 @@ let package = Package(
     ],
     products: [
         .library(name: "MumlaCore", targets: ["MumlaCore"]),
-        .executable(name: "mumla-phase0", targets: ["MumlaPhase0CLI"])
+        .executable(name: "mumla-phase0", targets: ["MumlaPhase0CLI"]),
+        .executable(name: "mumla-model-probe", targets: ["MumlaModelProbe"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.17.3")
     ],
     targets: [
         .target(name: "MumlaCore"),
         .executableTarget(
             name: "MumlaPhase0CLI",
             dependencies: ["MumlaCore"]
+        ),
+        .executableTarget(
+            name: "MumlaModelProbe",
+            dependencies: [
+                .product(name: "FluidAudio", package: "FluidAudio")
+            ]
         ),
         .testTarget(
             name: "MumlaCoreTests",
@@ -25,4 +35,3 @@ let package = Package(
         )
     ]
 )
-

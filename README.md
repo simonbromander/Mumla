@@ -36,7 +36,11 @@ swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/
 swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/phase0-predictions.example.json --json
 python3 scripts/resolve_hf_artifact_manifest.py Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json
 python3 scripts/download_hf_artifact.py Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json ModelCache/markstrom-pianissimo-sv-coreml
-swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json /path/to/downloaded/model
+swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json ModelCache/markstrom-pianissimo-sv-coreml
+python3 scripts/stage_coreml_artifact.py ModelCache/markstrom-pianissimo-sv-coreml ModelCache/markstrom-pianissimo-sv-coreml-compiled --force
+swift run mumla-model-probe load ModelCache/markstrom-pianissimo-sv-coreml-compiled
+swift run mumla-model-probe transcribe ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/audio.wav --language sv
+swift run mumla-model-probe transcribe ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/audio.wav --language sv --json --json-output /tmp/mumla-predictions.json
 ```
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) and

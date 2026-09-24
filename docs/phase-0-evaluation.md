@@ -23,7 +23,10 @@ swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/
 swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/phase0-predictions.example.json --json
 python3 scripts/resolve_hf_artifact_manifest.py Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json
 python3 scripts/download_hf_artifact.py Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json ModelCache/markstrom-pianissimo-sv-coreml
-swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json /path/to/downloaded/model
+swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json ModelCache/markstrom-pianissimo-sv-coreml
+python3 scripts/stage_coreml_artifact.py ModelCache/markstrom-pianissimo-sv-coreml ModelCache/markstrom-pianissimo-sv-coreml-compiled --force
+swift run mumla-model-probe load ModelCache/markstrom-pianissimo-sv-coreml-compiled
+swift run mumla-model-probe transcribe ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/audio.wav --language sv --json --json-output /tmp/mumla-predictions.json
 ```
 
 ## Private Dataset Layout
@@ -85,6 +88,17 @@ Predictions:
 5. Run FluidAudio Parakeet v3 CoreML for English and language-routing samples.
 6. Measure warm latency separately from first-load compilation and downloads.
 
+## CoreML Bring-Up
+
+`markstrom/pianissimo-sv-coreml` downloads as portable `.mlpackage` bundles.
+FluidAudio's local loader expects destination-compiled `.mlmodelc` directories,
+so `scripts/stage_coreml_artifact.py` performs that compile step with
+`xcrun coremlcompiler` and stages the vocabulary beside the compiled models.
+
+`mumla-model-probe` then loads that staged directory through FluidAudio and can
+transcribe a single clip. Use `--json-output` to write a clean prediction file
+for the existing scorer; runtime logs may still appear on stdout.
+
 ## Required Reporting
 
 Every Phase 0 run should produce:
@@ -97,3 +111,26 @@ Every Phase 0 run should produce:
 - peak RSS during transcription,
 - routing confusion matrix,
 - failure notes with audio clip IDs.
+
+## Smoke Log
+
+2026-09-24, `markstrom/pianissimo-sv-coreml`:
+
+- Device: Mac15,6, Apple M3 Pro, 18 GB RAM.
+- OS: macOS 26.3 build 25D125.
+- FluidAudio package resolution: 0.17.3.
+- Source artifact: 656 MB downloaded to `ModelCache/markstrom-pianissimo-sv-coreml`.
+- Staged artifact: 657 MB compiled to
+  `ModelCache/markstrom-pianissimo-sv-coreml-compiled`.
+- FluidAudio load smoke: passed. Cold debug CLI load observed at 38,084 ms;
+  later warm load observed at 154 ms.
+- Transcription smoke clip:
+  `/Users/bob/projects/_references/pianissimo-examples/repro/counting-sv.wav`,
+  12.22 seconds, 16 kHz mono WAV.
+- Transcript:
+  `1. Stockholm är Sveriges huvudstad. 2. Göteborg ligger på västkusten. 3. Malmö ligger i Skåne. 4. Uppsala har ett gammalt universitet.`
+- Scorer compatibility: passed with temporary one-clip manifest, 0.00% WER,
+  141 ms transcription latency, 100% language accuracy.
+
+This is not an owner-dataset Phase 0 result. It only proves artifact integrity,
+CoreML compilation, FluidAudio loading, inference, and scorer handoff.
