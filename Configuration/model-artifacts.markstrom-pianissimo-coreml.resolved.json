@@ -1,0 +1,57 @@
+{
+  "files": [
+    {
+      "byteCount": 17913,
+      "path": "Preprocessor.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "sha256": "44426745838b32d86e0de13054eea2b7c4439e95dadef0bcfa528bdfc93eb630"
+    },
+    {
+      "byteCount": 1953088,
+      "path": "Preprocessor.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "sha256": "c69139820fc62c199f92c83d2c97458f8aaff337e5026abd9606ff03ba52b8e1"
+    },
+    {
+      "byteCount": 677050,
+      "path": "Encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "sha256": "9c9e8a95b18b35142f00ac3c8c186c669057f7ca4a097b2e463c99486eb8eeb8"
+    },
+    {
+      "byteCount": 649181632,
+      "path": "Encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "sha256": "e9623b969e8f31ba12bfbec7cdcdacb3bfb74e5a3a9bd3a812e4a942c1b1b9ed"
+    },
+    {
+      "byteCount": 11811,
+      "path": "Decoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "sha256": "4a36039f091573251bd8bcb55e8f5fa6dc3bad32052d825b1e3b2a3840879990"
+    },
+    {
+      "byteCount": 23604992,
+      "path": "Decoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "sha256": "9e34a5cc5da3477cf0e49126f55d4754a6a332b5df52a22812d6ddbd84af0e39"
+    },
+    {
+      "byteCount": 10827,
+      "path": "JointDecisionv3.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "sha256": "af1b876c8677cc8c6676573801038ce6da4972eba4817b1caa2eb09b9ff5ed32"
+    },
+    {
+      "byteCount": 12642764,
+      "path": "JointDecisionv3.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "sha256": "1f841daf3a6ce483ac136cd7a5e48d6071543e7c5eddcbba4525bda74695cb61"
+    },
+    {
+      "byteCount": 151122,
+      "path": "parakeet_vocab.json",
+      "sha256": "7ec60e05f1b24480736ec0eed40900f4626bce1fa9a60fd700ec7e2a59198735"
+    },
+    {
+      "byteCount": 2402,
+      "path": "LICENSE-and-attribution.txt",
+      "sha256": "cebcc87c23d9b4df78a1e1655b20c5f82e66babde45362a58fe6a2cb64f3dc91"
+    }
+  ],
+  "id": "markstrom/pianissimo-sv-coreml",
+  "revision": "106fa163a138a0db6737e0c50494269e07f508d0",
+  "sourceURL": "https://huggingface.co/markstrom/pianissimo-sv-coreml"
+}

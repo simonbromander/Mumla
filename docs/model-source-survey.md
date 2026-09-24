@@ -28,8 +28,14 @@ Checked on 2026-09-24.
   - API snapshot SHA: `106fa163a138a0db6737e0c50494269e07f508d0`.
   - Initial artifact template:
     `Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json`.
-    It pins filenames and revision now; byte sizes and SHA-256 values must be
-    filled after download before product use.
+    It pins filenames and revision.
+  - Resolved artifact manifest:
+    `Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json`.
+    It pins byte sizes and SHA-256 checksums for the current candidate revision.
+  - Artifact metadata resolver:
+    `scripts/resolve_hf_artifact_manifest.py`. It fills sizes and SHA-256 values
+    from the pinned Hugging Face revision, using LFS metadata for large model
+    files and hashing small non-LFS files directly.
 
 ## Fallback And Comparison Sources
 

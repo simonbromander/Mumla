@@ -20,5 +20,11 @@ curl -fsSI "https://huggingface.co/FluidInference/parakeet-tdt-0.6b-v3-coreml" >
 echo "OK FluidInference/parakeet-tdt-0.6b-v3-coreml"
 
 echo
+echo "Resolve candidate artifact metadata"
+python3 scripts/resolve_hf_artifact_manifest.py \
+  Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json \
+  /tmp/mumla-markstrom-pianissimo-coreml.resolved.json
+
+echo
 echo "Harness tests"
 swift test

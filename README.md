@@ -34,7 +34,8 @@ swift test
 swift run mumla-phase0 validate Evaluation/phase0-manifest.example.json
 swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/phase0-predictions.example.json
 swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/phase0-predictions.example.json --json
-swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json /path/to/downloaded/model
+python3 scripts/resolve_hf_artifact_manifest.py Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json
+swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json /path/to/downloaded/model
 ```
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) and
