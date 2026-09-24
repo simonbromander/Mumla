@@ -46,3 +46,22 @@ swift run mumla-model-probe transcribe-manifest ModelCache/markstrom-pianissimo-
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) and
 [docs/phase-0-evaluation.md](docs/phase-0-evaluation.md).
+
+## macOS App
+
+Run the development menu-bar app:
+
+```bash
+swift run mumla-mac
+```
+
+Build a local `.app` bundle:
+
+```bash
+./scripts/build_macos_app_bundle.sh
+open .build/debug/Mumla.app
+```
+
+During development the app looks for a compiled local Pianissimo model at
+`ModelCache/markstrom-pianissimo-sv-coreml-compiled` in the repo, or at
+`~/Library/Application Support/Mumla/Models/markstrom-pianissimo-sv-coreml-compiled`.

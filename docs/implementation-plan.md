@@ -45,8 +45,10 @@ Mumla is a native Swift/SwiftUI app with a shared Swift package:
 - `MumlaStorage`: SwiftData models, local encrypted transcript fields, CloudKit
   private database sync.
 
-Phase 0 only ships `MumlaCore` plus the evaluation CLI. App targets wait until
-the model gates pass.
+Phase 0 started with `MumlaCore` plus the evaluation CLI. On 2026-09-24 the
+macOS Phase 1 app shell was started before the full owner-dataset gate by
+explicit product direction. The Phase 0 quality and latency gates still decide
+whether the current Pianissimo CoreML path is the one to ship.
 
 ## Model Plan
 
