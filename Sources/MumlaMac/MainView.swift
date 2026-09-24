@@ -292,14 +292,38 @@ private struct WindowBackdrop: View {
                 .fill(.ultraThinMaterial)
             LinearGradient(
                 colors: [
-                    LiquidGlass.aqua.opacity(0.15),
-                    Color.white.opacity(0.06),
-                    LiquidGlass.mint.opacity(0.08),
-                    LiquidGlass.iris.opacity(0.10)
+                    LiquidGlass.pearl.opacity(0.30),
+                    LiquidGlass.aqua.opacity(0.16),
+                    Color.white.opacity(0.07),
+                    LiquidGlass.mint.opacity(0.10),
+                    LiquidGlass.iris.opacity(0.12)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.30),
+                    Color.white.opacity(0.00)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 210)
+            .frame(maxHeight: .infinity, alignment: .top)
+            LinearGradient(
+                colors: [
+                    LiquidGlass.aqua.opacity(0.00),
+                    LiquidGlass.aqua.opacity(0.10),
+                    LiquidGlass.iris.opacity(0.08),
+                    LiquidGlass.aqua.opacity(0.00)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .rotationEffect(.degrees(-10))
+            .blur(radius: 18)
+            .opacity(0.78)
         }
         .ignoresSafeArea()
     }
@@ -451,7 +475,7 @@ private struct GlassTextField: View {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.08))
+                            .fill(LiquidGlass.pearl.opacity(0.10))
                     )
             }
             .overlay {

@@ -9,7 +9,7 @@ final class MainWindowController {
         let contentView = MainView(coordinator: coordinator)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -19,6 +19,7 @@ final class MainWindowController {
         window.titlebarAppearsTransparent = true
         window.isOpaque = false
         window.backgroundColor = .clear
+        window.isMovableByWindowBackground = true
         window.center()
         self.window = window
     }
