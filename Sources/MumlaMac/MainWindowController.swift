@@ -15,6 +15,10 @@ final class MainWindowController {
         )
         window.title = "Mumla"
         window.contentView = NSHostingView(rootView: contentView)
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.center()
         self.window = window
     }

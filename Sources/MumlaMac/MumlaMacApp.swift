@@ -78,5 +78,8 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         hotkeyMonitor.start()
 
         coordinator.bootstrap()
+        if CommandLine.arguments.contains("--show-window") {
+            coordinator.openSettings()
+        }
     }
 }

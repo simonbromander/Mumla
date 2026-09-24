@@ -8,7 +8,7 @@ final class PillWindowController {
     init(coordinator: AppCoordinator) {
         let hostingView = NSHostingView(rootView: PillView(coordinator: coordinator))
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 56),
+            contentRect: NSRect(x: 0, y: 0, width: 510, height: 82),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
