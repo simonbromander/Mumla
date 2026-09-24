@@ -10,6 +10,7 @@ final class AppCoordinator: ObservableObject {
     @Published var dictionaryEntries: [DictionaryEntry] = []
     @Published var languageMode: LanguageMode = .automatic
     @Published var modelDirectory: URL?
+    @Published var modelInstallProgress: ModelInstallProgress = .idle
     @Published var statusText: String = "Ready"
 
     var showPill: (() -> Void)?
@@ -18,7 +19,8 @@ final class AppCoordinator: ObservableObject {
     var quit: (() -> Void)?
 
     private let recorder: MicrophoneRecorder
-    private let transcriber: LocalPianissimoTranscriber?
+    private var transcriber: LocalPianissimoTranscriber?
+    private let modelInstaller: ModelInstaller
     private let historyStore: DictationHistoryStore
     private let inserter = ClipboardTextInserter()
     private let normalizer = TranscriptNormalizer()
@@ -26,15 +28,18 @@ final class AppCoordinator: ObservableObject {
     private var activeMode: RecordingMode?
     private var recordingStartedAt: Date?
     private var elapsedTimer: Timer?
+    private var modelInstallTask: Task<Void, Never>?
 
     init(
         recorder: MicrophoneRecorder,
         transcriber: LocalPianissimoTranscriber?,
+        modelInstaller: ModelInstaller = ModelInstaller(),
         historyStore: DictationHistoryStore,
         modelDirectory: URL?
     ) {
         self.recorder = recorder
         self.transcriber = transcriber
+        self.modelInstaller = modelInstaller
         self.historyStore = historyStore
         self.modelDirectory = modelDirectory
     }
@@ -42,6 +47,10 @@ final class AppCoordinator: ObservableObject {
     func bootstrap() {
         history = (try? historyStore.load()) ?? []
         statusText = modelDirectory == nil ? "Model missing" : "Ready"
+    }
+
+    var isInstallingModel: Bool {
+        modelInstallTask != nil
     }
 
     func requestMicrophonePermission() async {
@@ -96,7 +105,8 @@ final class AppCoordinator: ObservableObject {
                 let result = try await transcriber.transcribe(audioURL: audioURL, language: selectedLanguage)
                 rawText = result.text
             } else {
-                rawText = "Mumla is ready, but no local model is staged yet."
+                showError("Download model first")
+                return
             }
 
             let text = normalizer.normalize(rawText, language: selectedLanguage)
@@ -149,6 +159,61 @@ final class AppCoordinator: ObservableObject {
         languageMode = mode
     }
 
+    func installModel() {
+        guard modelInstallTask == nil else { return }
+
+        modelInstallTask = Task { [weak self] in
+            guard let self else { return }
+            await MainActor.run {
+                self.modelInstallProgress = ModelInstallProgress(
+                    phase: .downloading,
+                    fraction: 0,
+                    detail: "Starting download"
+                )
+                self.statusText = "Downloading model"
+                self.pillState = .preparing(progress: 0)
+                self.showPill?()
+            }
+
+            do {
+                let directory = try await self.modelInstaller.install { [weak self] progress in
+                    await MainActor.run {
+                        guard let self else { return }
+                        self.modelInstallProgress = progress
+                        self.statusText = progress.statusTitle
+                        if progress.phase == .downloading || progress.phase == .compiling {
+                            self.pillState = .preparing(progress: progress.fraction)
+                            self.showPill?()
+                        }
+                    }
+                }
+
+                await MainActor.run {
+                    self.modelDirectory = directory
+                    self.transcriber = LocalPianissimoTranscriber(modelDirectory: directory)
+                    self.statusText = "Ready"
+                    self.pillState = .message("Model ready")
+                    self.showPill?()
+                    self.scheduleHidePill()
+                    self.modelInstallTask = nil
+                }
+            } catch {
+                await MainActor.run {
+                    self.modelInstallProgress = ModelInstallProgress(
+                        phase: .failed,
+                        fraction: self.modelInstallProgress.fraction,
+                        detail: error.localizedDescription
+                    )
+                    self.statusText = "Model install failed"
+                    self.pillState = .message("Model install failed")
+                    self.showPill?()
+                    self.scheduleHidePill()
+                    self.modelInstallTask = nil
+                }
+            }
+        }
+    }
+
     private var selectedLanguage: MumlaLanguage {
         switch languageMode {
         case .automatic, .swedish:
@@ -160,6 +225,18 @@ final class AppCoordinator: ObservableObject {
 
     private func startDictation(mode: RecordingMode) async {
         guard activeMode == nil else { return }
+
+        guard transcriber != nil else {
+            if isInstallingModel {
+                pillState = .preparing(progress: modelInstallProgress.fraction)
+            } else {
+                pillState = .message("Download model first")
+                showMainWindow?()
+            }
+            showPill?()
+            scheduleHidePill()
+            return
+        }
 
         guard await recorder.microphonePermissionGranted() else {
             pillState = .message("Microphone permission needed")
@@ -219,8 +296,28 @@ enum RecordingMode {
 
 enum PillState: Equatable {
     case hidden
+    case preparing(progress: Double)
     case listening(elapsedSeconds: TimeInterval)
     case handsFree(elapsedSeconds: TimeInterval)
     case transcribing
     case message(String)
+}
+
+private extension ModelInstallProgress {
+    var statusTitle: String {
+        switch phase {
+        case .idle:
+            return "Model missing"
+        case .downloading:
+            return "Downloading model \(Int((fraction * 100).rounded()))%"
+        case .verifying:
+            return "Verifying model"
+        case .compiling:
+            return "Preparing model \(Int((fraction * 100).rounded()))%"
+        case .installed:
+            return "Ready"
+        case .failed:
+            return "Model install failed"
+        }
+    }
 }

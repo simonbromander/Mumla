@@ -168,12 +168,7 @@ struct MainView: View {
                 }
 
                 SettingsGlassRow(title: "Model", value: coordinator.modelDirectory == nil ? "Not staged" : "Ready") {
-                    Text(coordinator.modelDirectory?.lastPathComponent ?? "Missing")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: 260, alignment: .trailing)
+                    modelAccessory
                 }
 
                 SettingsGlassRow(title: "Status", value: coordinator.statusText) {
@@ -183,6 +178,35 @@ struct MainView: View {
 
                 Spacer(minLength: 0)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var modelAccessory: some View {
+        if coordinator.modelDirectory != nil {
+            Text(coordinator.modelDirectory?.lastPathComponent ?? "Ready")
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 260, alignment: .trailing)
+        } else if coordinator.isInstallingModel {
+            VStack(alignment: .trailing, spacing: 6) {
+                ProgressView(value: coordinator.modelInstallProgress.fraction)
+                    .frame(width: 180)
+                Text(coordinator.modelInstallProgress.detail)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 180, alignment: .trailing)
+            }
+        } else {
+            Button("Download") {
+                coordinator.installModel()
+            }
+            .buttonStyle(.borderless)
+            .liquidControl(selected: true)
         }
     }
 

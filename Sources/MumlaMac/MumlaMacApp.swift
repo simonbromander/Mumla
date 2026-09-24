@@ -29,6 +29,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         coordinator = AppCoordinator(
             recorder: MicrophoneRecorder(),
             transcriber: transcriber,
+            modelInstaller: ModelInstaller(),
             historyStore: historyStore,
             modelDirectory: modelDirectory
         )

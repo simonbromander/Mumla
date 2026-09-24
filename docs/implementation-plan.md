@@ -121,6 +121,17 @@ macOS dictation only:
 - First-launch model download with progress, resume, checksum, and license info.
 - Five-step onboarding: value, microphone, Accessibility, practice, done.
 
+Current implementation status:
+
+- macOS app shell, glass pill, menu bar, microphone recording, local transcriber
+  adapter, paste/clipboard restore, and history are in place.
+- Model install is now native: the app can download the pinned Pianissimo CoreML
+  artifact, resume partial files, verify checksums, and compile the CoreML
+  packages into Application Support.
+- Remaining Phase 1 gaps include onboarding, automatic live language routing,
+  edit-learning dictionary observation, secure-field guards, launch-at-login,
+  and release signing/notarization.
+
 ## Phase 2 Scope
 
 macOS meetings and sync:

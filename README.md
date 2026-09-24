@@ -65,3 +65,6 @@ open .build/debug/Mumla.app
 During development the app looks for a compiled local Pianissimo model at
 `ModelCache/markstrom-pianissimo-sv-coreml-compiled` in the repo, or at
 `~/Library/Application Support/Mumla/Models/markstrom-pianissimo-sv-coreml-compiled`.
+If no compiled model exists, the Settings window and menu bar include a
+download action. The app downloads the pinned CoreML artifact, verifies SHA-256
+checksums, then compiles the `.mlpackage` files into Application Support.

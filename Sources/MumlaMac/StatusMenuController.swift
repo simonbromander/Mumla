@@ -34,6 +34,11 @@ final class StatusMenuController {
         menu.addItem(status)
         menu.addItem(.separator())
 
+        if coordinator.modelDirectory == nil {
+            menu.addItem(menuItem(coordinator.isInstallingModel ? "Downloading Model..." : "Download Model", action: #selector(downloadModel)))
+            menu.addItem(.separator())
+        }
+
         menu.addItem(menuItem("Start Hands-free", action: #selector(startHandsFree)))
         menu.addItem(menuItem("Cancel Dictation", action: #selector(cancelDictation)))
         menu.addItem(.separator())
@@ -81,6 +86,10 @@ final class StatusMenuController {
         Task { @MainActor in
             await coordinator.toggleHandsFreeDictation()
         }
+    }
+
+    @objc private func downloadModel() {
+        coordinator.installModel()
     }
 
     @objc private func cancelDictation() {

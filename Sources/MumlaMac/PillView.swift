@@ -80,6 +80,16 @@ struct PillView: View {
     @ViewBuilder
     private var stateGlyph: some View {
         switch coordinator.pillState {
+        case let .preparing(progress):
+            ZStack {
+                Circle()
+                    .fill(LiquidGlass.aqua.opacity(0.16))
+                ProgressView(value: progress)
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .padding(8)
+            }
+            .frame(width: 46, height: 46)
         case .listening, .handsFree:
             ZStack {
                 Circle()
@@ -150,6 +160,8 @@ struct PillView: View {
 
     private var title: String {
         switch coordinator.pillState {
+        case .preparing:
+            return "Getting ready"
         case .listening:
             return "Listening"
         case .handsFree:
@@ -165,6 +177,8 @@ struct PillView: View {
 
     private var subtitle: String? {
         switch coordinator.pillState {
+        case let .preparing(progress):
+            return "\(Int((progress * 100).rounded()))%"
         case let .listening(elapsed), let .handsFree(elapsed):
             return format(elapsed)
         case .transcribing:
