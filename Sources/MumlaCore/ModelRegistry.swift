@@ -79,5 +79,13 @@ public enum ModelRegistry {
         licenseName: "CC BY 4.0",
         attribution: "FluidInference CoreML conversion of NVIDIA Parakeet TDT v3."
     )
-}
 
+    public static let communityPianissimoCoreML = ModelDescriptor(
+        id: "markstrom/pianissimo-sv-coreml",
+        displayName: "Community Pianissimo Swedish CoreML",
+        role: .swedishDictation,
+        sourceURL: URL(string: "https://huggingface.co/markstrom/pianissimo-sv-coreml")!,
+        licenseName: "CC BY 4.0",
+        attribution: "Community CoreML conversion of KlangAI Pianissimo. Must be verified before shipping."
+    )
+}

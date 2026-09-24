@@ -30,3 +30,9 @@ What does not carry forward:
 - Watch/widgets/CarPlay/broadcast surface area for Phase 1.
 - KBWhisper naming.
 
+Additional reference repos cloned on 2026-09-24:
+
+- `/Users/bob/projects/_references/pianissimo-cli`, commit `4ac8e19`, for Klang's
+  local/offline Pianissimo CLI flow.
+- `/Users/bob/projects/_references/pianissimo-examples`, commit `1b41b76`, for
+  Klang's minimal offline NeMo example and audio-format notes.

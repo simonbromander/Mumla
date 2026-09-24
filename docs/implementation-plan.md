@@ -53,6 +53,10 @@ the model gates pass.
 - Swedish: `KlangAI/pianissimo-sv`.
 - English and first-pass multilingual routing: `nvidia/parakeet-tdt-0.6b-v3`
   using the FluidAudio CoreML path where possible.
+- First Swedish CoreML candidate to test: `markstrom/pianissimo-sv-coreml`.
+  It is small enough to be a practical Phase 0 path, but it is a community
+  conversion and must be treated as untrusted until WER, latency, load behavior,
+  and licensing metadata are verified.
 - Runtime: FluidAudio for Swift/CoreML/ANE inference.
 - Conversion/profiling: FluidAudio's mobius tooling and `coreml-cli` for
   CoreML load/performance checks.
@@ -142,4 +146,3 @@ iOS:
 - AI formatting presets from the old app.
 - Watch, widgets, CarPlay, broadcast upload, or Obsidian export before the core
   dictation product is working.
-

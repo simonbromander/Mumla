@@ -74,9 +74,12 @@ Predictions:
 
 1. Score Apple Dictation transcripts to establish the baseline.
 2. Run original Pianissimo with NeMo/PyTorch and score the same manifest.
-3. Convert Pianissimo to CoreML and score the converted build.
-4. Run FluidAudio Parakeet v3 CoreML for English and language-routing samples.
-5. Measure warm latency separately from first-load compilation and downloads.
+3. Try `markstrom/pianissimo-sv-coreml`, because a community CoreML package
+   currently exists for the same base model.
+4. Convert Pianissimo ourselves only if the community CoreML package fails
+   accuracy, latency, loading, checksum, or compatibility checks.
+5. Run FluidAudio Parakeet v3 CoreML for English and language-routing samples.
+6. Measure warm latency separately from first-load compilation and downloads.
 
 ## Required Reporting
 
@@ -90,4 +93,3 @@ Every Phase 0 run should produce:
 - peak RSS during transcription,
 - routing confusion matrix,
 - failure notes with audio clip IDs.
-
