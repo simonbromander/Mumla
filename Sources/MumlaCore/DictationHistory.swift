@@ -102,6 +102,86 @@ public final class DictationHistoryStore: @unchecked Sendable {
     }
 }
 
+public final class DictionaryStore: @unchecked Sendable {
+    private let fileURL: URL
+    private let lock = NSLock()
+
+    public init(directory: URL) {
+        self.fileURL = directory.appendingPathComponent("dictionary.json")
+    }
+
+    public static func defaultStore(fileManager: FileManager = .default) -> DictionaryStore {
+        let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return DictionaryStore(directory: base.appendingPathComponent("Mumla", isDirectory: true))
+    }
+
+    public func load() throws -> [DictionaryEntry] {
+        try lock.withLock {
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                return []
+            }
+            let data = try Data(contentsOf: fileURL)
+            return try JSONDecoder().decode([DictionaryEntry].self, from: data)
+        }
+    }
+
+    @discardableResult
+    public func add(original: String, replacement: String) throws -> [DictionaryEntry] {
+        let trimmedOriginal = original.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedReplacement = replacement.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedOriginal.isEmpty, !trimmedReplacement.isEmpty else {
+            return try load()
+        }
+
+        return try lock.withLock {
+            var entries = try loadWithoutLock()
+            entries.removeAll {
+                $0.original.caseInsensitiveCompare(trimmedOriginal) == .orderedSame
+            }
+            entries.insert(
+                DictionaryEntry(original: trimmedOriginal, replacement: trimmedReplacement),
+                at: 0
+            )
+            try saveWithoutLock(entries)
+            return entries
+        }
+    }
+
+    @discardableResult
+    public func delete(id: UUID) throws -> [DictionaryEntry] {
+        try lock.withLock {
+            var entries = try loadWithoutLock()
+            entries.removeAll { $0.id == id }
+            try saveWithoutLock(entries)
+            return entries
+        }
+    }
+
+    public func replaceAll(_ entries: [DictionaryEntry]) throws {
+        try lock.withLock {
+            try saveWithoutLock(entries)
+        }
+    }
+
+    private func loadWithoutLock() throws -> [DictionaryEntry] {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return []
+        }
+        let data = try Data(contentsOf: fileURL)
+        return try JSONDecoder().decode([DictionaryEntry].self, from: data)
+    }
+
+    private func saveWithoutLock(_ entries: [DictionaryEntry]) throws {
+        let data = try JSONEncoder.prettyMumla.encode(entries)
+        try FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try data.write(to: fileURL, options: .atomic)
+    }
+}
+
 private extension JSONEncoder {
     static var prettyMumla: JSONEncoder {
         let encoder = JSONEncoder()

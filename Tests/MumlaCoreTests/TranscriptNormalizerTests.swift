@@ -21,5 +21,15 @@ final class TranscriptNormalizerTests: XCTestCase {
             "Vi kör Kubernetes idag"
         )
     }
-}
 
+    func testBuildsDictionaryFromEntries() {
+        let normalizer = TranscriptNormalizer(dictionaryEntries: [
+            DictionaryEntry(original: "Mummla", replacement: "Mumla")
+        ])
+
+        XCTAssertEqual(
+            normalizer.normalize("Mummla skriver svenska", language: .swedish),
+            "Mumla skriver svenska"
+        )
+    }
+}

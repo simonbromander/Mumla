@@ -17,4 +17,22 @@ final class DictationHistoryStoreTests: XCTestCase {
 
         try? FileManager.default.removeItem(at: directory)
     }
+
+    func testDictionaryStoreAddsReplacesAndDeletesEntries() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MumlaDictionaryStoreTests-\(UUID().uuidString)", isDirectory: true)
+        let store = DictionaryStore(directory: directory)
+
+        var entries = try store.add(original: "Kubernetis", replacement: "Kubernetes")
+        XCTAssertEqual(entries.map(\.replacement), ["Kubernetes"])
+
+        entries = try store.add(original: "kubernetis", replacement: "Kubernetes")
+        XCTAssertEqual(entries.count, 1)
+
+        entries = try store.delete(id: entries[0].id)
+        XCTAssertTrue(entries.isEmpty)
+        XCTAssertTrue(try store.load().isEmpty)
+
+        try? FileManager.default.removeItem(at: directory)
+    }
 }

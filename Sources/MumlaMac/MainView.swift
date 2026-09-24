@@ -4,6 +4,8 @@ import SwiftUI
 struct MainView: View {
     @ObservedObject var coordinator: AppCoordinator
     @State private var selection: MainSection = .history
+    @State private var dictionaryOriginal = ""
+    @State private var dictionaryReplacement = ""
 
     var body: some View {
         ZStack {
@@ -105,32 +107,36 @@ struct MainView: View {
 
     private var dictionaryView: some View {
         GlassPane(title: "Dictionary", subtitle: "\(coordinator.dictionaryEntries.count) learned") {
-            ScrollView {
-                LazyVStack(spacing: 10) {
-                    if coordinator.dictionaryEntries.isEmpty {
-                        EmptyGlassState(systemName: "text.badge.plus", title: "No learned words")
-                            .frame(maxWidth: .infinity, minHeight: 290)
-                    } else {
-                        ForEach(coordinator.dictionaryEntries) { entry in
-                            HStack(spacing: 12) {
-                                Text(entry.original)
-                                    .foregroundStyle(.secondary)
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(LiquidGlass.aqua)
-                                Text(entry.replacement)
-                                    .fontWeight(.semibold)
-                                Spacer()
+            VStack(spacing: 12) {
+                DictionaryEntryEditor(
+                    original: $dictionaryOriginal,
+                    replacement: $dictionaryReplacement
+                ) {
+                    coordinator.addDictionaryEntry(
+                        original: dictionaryOriginal,
+                        replacement: dictionaryReplacement
+                    )
+                    dictionaryOriginal = ""
+                    dictionaryReplacement = ""
+                }
+
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        if coordinator.dictionaryEntries.isEmpty {
+                            EmptyGlassState(systemName: "text.badge.plus", title: "No learned words")
+                                .frame(maxWidth: .infinity, minHeight: 254)
+                        } else {
+                            ForEach(coordinator.dictionaryEntries) { entry in
+                                DictionaryEntryRow(entry: entry) {
+                                    coordinator.deleteDictionaryEntry(entry)
+                                }
                             }
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
-                            .padding(14)
-                            .liquidGlass(cornerRadius: 16)
                         }
                     }
+                    .padding(4)
                 }
-                .padding(4)
+                .scrollIndicators(.hidden)
             }
-            .scrollIndicators(.hidden)
         }
     }
 
@@ -355,6 +361,103 @@ private struct HistoryRow: View {
         .contextMenu {
             Button("Paste Again", action: paste)
         }
+    }
+}
+
+private struct DictionaryEntryEditor: View {
+    @Binding var original: String
+    @Binding var replacement: String
+    var add: () -> Void
+
+    private var canAdd: Bool {
+        !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            GlassTextField(title: "Original", text: $original)
+
+            Image(systemName: "arrow.right")
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(LiquidGlass.aqua)
+                .frame(width: 20)
+
+            GlassTextField(title: "Replacement", text: $replacement)
+
+            Button(action: add) {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .heavy))
+            }
+            .buttonStyle(.plain)
+            .liquidControl(selected: canAdd, cornerRadius: 14)
+            .disabled(!canAdd)
+            .opacity(canAdd ? 1 : 0.48)
+            .help("Add")
+        }
+        .padding(12)
+        .liquidGlass(cornerRadius: 20)
+    }
+}
+
+private struct DictionaryEntryRow: View {
+    var entry: DictionaryEntry
+    var delete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(entry.original)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Image(systemName: "arrow.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(LiquidGlass.aqua)
+
+            Text(entry.replacement)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer(minLength: 12)
+
+            Button(action: delete) {
+                Image(systemName: "trash")
+                    .font(.system(size: 12, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .liquidControl(cornerRadius: 14)
+            .help("Delete")
+        }
+        .font(.system(size: 14, weight: .medium, design: .rounded))
+        .padding(14)
+        .liquidGlass(cornerRadius: 16)
+    }
+}
+
+private struct GlassTextField: View {
+    var title: String
+    @Binding var text: String
+
+    var body: some View {
+        TextField(title, text: $text)
+            .textFieldStyle(.plain)
+            .font(.system(size: 13, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.white.opacity(0.08))
+                    )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.white.opacity(0.28), lineWidth: 1)
+            }
     }
 }
 

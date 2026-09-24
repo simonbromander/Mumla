@@ -22,8 +22,8 @@ final class AppCoordinator: ObservableObject {
     private var transcriber: LocalPianissimoTranscriber?
     private let modelInstaller: ModelInstaller
     private let historyStore: DictationHistoryStore
+    private let dictionaryStore: DictionaryStore
     private let inserter = ClipboardTextInserter()
-    private let normalizer = TranscriptNormalizer()
 
     private var activeMode: RecordingMode?
     private var recordingStartedAt: Date?
@@ -35,17 +35,20 @@ final class AppCoordinator: ObservableObject {
         transcriber: LocalPianissimoTranscriber?,
         modelInstaller: ModelInstaller = ModelInstaller(),
         historyStore: DictationHistoryStore,
+        dictionaryStore: DictionaryStore,
         modelDirectory: URL?
     ) {
         self.recorder = recorder
         self.transcriber = transcriber
         self.modelInstaller = modelInstaller
         self.historyStore = historyStore
+        self.dictionaryStore = dictionaryStore
         self.modelDirectory = modelDirectory
     }
 
     func bootstrap() {
         history = (try? historyStore.load()) ?? []
+        dictionaryEntries = (try? dictionaryStore.load()) ?? []
         statusText = modelDirectory == nil ? "Model missing" : "Ready"
     }
 
@@ -109,7 +112,7 @@ final class AppCoordinator: ObservableObject {
                 return
             }
 
-            let text = normalizer.normalize(rawText, language: selectedLanguage)
+            let text = currentNormalizer.normalize(rawText, language: selectedLanguage)
             guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 pillState = .message("Didn't catch that")
                 scheduleHidePill()
@@ -157,6 +160,24 @@ final class AppCoordinator: ObservableObject {
 
     func setLanguageMode(_ mode: LanguageMode) {
         languageMode = mode
+    }
+
+    func addDictionaryEntry(original: String, replacement: String) {
+        do {
+            dictionaryEntries = try dictionaryStore.add(original: original, replacement: replacement)
+            statusText = "Dictionary updated"
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    func deleteDictionaryEntry(_ entry: DictionaryEntry) {
+        do {
+            dictionaryEntries = try dictionaryStore.delete(id: entry.id)
+            statusText = "Dictionary updated"
+        } catch {
+            showError(error.localizedDescription)
+        }
     }
 
     func installModel() {
@@ -221,6 +242,10 @@ final class AppCoordinator: ObservableObject {
         case .english:
             return .english
         }
+    }
+
+    private var currentNormalizer: TranscriptNormalizer {
+        TranscriptNormalizer(dictionaryEntries: dictionaryEntries)
     }
 
     private func startDictation(mode: RecordingMode) async {

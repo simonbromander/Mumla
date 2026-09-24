@@ -19,6 +19,15 @@ public struct TranscriptNormalizer: Sendable {
         self.removesFillers = removesFillers
     }
 
+    public init(dictionaryEntries: [DictionaryEntry], removesFillers: Bool = true) {
+        self.init(
+            dictionary: dictionaryEntries.map {
+                DictionaryReplacement(source: $0.original, replacement: $0.replacement)
+            },
+            removesFillers: removesFillers
+        )
+    }
+
     public func normalize(_ transcript: String, language: MumlaLanguage) -> String {
         let replaced = applyDictionary(to: transcript)
         guard removesFillers else {
@@ -81,4 +90,3 @@ public struct TranscriptNormalizer: Sendable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
-

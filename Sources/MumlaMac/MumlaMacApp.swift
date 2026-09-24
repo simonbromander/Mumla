@@ -31,6 +31,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             transcriber: transcriber,
             modelInstaller: ModelInstaller(),
             historyStore: historyStore,
+            dictionaryStore: .defaultStore(),
             modelDirectory: modelDirectory
         )
         pillWindowController = PillWindowController(coordinator: coordinator)
