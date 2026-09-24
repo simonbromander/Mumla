@@ -125,12 +125,17 @@ Current implementation status:
 
 - macOS app shell, glass pill, menu bar, microphone recording, local transcriber
   adapter, paste/clipboard restore, and history are in place.
+- A first-launch five-step Liquid Glass onboarding flow is in place for value,
+  microphone, Accessibility, practice, and done. App settings persist locally,
+  including onboarding completion and language mode.
+- Dictionary entries persist locally, can be managed in the app, and are applied
+  as deterministic replacements during transcript normalization.
 - Model install is now native: the app can download the pinned Pianissimo CoreML
   artifact, resume partial files, verify checksums, and compile the CoreML
   packages into Application Support.
-- Remaining Phase 1 gaps include onboarding, automatic live language routing,
-  edit-learning dictionary observation, secure-field guards, launch-at-login,
-  and release signing/notarization.
+- Remaining Phase 1 gaps include automatic live language routing, edit-learning
+  dictionary observation, secure-field guards, launch-at-login, and release
+  signing/notarization.
 
 ## Phase 2 Scope
 

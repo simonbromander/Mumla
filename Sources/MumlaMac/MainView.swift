@@ -19,8 +19,14 @@ struct MainView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .padding(18)
+
+            if coordinator.isOnboardingVisible {
+                OnboardingOverlay(coordinator: coordinator)
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+            }
         }
         .frame(minWidth: 760, minHeight: 520)
+        .animation(.snappy(duration: 0.24), value: coordinator.isOnboardingVisible)
     }
 
     private var sidebar: some View {
@@ -175,6 +181,14 @@ struct MainView: View {
 
                 SettingsGlassRow(title: "Model", value: coordinator.modelDirectory == nil ? "Not staged" : "Ready") {
                     modelAccessory
+                }
+
+                SettingsGlassRow(title: "Onboarding", value: coordinator.settings.onboardingCompleted ? "Done" : "Not finished") {
+                    Button("Replay") {
+                        coordinator.showOnboarding()
+                    }
+                    .buttonStyle(.borderless)
+                    .liquidControl()
                 }
 
                 SettingsGlassRow(title: "Status", value: coordinator.statusText) {
@@ -388,6 +402,129 @@ private struct HistoryRow: View {
     }
 }
 
+private struct OnboardingOverlay: View {
+    @ObservedObject var coordinator: AppCoordinator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.black.opacity(0.12))
+                .ignoresSafeArea()
+                .accessibilityHidden(true)
+
+            VStack(spacing: 22) {
+                HStack {
+                    OnboardingDots(step: coordinator.onboardingStep)
+                    Spacer()
+                    Text("\(coordinator.onboardingStep.rawValue + 1) of \(OnboardingStep.allCases.count)")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .overlay(Circle().fill(LiquidGlass.aqua.opacity(0.14)))
+                    Image(systemName: coordinator.onboardingStep.systemName)
+                        .font(.system(size: 27, weight: .bold))
+                        .foregroundStyle(LiquidGlass.aqua)
+                }
+                .frame(width: 82, height: 82)
+                .overlay {
+                    Circle().stroke(Color.white.opacity(0.42), lineWidth: 1)
+                }
+
+                VStack(spacing: 7) {
+                    Text(coordinator.onboardingStep.title)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                    Text(coordinator.onboardingStep.subtitle)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(spacing: 10) {
+                    if coordinator.onboardingStep.previous != nil {
+                        Button {
+                            coordinator.retreatOnboarding()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 12, weight: .heavy))
+                        }
+                        .buttonStyle(.plain)
+                        .liquidControl(cornerRadius: 14)
+                        .help("Back")
+                    }
+
+                    Button {
+                        primaryAction()
+                    } label: {
+                        Label(coordinator.onboardingStep.primaryTitle, systemImage: coordinator.onboardingStep.primarySystemName)
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .frame(minWidth: 164)
+                    }
+                    .buttonStyle(.plain)
+                    .liquidControl(selected: true, cornerRadius: 16)
+
+                    Button {
+                        coordinator.completeOnboarding()
+                    } label: {
+                        Text("Skip")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                    }
+                    .buttonStyle(.plain)
+                    .liquidControl(cornerRadius: 16)
+                }
+            }
+            .padding(28)
+            .frame(width: 470)
+            .liquidGlass(cornerRadius: 32, prominent: true)
+            .shadow(color: LiquidGlass.aqua.opacity(0.16), radius: 28, y: 14)
+            .accessibilityElement(children: .contain)
+        }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.24), value: coordinator.onboardingStep)
+    }
+
+    private func primaryAction() {
+        switch coordinator.onboardingStep {
+        case .value:
+            coordinator.advanceOnboarding()
+        case .microphone:
+            Task { @MainActor in
+                await coordinator.requestMicrophonePermission()
+                coordinator.advanceOnboarding()
+            }
+        case .accessibility:
+            coordinator.requestAccessibilityPermission()
+            coordinator.advanceOnboarding()
+        case .practice:
+            coordinator.showPracticePill()
+            coordinator.advanceOnboarding()
+        case .done:
+            coordinator.completeOnboarding()
+        }
+    }
+}
+
+private struct OnboardingDots: View {
+    var step: OnboardingStep
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(OnboardingStep.allCases, id: \.self) { candidate in
+                Capsule(style: .continuous)
+                    .fill(candidate.rawValue <= step.rawValue ? LiquidGlass.aqua : Color.white.opacity(0.24))
+                    .frame(width: candidate == step ? 18 : 6, height: 6)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 private struct DictionaryEntryEditor: View {
     @Binding var original: String
     @Binding var replacement: String
@@ -482,6 +619,81 @@ private struct GlassTextField: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(Color.white.opacity(0.28), lineWidth: 1)
             }
+    }
+}
+
+private extension OnboardingStep {
+    var title: String {
+        switch self {
+        case .value:
+            return "Mumla"
+        case .microphone:
+            return "Microphone"
+        case .accessibility:
+            return "Type Anywhere"
+        case .practice:
+            return "Practice"
+        case .done:
+            return "Ready"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .value:
+            return "Private Swedish and English dictation, processed on this Mac."
+        case .microphone:
+            return "Allow the microphone before Mumla listens."
+        case .accessibility:
+            return "Allow Accessibility so Mumla can paste into the active app and restore the clipboard."
+        case .practice:
+            return "Show the floating pill, then try holding Ctrl in any text field."
+        case .done:
+            return "Mumla now lives in the menu bar."
+        }
+    }
+
+    var systemName: String {
+        switch self {
+        case .value:
+            return "waveform"
+        case .microphone:
+            return "mic"
+        case .accessibility:
+            return "cursorarrow.rays"
+        case .practice:
+            return "capsule.portrait"
+        case .done:
+            return "checkmark"
+        }
+    }
+
+    var primaryTitle: String {
+        switch self {
+        case .value:
+            return "Continue"
+        case .microphone:
+            return "Allow"
+        case .accessibility:
+            return "Open Settings"
+        case .practice:
+            return "Show Pill"
+        case .done:
+            return "Start"
+        }
+    }
+
+    var primarySystemName: String {
+        switch self {
+        case .value, .done:
+            return "arrow.right"
+        case .microphone:
+            return "mic"
+        case .accessibility:
+            return "gearshape"
+        case .practice:
+            return "sparkle.magnifyingglass"
+        }
     }
 }
 

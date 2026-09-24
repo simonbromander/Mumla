@@ -9,6 +9,9 @@ final class AppCoordinator: ObservableObject {
     @Published var history: [DictationRecord] = []
     @Published var dictionaryEntries: [DictionaryEntry] = []
     @Published var languageMode: LanguageMode = .automatic
+    @Published var settings: AppSettings = .default
+    @Published var isOnboardingVisible = false
+    @Published var onboardingStep: OnboardingStep = .value
     @Published var modelDirectory: URL?
     @Published var modelInstallProgress: ModelInstallProgress = .idle
     @Published var statusText: String = "Ready"
@@ -23,6 +26,7 @@ final class AppCoordinator: ObservableObject {
     private let modelInstaller: ModelInstaller
     private let historyStore: DictationHistoryStore
     private let dictionaryStore: DictionaryStore
+    private let settingsStore: AppSettingsStore
     private let inserter = ClipboardTextInserter()
 
     private var activeMode: RecordingMode?
@@ -36,6 +40,7 @@ final class AppCoordinator: ObservableObject {
         modelInstaller: ModelInstaller = ModelInstaller(),
         historyStore: DictationHistoryStore,
         dictionaryStore: DictionaryStore,
+        settingsStore: AppSettingsStore,
         modelDirectory: URL?
     ) {
         self.recorder = recorder
@@ -43,13 +48,22 @@ final class AppCoordinator: ObservableObject {
         self.modelInstaller = modelInstaller
         self.historyStore = historyStore
         self.dictionaryStore = dictionaryStore
+        self.settingsStore = settingsStore
         self.modelDirectory = modelDirectory
     }
 
     func bootstrap() {
+        settings = (try? settingsStore.load()) ?? .default
+        languageMode = settings.languageMode
         history = (try? historyStore.load()) ?? []
         dictionaryEntries = (try? dictionaryStore.load()) ?? []
         statusText = modelDirectory == nil ? "Model missing" : "Ready"
+
+        if !settings.onboardingCompleted {
+            isOnboardingVisible = true
+            onboardingStep = .value
+            showMainWindow?()
+        }
     }
 
     var isInstallingModel: Bool {
@@ -160,6 +174,8 @@ final class AppCoordinator: ObservableObject {
 
     func setLanguageMode(_ mode: LanguageMode) {
         languageMode = mode
+        settings.languageMode = mode
+        persistSettings()
     }
 
     func addDictionaryEntry(original: String, replacement: String) {
@@ -178,6 +194,39 @@ final class AppCoordinator: ObservableObject {
         } catch {
             showError(error.localizedDescription)
         }
+    }
+
+    func showOnboarding() {
+        onboardingStep = .value
+        isOnboardingVisible = true
+        showMainWindow?()
+    }
+
+    func advanceOnboarding() {
+        guard let next = onboardingStep.next else {
+            completeOnboarding()
+            return
+        }
+        onboardingStep = next
+    }
+
+    func retreatOnboarding() {
+        if let previous = onboardingStep.previous {
+            onboardingStep = previous
+        }
+    }
+
+    func completeOnboarding() {
+        settings.onboardingCompleted = true
+        persistSettings()
+        isOnboardingVisible = false
+        statusText = modelDirectory == nil ? "Model missing" : "Ready"
+    }
+
+    func showPracticePill() {
+        pillState = .message("Hold Ctrl to dictate")
+        showPill?()
+        scheduleHidePill()
     }
 
     func installModel() {
@@ -246,6 +295,14 @@ final class AppCoordinator: ObservableObject {
 
     private var currentNormalizer: TranscriptNormalizer {
         TranscriptNormalizer(dictionaryEntries: dictionaryEntries)
+    }
+
+    private func persistSettings() {
+        do {
+            try settingsStore.save(settings)
+        } catch {
+            statusText = "Settings save failed"
+        }
     }
 
     private func startDictation(mode: RecordingMode) async {
@@ -326,6 +383,22 @@ enum PillState: Equatable {
     case handsFree(elapsedSeconds: TimeInterval)
     case transcribing
     case message(String)
+}
+
+enum OnboardingStep: Int, CaseIterable {
+    case value
+    case microphone
+    case accessibility
+    case practice
+    case done
+
+    var next: OnboardingStep? {
+        OnboardingStep(rawValue: rawValue + 1)
+    }
+
+    var previous: OnboardingStep? {
+        OnboardingStep(rawValue: rawValue - 1)
+    }
 }
 
 private extension ModelInstallProgress {
