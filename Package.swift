@@ -25,6 +25,7 @@ let package = Package(
         .executableTarget(
             name: "MumlaModelProbe",
             dependencies: [
+                "MumlaCore",
                 .product(name: "FluidAudio", package: "FluidAudio")
             ]
         ),

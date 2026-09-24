@@ -41,6 +41,7 @@ python3 scripts/stage_coreml_artifact.py ModelCache/markstrom-pianissimo-sv-core
 swift run mumla-model-probe load ModelCache/markstrom-pianissimo-sv-coreml-compiled
 swift run mumla-model-probe transcribe ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/audio.wav --language sv
 swift run mumla-model-probe transcribe ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/audio.wav --language sv --json --json-output /tmp/mumla-predictions.json
+swift run mumla-model-probe transcribe-manifest ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/phase0-manifest.json --json-output /tmp/mumla-predictions.json --language expected
 ```
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) and

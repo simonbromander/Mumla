@@ -27,6 +27,7 @@ swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pian
 python3 scripts/stage_coreml_artifact.py ModelCache/markstrom-pianissimo-sv-coreml ModelCache/markstrom-pianissimo-sv-coreml-compiled --force
 swift run mumla-model-probe load ModelCache/markstrom-pianissimo-sv-coreml-compiled
 swift run mumla-model-probe transcribe ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/audio.wav --language sv --json --json-output /tmp/mumla-predictions.json
+swift run mumla-model-probe transcribe-manifest ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/phase0-manifest.json --json-output /tmp/mumla-predictions.json --language expected
 ```
 
 ## Private Dataset Layout
@@ -99,6 +100,11 @@ so `scripts/stage_coreml_artifact.py` performs that compile step with
 transcribe a single clip. Use `--json-output` to write a clean prediction file
 for the existing scorer; runtime logs may still appear on stdout.
 
+For dataset runs, use `transcribe-manifest`. It loads the model once, validates
+the manifest, transcribes each clip, and writes scorer-compatible predictions.
+The default `--language expected` mode uses each clip's manifest language as the
+FluidAudio hint; use fixed `sv` or `en` only for targeted experiments.
+
 ## Required Reporting
 
 Every Phase 0 run should produce:
@@ -131,6 +137,8 @@ Every Phase 0 run should produce:
   `1. Stockholm är Sveriges huvudstad. 2. Göteborg ligger på västkusten. 3. Malmö ligger i Skåne. 4. Uppsala har ett gammalt universitet.`
 - Scorer compatibility: passed with temporary one-clip manifest, 0.00% WER,
   141 ms transcription latency, 100% language accuracy.
+- Manifest runner: passed on the same temporary one-clip manifest. The runner
+  loaded the model once, wrote prediction JSON, and scored 0.00% WER.
 
 This is not an owner-dataset Phase 0 result. It only proves artifact integrity,
 CoreML compilation, FluidAudio loading, inference, and scorer handoff.
