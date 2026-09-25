@@ -5,6 +5,7 @@ DerivedData/
 *.xcuserdata/
 *.xcuserstate
 *.xcresult
+fastlane/report.xml
 build/
 dist/
 Models/
