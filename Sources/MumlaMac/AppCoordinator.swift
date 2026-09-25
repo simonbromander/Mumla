@@ -123,16 +123,23 @@ final class AppCoordinator: ObservableObject {
         showPill?()
 
         do {
+            let durationSeconds = durationMilliseconds.map { $0 / 1000 }
+            let initialLanguage = initialTranscriptionLanguage(durationSeconds: durationSeconds)
             let rawText: String
             if let transcriber {
-                let result = try await transcriber.transcribe(audioURL: audioURL, language: selectedLanguage)
+                let result = try await transcriber.transcribe(audioURL: audioURL, language: initialLanguage)
                 rawText = result.text
             } else {
                 showError("Download model first")
                 return
             }
 
-            let text = currentNormalizer.normalize(rawText, language: selectedLanguage)
+            let resolvedLanguage = resolvedLanguage(
+                for: rawText,
+                initialLanguage: initialLanguage,
+                durationSeconds: durationSeconds
+            )
+            let text = currentNormalizer.normalize(rawText, language: resolvedLanguage)
             guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 pillState = .message("Didn't catch that")
                 scheduleHidePill()
@@ -141,10 +148,11 @@ final class AppCoordinator: ObservableObject {
 
             let record = DictationRecord(
                 text: text,
-                language: selectedLanguage,
+                language: resolvedLanguage,
                 durationMilliseconds: durationMilliseconds
             )
             history = try historyStore.append(record)
+            updateLastLanguage(resolvedLanguage)
 
             let insertion = inserter.insert(text)
             switch insertion {
@@ -306,13 +314,50 @@ final class AppCoordinator: ObservableObject {
         }
     }
 
-    private var selectedLanguage: MumlaLanguage {
+    private func initialTranscriptionLanguage(durationSeconds: Double?) -> MumlaLanguage {
         switch languageMode {
-        case .automatic, .swedish:
+        case .swedish:
             return .swedish
         case .english:
             return .english
+        case .automatic:
+            if let durationSeconds, durationSeconds < 2 {
+                return settings.lastLanguage
+            }
+            return .swedish
         }
+    }
+
+    private func resolvedLanguage(
+        for transcript: String,
+        initialLanguage: MumlaLanguage,
+        durationSeconds: Double?
+    ) -> MumlaLanguage {
+        switch languageMode {
+        case .swedish:
+            return .swedish
+        case .english:
+            return .english
+        case .automatic:
+            let decision = LanguageRouter.route(
+                LanguageRoutingInput(
+                    durationSeconds: durationSeconds ?? 0,
+                    mode: .automatic,
+                    lastLanguage: settings.lastLanguage,
+                    appleDetection: AppleTextLanguageRecognizer.detect(transcript)
+                )
+            )
+            if decision.reason == .fallbackToLastLanguage {
+                return initialLanguage
+            }
+            return decision.language
+        }
+    }
+
+    private func updateLastLanguage(_ language: MumlaLanguage) {
+        guard settings.lastLanguage != language else { return }
+        settings.lastLanguage = language
+        persistSettings()
     }
 
     private var currentNormalizer: TranscriptNormalizer {

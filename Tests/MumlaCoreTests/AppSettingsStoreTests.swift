@@ -19,6 +19,7 @@ final class AppSettingsStoreTests: XCTestCase {
         let store = AppSettingsStore(directory: directory)
         let settings = AppSettings(
             languageMode: .swedish,
+            lastLanguage: .english,
             soundFeedbackEnabled: false,
             launchAtLogin: true,
             onboardingCompleted: true
@@ -29,5 +30,21 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertEqual(try store.load(), settings)
 
         try? FileManager.default.removeItem(at: directory)
+    }
+
+    func testDecodesLegacySettingsWithDefaultsForNewFields() throws {
+        let data = Data("""
+        {
+          "languageMode": "auto",
+          "soundFeedbackEnabled": true,
+          "launchAtLogin": false,
+          "onboardingCompleted": true
+        }
+        """.utf8)
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(settings.lastLanguage, .swedish)
+        XCTAssertTrue(settings.onboardingCompleted)
     }
 }

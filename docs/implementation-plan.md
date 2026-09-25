@@ -134,11 +134,14 @@ Current implementation status:
   focus falls back to copying text to the clipboard instead of blindly pasting.
 - Launch-at-login is wired through `SMAppService.mainApp`, with Settings showing
   the current OS status including "Needs approval".
+- Auto language mode now persists the last resolved language, uses it for short
+  clips, and runs Apple's text language recognizer after transcription. The full
+  Parakeet first-pass router is still a remaining model-integration step.
 - Model install is now native: the app can download the pinned Pianissimo CoreML
   artifact, resume partial files, verify checksums, and compile the CoreML
   packages into Application Support.
-- Remaining Phase 1 gaps include automatic live language routing, edit-learning
-  dictionary observation, and release signing/notarization.
+- Remaining Phase 1 gaps include Parakeet first-pass language routing,
+  edit-learning dictionary observation, and release signing/notarization.
 
 ## Phase 2 Scope
 

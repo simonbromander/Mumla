@@ -2,23 +2,43 @@ import Foundation
 
 public struct AppSettings: Codable, Equatable, Sendable {
     public var languageMode: LanguageMode
+    public var lastLanguage: MumlaLanguage
     public var soundFeedbackEnabled: Bool
     public var launchAtLogin: Bool
     public var onboardingCompleted: Bool
 
     public init(
         languageMode: LanguageMode = .automatic,
+        lastLanguage: MumlaLanguage = .swedish,
         soundFeedbackEnabled: Bool = true,
         launchAtLogin: Bool = false,
         onboardingCompleted: Bool = false
     ) {
         self.languageMode = languageMode
+        self.lastLanguage = lastLanguage
         self.soundFeedbackEnabled = soundFeedbackEnabled
         self.launchAtLogin = launchAtLogin
         self.onboardingCompleted = onboardingCompleted
     }
 
     public static let `default` = AppSettings()
+
+    private enum CodingKeys: String, CodingKey {
+        case languageMode
+        case lastLanguage
+        case soundFeedbackEnabled
+        case launchAtLogin
+        case onboardingCompleted
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        languageMode = try container.decodeIfPresent(LanguageMode.self, forKey: .languageMode) ?? .automatic
+        lastLanguage = try container.decodeIfPresent(MumlaLanguage.self, forKey: .lastLanguage) ?? .swedish
+        soundFeedbackEnabled = try container.decodeIfPresent(Bool.self, forKey: .soundFeedbackEnabled) ?? true
+        launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
+        onboardingCompleted = try container.decodeIfPresent(Bool.self, forKey: .onboardingCompleted) ?? false
+    }
 }
 
 public final class AppSettingsStore: @unchecked Sendable {
