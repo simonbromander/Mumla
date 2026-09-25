@@ -134,6 +134,10 @@ Current implementation status:
   corrections become dictionary candidates only after two occurrences, while
   deletions, multi-word rewrites, distant replacements, and digit words are
   ignored.
+- After successful insertion, Mumla now samples the focused editable field,
+  checks it again after the correction window, and feeds changes into the
+  correction learner. Learned words are added to the persistent dictionary and
+  surfaced through the pill.
 - Secure text fields are guarded at dictation start and insertion time. Non-text
   focus falls back to copying text to the clipboard instead of blindly pasting.
 - Launch-at-login is wired through `SMAppService.mainApp`, with Settings showing
@@ -145,8 +149,7 @@ Current implementation status:
   artifact, resume partial files, verify checksums, and compile the CoreML
   packages into Application Support.
 - Remaining Phase 1 gaps include Parakeet first-pass language routing,
-  Accessibility-based edit observation for the correction learner, and release
-  signing/notarization.
+  the learned-word Undo affordance, and release signing/notarization.
 
 ## Phase 2 Scope
 

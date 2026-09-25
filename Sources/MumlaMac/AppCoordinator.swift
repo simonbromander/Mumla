@@ -29,6 +29,8 @@ final class AppCoordinator: ObservableObject {
     private let dictionaryStore: DictionaryStore
     private let settingsStore: AppSettingsStore
     private let inserter = ClipboardTextInserter()
+    private let correctionLearner = CorrectionLearner()
+    private let editObserver = FocusedFieldEditObserver()
 
     private var activeMode: RecordingMode?
     private var recordingStartedAt: Date?
@@ -159,6 +161,7 @@ final class AppCoordinator: ObservableObject {
             case .inserted:
                 pillState = .message("Inserted")
                 statusText = "Last dictation ready"
+                watchForCorrectionLearning()
             case .copied:
                 pillState = .message("Copied - Command-V to paste")
                 statusText = "Copied to clipboard"
@@ -369,6 +372,24 @@ final class AppCoordinator: ObservableObject {
             try settingsStore.save(settings)
         } catch {
             statusText = "Settings save failed"
+        }
+    }
+
+    private func watchForCorrectionLearning() {
+        editObserver.start(learner: correctionLearner) { [weak self] entry in
+            guard let self else { return }
+            do {
+                self.dictionaryEntries = try self.dictionaryStore.add(
+                    original: entry.original,
+                    replacement: entry.replacement
+                )
+                self.statusText = "Learned \(entry.replacement)"
+                self.pillState = .message("Learned \(entry.replacement)")
+                self.showPill?()
+                self.scheduleHidePill()
+            } catch {
+                self.statusText = "Dictionary update failed"
+            }
         }
     }
 
