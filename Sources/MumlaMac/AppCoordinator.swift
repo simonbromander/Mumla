@@ -144,10 +144,14 @@ final class AppCoordinator: ObservableObject {
             switch insertion {
             case .inserted:
                 pillState = .message("Inserted")
+                statusText = "Last dictation ready"
             case .copied:
                 pillState = .message("Copied - Command-V to paste")
+                statusText = "Copied to clipboard"
+            case .blockedSecureField:
+                pillState = .message("Secure field")
+                statusText = "Secure field blocked"
             }
-            statusText = "Last dictation ready"
             scheduleHidePill()
         } catch {
             showError(error.localizedDescription)
@@ -307,6 +311,11 @@ final class AppCoordinator: ObservableObject {
 
     private func startDictation(mode: RecordingMode) async {
         guard activeMode == nil else { return }
+
+        if FocusedTextTargetInspector.inspect() == .secureText {
+            statusText = "Secure input active"
+            return
+        }
 
         guard transcriber != nil else {
             if isInstallingModel {

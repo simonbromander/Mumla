@@ -10,6 +10,17 @@ final class ClipboardTextInserter {
             return .copied
         }
 
+        switch FocusedTextTargetInspector.inspect() {
+        case .secureText:
+            return .blockedSecureField
+        case .nonText:
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+            return .copied
+        case .editableText, .unknown:
+            break
+        }
+
         let snapshot = ClipboardSnapshot.capture()
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
@@ -38,6 +49,7 @@ final class ClipboardTextInserter {
 enum ClipboardInsertionResult {
     case inserted
     case copied
+    case blockedSecureField
 }
 
 private struct ClipboardSnapshot {
