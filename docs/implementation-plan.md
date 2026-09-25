@@ -130,6 +130,10 @@ Current implementation status:
   including onboarding completion and language mode.
 - Dictionary entries persist locally, can be managed in the app, and are applied
   as deterministic replacements during transcript normalization.
+- The correction-learning core is implemented and tested: single close word
+  corrections become dictionary candidates only after two occurrences, while
+  deletions, multi-word rewrites, distant replacements, and digit words are
+  ignored.
 - Secure text fields are guarded at dictation start and insertion time. Non-text
   focus falls back to copying text to the clipboard instead of blindly pasting.
 - Launch-at-login is wired through `SMAppService.mainApp`, with Settings showing
@@ -141,7 +145,8 @@ Current implementation status:
   artifact, resume partial files, verify checksums, and compile the CoreML
   packages into Application Support.
 - Remaining Phase 1 gaps include Parakeet first-pass language routing,
-  edit-learning dictionary observation, and release signing/notarization.
+  Accessibility-based edit observation for the correction learner, and release
+  signing/notarization.
 
 ## Phase 2 Scope
 
