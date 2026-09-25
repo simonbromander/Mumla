@@ -12,6 +12,7 @@ final class AppCoordinator: ObservableObject {
     @Published var settings: AppSettings = .default
     @Published var isOnboardingVisible = false
     @Published var onboardingStep: OnboardingStep = .value
+    @Published var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
     @Published var modelDirectory: URL?
     @Published var modelInstallProgress: ModelInstallProgress = .idle
     @Published var statusText: String = "Ready"
@@ -55,6 +56,7 @@ final class AppCoordinator: ObservableObject {
     func bootstrap() {
         settings = (try? settingsStore.load()) ?? .default
         languageMode = settings.languageMode
+        refreshLaunchAtLoginStatus()
         history = (try? historyStore.load()) ?? []
         dictionaryEntries = (try? dictionaryStore.load()) ?? []
         statusText = modelDirectory == nil ? "Model missing" : "Ready"
@@ -68,6 +70,10 @@ final class AppCoordinator: ObservableObject {
 
     var isInstallingModel: Bool {
         modelInstallTask != nil
+    }
+
+    var isLaunchAtLoginRequested: Bool {
+        launchAtLoginStatus.isRequested
     }
 
     func requestMicrophonePermission() async {
@@ -180,6 +186,18 @@ final class AppCoordinator: ObservableObject {
         languageMode = mode
         settings.languageMode = mode
         persistSettings()
+    }
+
+    func setLaunchAtLoginEnabled(_ isEnabled: Bool) {
+        do {
+            launchAtLoginStatus = try LaunchAtLoginController.setEnabled(isEnabled)
+            settings.launchAtLogin = launchAtLoginStatus.isRequested
+            persistSettings()
+            statusText = launchAtLoginStatus == .requiresApproval ? "Approve in System Settings" : "Launch at login \(launchAtLoginStatus.title.lowercased())"
+        } catch {
+            refreshLaunchAtLoginStatus()
+            statusText = error.localizedDescription
+        }
     }
 
     func addDictionaryEntry(original: String, replacement: String) {
@@ -306,6 +324,14 @@ final class AppCoordinator: ObservableObject {
             try settingsStore.save(settings)
         } catch {
             statusText = "Settings save failed"
+        }
+    }
+
+    private func refreshLaunchAtLoginStatus() {
+        launchAtLoginStatus = LaunchAtLoginController.currentStatus()
+        if settings.launchAtLogin != launchAtLoginStatus.isRequested {
+            settings.launchAtLogin = launchAtLoginStatus.isRequested
+            persistSettings()
         }
     }
 

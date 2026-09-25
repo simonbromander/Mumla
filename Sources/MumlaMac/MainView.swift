@@ -191,6 +191,15 @@ struct MainView: View {
                     .liquidControl()
                 }
 
+                SettingsGlassRow(title: "Launch at Login", value: coordinator.launchAtLoginStatus.title) {
+                    Toggle("", isOn: Binding(
+                        get: { coordinator.isLaunchAtLoginRequested },
+                        set: { coordinator.setLaunchAtLoginEnabled($0) }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                }
+
                 SettingsGlassRow(title: "Status", value: coordinator.statusText) {
                     Image(systemName: coordinator.modelDirectory == nil ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                         .foregroundStyle(coordinator.modelDirectory == nil ? LiquidGlass.coral : LiquidGlass.mint)

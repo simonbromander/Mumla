@@ -132,11 +132,13 @@ Current implementation status:
   as deterministic replacements during transcript normalization.
 - Secure text fields are guarded at dictation start and insertion time. Non-text
   focus falls back to copying text to the clipboard instead of blindly pasting.
+- Launch-at-login is wired through `SMAppService.mainApp`, with Settings showing
+  the current OS status including "Needs approval".
 - Model install is now native: the app can download the pinned Pianissimo CoreML
   artifact, resume partial files, verify checksums, and compile the CoreML
   packages into Application Support.
 - Remaining Phase 1 gaps include automatic live language routing, edit-learning
-  dictionary observation, launch-at-login, and release signing/notarization.
+  dictionary observation, and release signing/notarization.
 
 ## Phase 2 Scope
 
