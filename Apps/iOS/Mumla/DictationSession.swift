@@ -46,6 +46,9 @@ final class DictationSession: ObservableObject {
                     durationMilliseconds: 17_000
                 ))
             }
+            if CommandLine.arguments.contains("--seed-correction") {
+                try? historyStore.append(DictationRecord(text: "Kubernetis fungerar. Vi använder Kubernetis varje dag.", language: .swedish))
+            }
         } else {
             historyStore = .defaultStore()
             dictionaryStore = .defaultStore()
@@ -201,6 +204,21 @@ final class DictationSession: ObservableObject {
             return false
         }
     }
+    func correctWord(_ selection: TranscriptWordSelection, replacement: String) throws {
+        do {
+            let result = try historyStore.correctWord(selection, replacement: replacement, dictionary: dictionaryStore)
+            history = result.history
+            dictionary = result.dictionary
+            copiedID = nil
+            MumlaFeedback.success()
+        } catch {
+            // Reflect persisted state even if a compensating write could not finish.
+            if let records = try? historyStore.load() { history = records }
+            if let entries = try? dictionaryStore.load() { dictionary = entries }
+            throw error
+        }
+    }
+
     func deleteWord(_ entry: DictionaryEntry) {
         do { dictionary = try dictionaryStore.delete(id: entry.id) }
         catch { self.error = error.localizedDescription }

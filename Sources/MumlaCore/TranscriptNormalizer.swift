@@ -71,7 +71,7 @@ public struct TranscriptNormalizer: Sendable {
             return expression.stringByReplacingMatches(
                 in: current,
                 range: range,
-                withTemplate: entry.replacement
+                withTemplate: NSRegularExpression.escapedTemplate(for: entry.replacement)
             )
         }
     }

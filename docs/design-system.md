@@ -26,12 +26,26 @@ physical copy and share keys. The Latest transport key scrolls to it, and a
 finished dictation does not open a detail sheet. Copy and Share use the complete
 transcript, even when the preview is truncated. Full details remain in History.
 
+The bottom tabs are interlocking stereo keys. One key stays latched into its
+socket; pressing another raises the old key and lowers the new face. Dragging
+away cancels the switch. Each key has a fixed 64-point hit area, a visible lower
+wall, beveled face, and a restrained selected indicator. The return spring and
+slight face tilt are disabled with Reduce Motion; the latched state stays clear.
+Page content switches immediately; only the physical keys animate.
+
+Selecting a whole word in the iOS preview or History transcript exposes the
+native `Rätta ord` / `Correct word` action. The correction sheet uses the same
+recessed fields and raised save key. Saving updates only the selected occurrence
+and adds a deterministic wordlist replacement for future dictations. Cancel does
+not mutate either store. A changed or deleted transcript invalidates the old
+selection instead of overwriting newer text. Copy and Share reflect corrections.
+
 ## Haptics
 
 | Action | iPhone cue |
 | --- | --- |
 | Mechanical key down | Light rigid impact |
-| Navigation selection | Selection tick |
+| Stereo tab selection | Prepared rigid latch impact |
 | Start recording | Heavy impact, before microphone activation |
 | Stop recording | Medium impact, after microphone deactivation |
 | Cancel recording | Light rigid impact, after microphone deactivation |
@@ -46,7 +60,8 @@ feedback APIs gracefully do nothing on devices without a Taptic Engine.
 
 UI tests exercise navigation, dictionary create/delete and persistence, the
 haptic preference across relaunches, inline transcript actions, the complete
-share-sheet payload, and English at accessibility text sizes.
+share-sheet payload, stereo-key selection and cancelled presses, selected-word
+corrections and persistence, and English at accessibility text sizes.
 Test storage is isolated from normal app history and dictionaries in Debug.
 Release builds exclude the UI-test data reset and Mac snapshot entry point.
 

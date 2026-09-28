@@ -93,6 +93,36 @@ public final class DictationHistoryStore: @unchecked Sendable {
         }
     }
 
+    public func correctWord(
+        _ selection: TranscriptWordSelection,
+        replacement: String,
+        dictionary: DictionaryStore
+    ) throws -> (history: [DictationRecord], dictionary: [DictionaryEntry]) {
+        try lock.withLock {
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                throw TranscriptCorrectionError.transcriptChanged
+            }
+            var records = try JSONDecoder().decode([DictationRecord].self, from: Data(contentsOf: fileURL))
+            guard let index = records.firstIndex(where: { $0.id == selection.recordID }),
+                  records[index].text == selection.text else {
+                throw TranscriptCorrectionError.transcriptChanged
+            }
+            records[index].text = try selection.replacing(with: replacement)
+            let data = try JSONEncoder.prettyMumla.encode(records)
+            let previousDictionary = try dictionary.load()
+            let entries = try dictionary.add(original: selection.original, replacement: replacement)
+            do {
+                try data.write(to: fileURL, options: .atomic)
+            } catch {
+                // Each file is atomic; restore the wordlist if the history write fails.
+                do { try dictionary.replaceAll(previousDictionary) }
+                catch { throw TranscriptCorrectionError.dictionaryRollbackFailed }
+                throw error
+            }
+            return (records, entries)
+        }
+    }
+
     public func clear() throws {
         try lock.withLock {
             if FileManager.default.fileExists(atPath: fileURL.path) {

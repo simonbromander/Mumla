@@ -42,12 +42,13 @@ struct TranscriptSheet: View {
     var record: DictationRecord
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
+    private var currentRecord: DictationRecord { session.history.first(where: { $0.id == record.id }) ?? record }
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Text(record.createdAt.formatted(date: .abbreviated, time: .shortened)).font(.subheadline).foregroundStyle(MumlaStyle.secondary)
-                    Text(record.text).font(.title3).lineSpacing(7).textSelection(.enabled)
+                    CorrectableTranscript(record: currentRecord, session: session)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(24)
             }
             .navigationTitle(mText("Diktering", "Dictation"))
@@ -55,9 +56,9 @@ struct TranscriptSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button(mText("Klart", "Done")) { dismiss() } }
                 ToolbarItemGroup(placement: .bottomBar) {
-                    ShareLink(item: record.text) { Image(systemName: "square.and.arrow.up") }
+                    ShareLink(item: currentRecord.text) { Image(systemName: "square.and.arrow.up") }
                     Spacer()
-                    Button { session.copy(record) } label: {
+                    Button { session.copy(currentRecord) } label: {
                         Label(session.copiedID == record.id ? mText("Kopierat", "Copied") : mText("Kopiera", "Copy"), systemImage: session.copiedID == record.id ? "checkmark" : "doc.on.doc")
                     }
                 }

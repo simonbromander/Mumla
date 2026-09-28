@@ -2,6 +2,11 @@ import XCTest
 @testable import MumlaCore
 
 final class TranscriptNormalizerTests: XCTestCase {
+    func testDictionaryReplacementIsLiteralNotARegexTemplate() {
+        let normalizer = TranscriptNormalizer(dictionary: [DictionaryReplacement(source: "cost", replacement: #"$5\day"#)])
+        XCTAssertEqual(normalizer.normalize("cost", language: .english), #"$5\day"#)
+    }
+
     func testRemovesSwedishFillers() {
         let normalizer = TranscriptNormalizer()
 

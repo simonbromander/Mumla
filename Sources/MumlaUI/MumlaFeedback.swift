@@ -5,6 +5,9 @@ import UIKit
 
 @MainActor
 public enum MumlaFeedback {
+    #if os(iOS)
+    private static let latchGenerator = UIImpactFeedbackGenerator(style: .rigid)
+    #endif
     public static let preferenceKey = "mumla.hapticsEnabled"
     public static var enabled: Bool { UserDefaults.standard.object(forKey: preferenceKey) as? Bool ?? true }
 
@@ -18,6 +21,18 @@ public enum MumlaFeedback {
         #if os(iOS)
         guard enabled else { return }
         UISelectionFeedbackGenerator().selectionChanged()
+        #endif
+    }
+    public static func prepareLatch() {
+        #if os(iOS)
+        guard enabled else { return }
+        latchGenerator.prepare()
+        #endif
+    }
+    public static func latch() {
+        #if os(iOS)
+        guard enabled else { return }
+        latchGenerator.impactOccurred(intensity: 0.75)
         #endif
     }
     public static func recordStart() {

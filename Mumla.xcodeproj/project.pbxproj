@@ -11,6 +11,7 @@
 		0B9CC038F26F324291172FFF /* PillWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898B56239AD94246CC0FF25C /* PillWindowController.swift */; };
 		25AED98B3018961C52085E75 /* MumlaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1310E3572482FC03B0D19FEA /* MumlaUITests.swift */; };
 		3EEDD778CC07125E773AEF45 /* MumlaUI in Frameworks */ = {isa = PBXBuildFile; productRef = C6DED7A42B8D56339AB76A38 /* MumlaUI */; };
+		47646516A2C545F39F0D2A67 /* CorrectableTranscript.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE353AB1AAC2AB5A392B97A0 /* CorrectableTranscript.swift */; };
 		4BD34DE07A2E83C28BC39532 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */; };
 		4C360FB45B6D0C7DBACB2491 /* ClipboardTextInserter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */; };
 		4E2291D64BBE014A4FF6BE7D /* MumlaHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */; };
@@ -64,6 +65,7 @@
 		A26F840006A86E01CDD6438C /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginController.swift; sourceTree = "<group>"; };
 		B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuController.swift; sourceTree = "<group>"; };
+		CE353AB1AAC2AB5A392B97A0 /* CorrectableTranscript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectableTranscript.swift; sourceTree = "<group>"; };
 		D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTextTargetInspector.swift; sourceTree = "<group>"; };
 		D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermission.swift; sourceTree = "<group>"; };
 		DE0C3F8DC853DBE2181553E6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 		610D592A6678EA7B4E19E086 /* Mumla */ = {
 			isa = PBXGroup;
 			children = (
+				CE353AB1AAC2AB5A392B97A0 /* CorrectableTranscript.swift */,
 				F29B34DB8773C80755E4CDC9 /* DictationSession.swift */,
 				5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */,
 				030F8A6D1C90CD95ABAE4536 /* Mumla.entitlements */,
@@ -347,6 +350,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				47646516A2C545F39F0D2A67 /* CorrectableTranscript.swift in Sources */,
 				748E13453C97705C236EE45A /* DictationSession.swift in Sources */,
 				BC59DCA6E81E340BEFFC281B /* MumlaApp.swift in Sources */,
 				4E2291D64BBE014A4FF6BE7D /* MumlaHomeView.swift in Sources */,

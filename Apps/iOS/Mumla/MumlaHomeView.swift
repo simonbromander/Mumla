@@ -7,6 +7,7 @@ struct MumlaHomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var tab = HomeTab.dictate
+    @State private var pressedTab: HomeTab?
     @State private var showSettings = false
     @State private var showAddWord = false
     @State private var query = ""
@@ -45,9 +46,8 @@ struct MumlaHomeView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
         .tint(MumlaStyle.accent)
         .preferredColorScheme(.dark)
-        .onChange(of: tab) { _, _ in MumlaFeedback.selection() }
+        .onChange(of: tab) { _, _ in MumlaFeedback.latch() }
         .onChange(of: session.error) { _, error in if error != nil { MumlaFeedback.error() } }
-        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: tab)
         .sheet(isPresented: $showSettings) { MumlaSettingsSheet(session: session) }
         .sheet(isPresented: $showAddWord) { AddWordSheet(session: session) }
         .sheet(item: $session.selectedRecord) { record in TranscriptSheet(record: record, session: session) }
@@ -71,7 +71,7 @@ struct MumlaHomeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(mText("Senaste", "Latest transcript")).font(.headline)
                 if let record = session.history.first {
-                    LatestTranscriptPreview(record: record, copied: session.copiedID == record.id) {
+                    LatestTranscriptPreview(record: record, session: session, copied: session.copiedID == record.id) {
                         session.copy(record)
                     }
                 } else {
@@ -191,21 +191,27 @@ struct MumlaHomeView: View {
     }
 
     private var tabBar: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 5) {
             ForEach(HomeTab.allCases) { item in
                 Button { tab = item } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: item.symbol).font(.system(size: 15, weight: .medium))
-                        Text(item.title).font(.system(size: 11, weight: .medium))
+                    VStack(spacing: 6) {
+                        Image(systemName: item.symbol).font(.system(size: 16, weight: .medium))
+                        Text(item.title.uppercased()).font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .lineLimit(1).minimumScaleFactor(0.85)
                     }
-                    .foregroundStyle(tab == item ? MumlaStyle.accent : MumlaStyle.secondary)
-                    .frame(maxWidth: .infinity).frame(minHeight: 48)
-                    .overlay(alignment: .bottom) {
-                        if tab == item { Capsule().fill(MumlaStyle.accent).frame(width: 12, height: 2).padding(.bottom, 5) }
-                    }
+                    .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(MumlaKeyStyle(feedback: false))
+                .buttonStyle(MumlaStereoKeyStyle(isLatched: (pressedTab ?? tab) == item) { pressed in
+                    if pressed {
+                        pressedTab = item
+                        if tab != item { MumlaFeedback.prepareLatch() }
+                    } else if pressedTab == item {
+                        pressedTab = nil
+                    }
+                })
+                .accessibilityLabel(item.title)
+                .accessibilityIdentifier("tab.\(item.rawValue)")
                 .accessibilityAddTraits(tab == item ? .isSelected : [])
             }
         }
@@ -243,6 +249,7 @@ struct MumlaHomeView: View {
 
 private struct LatestTranscriptPreview: View {
     var record: DictationRecord
+    @ObservedObject var session: DictationSession
     var copied: Bool
     var copy: () -> Void
 
@@ -250,11 +257,7 @@ private struct LatestTranscriptPreview: View {
         VStack(alignment: .leading, spacing: 16) {
             Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
                 .font(.caption).foregroundStyle(MumlaStyle.secondary)
-            Text(record.text)
-                .font(.body).lineSpacing(4).lineLimit(6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .textSelection(.enabled)
-                .accessibilityIdentifier("latestTranscript.preview")
+            CorrectableTranscript(record: record, session: session, preview: true)
             Divider()
             HStack(spacing: 12) {
                 Text(copied ? mText("Kopierat", "Copied") : "")
