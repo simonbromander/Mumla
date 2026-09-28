@@ -36,6 +36,16 @@ final class DictationSession: ObservableObject {
             if CommandLine.arguments.contains("--reset-ui-data") { try? FileManager.default.removeItem(at: directory) }
             historyStore = DictationHistoryStore(directory: directory)
             dictionaryStore = DictionaryStore(directory: directory)
+            if CommandLine.arguments.contains("--seed-transcript") {
+                try? historyStore.clear()
+                try? historyStore.append(DictationRecord(text: "An older transcript.", language: .english))
+                try? historyStore.append(DictationRecord(
+                    createdAt: Date(timeIntervalSince1970: 1_790_602_260),
+                    text: "Vi bestämde att börja med den svenska versionen och samla in återkoppling efter första veckan. Nästa steg är att prova diktering i vardagen, justera ordlistan och gå igenom hur texten fungerar i olika appar. Alla anteckningar stannar på enheten. Vi bokar en kort avstämning på fredag för att jämföra resultaten och planera nästa steg tillsammans.",
+                    language: .swedish,
+                    durationMilliseconds: 17_000
+                ))
+            }
         } else {
             historyStore = .defaultStore()
             dictionaryStore = .defaultStore()
@@ -160,7 +170,6 @@ final class DictationSession: ObservableObject {
             let record = DictationRecord(text: text, language: .swedish, durationMilliseconds: result.durationSeconds * 1000)
             history = try historyStore.append(record)
             MumlaFeedback.success()
-            selectedRecord = record
             discardPending()
         } catch { self.error = error.localizedDescription }
     }

@@ -21,6 +21,11 @@ waveform or decorative playback controls are shown.
   are ready. The language-model download is a separate action.
 - Swedish and English interface text follow the device language.
 
+The iOS recorder keeps the latest transcript inline: a six-line preview with
+physical copy and share keys. The Latest transport key scrolls to it, and a
+finished dictation does not open a detail sheet. Copy and Share use the complete
+transcript, even when the preview is truncated. Full details remain in History.
+
 ## Haptics
 
 | Action | iPhone cue |
@@ -40,7 +45,8 @@ feedback APIs gracefully do nothing on devices without a Taptic Engine.
 ## Validation
 
 UI tests exercise navigation, dictionary create/delete and persistence, the
-haptic preference across relaunches, and English at accessibility text sizes.
+haptic preference across relaunches, inline transcript actions, the complete
+share-sheet payload, and English at accessibility text sizes.
 Test storage is isolated from normal app history and dictionaries in Debug.
 Release builds exclude the UI-test data reset and Mac snapshot entry point.
 

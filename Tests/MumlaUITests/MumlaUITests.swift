@@ -56,6 +56,58 @@ final class MumlaUITests: XCTestCase {
         capture("05-large-text", app: app)
     }
 
+    func testLatestTranscriptInlineActions() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-AppleLanguages", "(sv)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+
+        let preview = app.staticTexts["latestTranscript.preview"]
+        let copy = app.buttons["latestTranscript.copy"]
+        let share = app.buttons["latestTranscript.share"]
+        let fullTranscript = preview.label
+        XCTAssertTrue(copy.waitForExistence(timeout: 3))
+        XCTAssertTrue(copy.isHittable)
+        XCTAssertTrue(share.isHittable)
+        XCTAssertFalse(app.buttons["Visa historik"].exists)
+        XCTAssertFalse(app.staticTexts["An older transcript."].exists)
+        preview.tap()
+        XCTAssertFalse(app.navigationBars["Diktering"].exists)
+        copy.tap()
+        XCTAssertEqual(app.staticTexts["latestTranscript.copyStatus"].label, "Kopierat")
+        capture("06-latest-transcript", app: app)
+
+        share.tap()
+        XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.otherElements["LP.CaptionBar.BottomCaption"].label, fullTranscript)
+        let systemCopy = app.cells.matching(NSPredicate(format: "label IN %@", ["Copy", "Kopiera"])).firstMatch
+        XCTAssertTrue(systemCopy.waitForExistence(timeout: 5))
+        capture("07-share-transcript", app: app)
+        systemCopy.tap()
+        XCTAssertTrue(share.waitForExistence(timeout: 3))
+        app.buttons["Historik"].tap()
+        let record = app.buttons.containing(.staticText, identifier: "An older transcript.").firstMatch
+        XCTAssertTrue(record.waitForExistence(timeout: 3))
+        record.tap()
+        XCTAssertTrue(app.navigationBars["Diktering"].waitForExistence(timeout: 3))
+    }
+
+    func testLatestTranscriptLargeText() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-AppleLanguages", "(en)", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+        let copy = app.buttons["latestTranscript.copy"]
+        let share = app.buttons["latestTranscript.share"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 3))
+        XCTAssertTrue(copy.isHittable)
+        XCTAssertTrue(share.isHittable)
+        XCTAssertFalse(copy.frame.intersects(share.frame))
+        capture("08-latest-transcript-large-text", app: app)
+    }
+
     private func capture(_ name: String, app: XCUIApplication) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

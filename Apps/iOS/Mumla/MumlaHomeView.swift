@@ -14,22 +14,33 @@ struct MumlaHomeView: View {
     var body: some View {
         ZStack {
             MumlaBackdrop()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    HStack {
-                        MumlaWordmark()
-                        Spacer()
-                        MumlaIconButton("slider.horizontal.3", label: mText("Inställningar", "Settings")) { showSettings = true }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        HStack {
+                            MumlaWordmark()
+                            Spacer()
+                            MumlaIconButton("slider.horizontal.3", label: mText("Inställningar", "Settings")) { showSettings = true }
+                        }
+                        switch tab {
+                        case .dictate: dictate(showLatest: { scrollToLatest(using: proxy) })
+                        case .history: history
+                        case .dictionary: dictionary
+                        }
                     }
-                    switch tab {
-                    case .dictate: dictate
-                    case .history: history
-                    case .dictionary: dictionary
+                    .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 24)
+                    .frame(maxWidth: 640).frame(maxWidth: .infinity)
+                }
+                .scrollIndicators(.hidden)
+                .onChange(of: session.history.first?.id) { _, id in
+                    if tab == .dictate, id != nil {
+                        scrollToLatest(using: proxy)
                     }
                 }
-                .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 24)
-                .frame(maxWidth: 640).frame(maxWidth: .infinity)
-            }.scrollIndicators(.hidden)
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Color.clear.frame(height: 0).background(MumlaStyle.background)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
         .tint(MumlaStyle.accent)
@@ -48,32 +59,37 @@ struct MumlaHomeView: View {
         }
     }
 
-    private var dictate: some View {
+    private func dictate(showLatest: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: 22) {
-            recorder
+            recorder(showLatest: showLatest)
             if !session.modelReady { modelDownload }
             if session.hasPendingAudio && session.state == .idle {
                 Button { Task { await session.transcribePending() } } label: {
                     Label(mText("Fortsätt sparad inspelning", "Resume saved recording"), systemImage: "arrow.clockwise")
                 }
             }
-            HStack {
-                Text(mText("Senaste", "Recent")).font(.headline)
-                Spacer()
-                if !session.history.isEmpty {
-                    Button { tab = .history } label: { Image(systemName: "arrow.right").frame(width: 44, height: 32) }
-                        .accessibilityLabel(mText("Visa historik", "Show history"))
+            VStack(alignment: .leading, spacing: 16) {
+                Text(mText("Senaste", "Latest transcript")).font(.headline)
+                if let record = session.history.first {
+                    LatestTranscriptPreview(record: record, copied: session.copiedID == record.id) {
+                        session.copy(record)
+                    }
+                } else {
+                    MumlaEmptyState(mText("Inga dikteringar än", "No dictations yet"), symbol: "text.alignleft")
                 }
-            }.padding(.top, 4)
-            if session.history.isEmpty {
-                MumlaEmptyState(mText("Inga dikteringar än", "No dictations yet"), symbol: "text.alignleft").padding(.top, -24)
-            } else {
-                ForEach(session.history.prefix(2)) { record in TranscriptRow(record: record) { session.selectedRecord = record } }
             }
+            .padding(.top, 4)
+            .id("latest-transcript")
         }
     }
 
-    private var recorder: some View {
+    private func scrollToLatest(using proxy: ScrollViewProxy) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
+            proxy.scrollTo("latest-transcript", anchor: .bottom)
+        }
+    }
+
+    private func recorder(showLatest: @escaping () -> Void) -> some View {
         VStack(spacing: 14) {
             MumlaRecorderDisplay(
                 status: displayStatus,
@@ -99,8 +115,10 @@ struct MumlaHomeView: View {
                 .disabled(!session.modelReady || session.state == .transcribing || session.state == .requestingPermission || session.hasPendingAudio)
                 MumlaTransportKey("text.alignleft", title: mText("Senaste", "Latest")) {
                     MumlaFeedback.press()
-                    session.selectedRecord = session.history.first
-                }.disabled(session.history.isEmpty)
+                    showLatest()
+                }
+                .disabled(session.history.isEmpty)
+                .accessibilityIdentifier("showLatestTranscript")
             }
             .padding(.horizontal, 10).padding(.vertical, 20).mumlaSurface(radius: 16)
             if session.elapsed >= 540 && session.state == .recording {
@@ -220,6 +238,48 @@ struct MumlaHomeView: View {
         case .requestingPermission: return mText("Väntar på mikrofonen", "Waiting for microphone")
         case .idle: return session.modelReady ? mText("Redo att lyssna", "Ready to listen") : mText("Hämta svenska för att börja", "Download Swedish to begin")
         }
+    }
+}
+
+private struct LatestTranscriptPreview: View {
+    var record: DictationRecord
+    var copied: Bool
+    var copy: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
+                .font(.caption).foregroundStyle(MumlaStyle.secondary)
+            Text(record.text)
+                .font(.body).lineSpacing(4).lineLimit(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
+                .accessibilityIdentifier("latestTranscript.preview")
+            Divider()
+            HStack(spacing: 12) {
+                Text(copied ? mText("Kopierat", "Copied") : "")
+                    .font(.caption).foregroundStyle(MumlaStyle.accent)
+                    .accessibilityIdentifier("latestTranscript.copyStatus")
+                Spacer(minLength: 0)
+                Button(action: copy) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 17)).frame(width: 44, height: 44)
+                }
+                .buttonStyle(MumlaKeyStyle(feedback: false))
+                .accessibilityLabel(mText("Kopiera transkript", "Copy transcript"))
+                .accessibilityIdentifier("latestTranscript.copy")
+                .help(mText("Kopiera transkript", "Copy transcript"))
+                ShareLink(item: record.text) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 17)).frame(width: 44, height: 44)
+                }
+                .buttonStyle(MumlaKeyStyle())
+                .accessibilityLabel(mText("Dela transkript", "Share transcript"))
+                .accessibilityIdentifier("latestTranscript.share")
+                .help(mText("Dela transkript", "Share transcript"))
+            }
+        }
+        .padding(20).mumlaSurface(radius: 10)
     }
 }
 
