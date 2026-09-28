@@ -1,0 +1,9 @@
+{
+  "version": "1.0.1",
+  "build": "25",
+  "platform": "MAC_OS",
+  "localizations": {
+    "en-US": "Mumla for Mac: a new recorder-inspired interface with a recessed display, tactile controls, live microphone meter, and matching icon.\n\nPlease test:\n- First-launch setup and the Swedish model download (about 688 MB).\n- Swedish dictation with the in-app record/stop controls.\n- History, copying text, and adding/deleting dictionary replacements.\n- Ctrl hold and double-tap, the floating pill, paste insertion, and clipboard restoration after granting Accessibility access. These cross-app features still need validation in the sandboxed TestFlight build.\n\nKnown limitations: English/automatic language routing, meeting transcription, and iCloud sync are not ready. Swedish accuracy and latency targets have not yet passed the owner-dataset evaluation. macOS 14 or later required.",
+    "sv": "Mumla för Mac: ett nytt inspelarinspirerat gränssnitt med nedsänkt display, taktila reglage, mikrofonmätare och matchande ikon.\n\nTesta gärna:\n- Första starten och hämtning av den svenska språkmodellen (cirka 688 MB).\n- Svensk diktering med appens inspelnings- och stoppknappar.\n- Historik, kopiering av text och att lägga till/ta bort ersättningar i ordlistan.\n- Håll och dubbeltryck Ctrl, den flytande inspelningsraden, textinmatning och återställning av urklipp efter att du gett behörighet för Hjälpmedel. Dessa funktioner mellan appar behöver fortfarande verifieras i TestFlight-versionens sandbox.\n\nKända begränsningar: engelska/automatiskt språkval, mötestranskribering och iCloud-synk är inte klara. Målen för svensk träffsäkerhet och fördröjning har ännu inte verifierats på ägarens testmaterial. Kräver macOS 14 eller senare."
+  }
+}
