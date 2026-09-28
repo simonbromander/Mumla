@@ -2,8 +2,8 @@ import CoreML
 import Foundation
 import MumlaCore
 
-struct ModelInstallProgress: Equatable, Sendable {
-    enum Phase: String, Sendable {
+public struct ModelInstallProgress: Equatable, Sendable {
+    public enum Phase: String, Sendable {
         case idle
         case downloading
         case verifying
@@ -12,20 +12,26 @@ struct ModelInstallProgress: Equatable, Sendable {
         case failed
     }
 
-    var phase: Phase
-    var fraction: Double
-    var detail: String
+    public var phase: Phase
+    public var fraction: Double
+    public var detail: String
 
-    static let idle = ModelInstallProgress(phase: .idle, fraction: 0, detail: "")
+    public init(phase: Phase, fraction: Double, detail: String) {
+        self.phase = phase
+        self.fraction = fraction
+        self.detail = detail
+    }
+
+    public static let idle = ModelInstallProgress(phase: .idle, fraction: 0, detail: "")
 }
 
-actor ModelInstaller {
+public actor ModelInstaller {
     private let artifact: ModelArtifact
     private let downloadDirectory: URL
     private let compiledDirectory: URL
     private let fileManager: FileManager
 
-    init(
+    public init(
         artifact: ModelArtifact = MumlaModelArtifacts.communityPianissimoCoreML,
         downloadDirectory: URL = ModelPathResolver.portablePianissimoDownloadDirectory(),
         compiledDirectory: URL = ModelPathResolver.compiledPianissimoInstallDirectory(),
@@ -37,7 +43,7 @@ actor ModelInstaller {
         self.fileManager = fileManager
     }
 
-    func install(progress: @Sendable (ModelInstallProgress) async -> Void) async throws -> URL {
+    public func install(progress: @Sendable (ModelInstallProgress) async -> Void) async throws -> URL {
         if ModelPathResolver.isCompiledPianissimoModel(at: compiledDirectory, fileManager: fileManager) {
             await progress(ModelInstallProgress(phase: .installed, fraction: 1, detail: "Model ready"))
             return compiledDirectory
@@ -231,13 +237,13 @@ actor ModelInstaller {
     }
 }
 
-enum ModelInstallerError: Error, LocalizedError {
+public enum ModelInstallerError: Error, LocalizedError {
     case missingRevision
     case verificationFailed(String)
     case sizeMismatch(path: String, expected: Int64, actual: Int64)
     case checksumMismatch(String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .missingRevision:
             return "Model manifest is missing a pinned revision."

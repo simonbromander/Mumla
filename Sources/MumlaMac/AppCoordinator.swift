@@ -6,6 +6,7 @@ import MumlaCore
 @MainActor
 final class AppCoordinator: ObservableObject {
     @Published var pillState: PillState = .hidden
+    @Published private(set) var inputLevel: Double = 0
     @Published var history: [DictationRecord] = []
     @Published var dictionaryEntries: [DictionaryEntry] = []
     @Published var languageMode: LanguageMode = .automatic
@@ -110,6 +111,7 @@ final class AppCoordinator: ObservableObject {
         guard activeMode != nil else { return }
         elapsedTimer?.invalidate()
         elapsedTimer = nil
+        inputLevel = 0
 
         let audioURL: URL
         do {
@@ -402,7 +404,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     private func startDictation(mode: RecordingMode) async {
-        guard activeMode == nil else { return }
+        guard activeMode == nil, pillState != .transcribing else { return }
 
         if FocusedTextTargetInspector.inspect() == .secureText {
             statusText = "Secure input active"
@@ -442,11 +444,13 @@ final class AppCoordinator: ObservableObject {
 
     private func startElapsedTimer(mode: RecordingMode) {
         elapsedTimer?.invalidate()
-        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.activeMode == mode, let startedAt = self.recordingStartedAt else { return }
                 let elapsed = Date().timeIntervalSince(startedAt)
+                self.inputLevel = self.recorder.inputLevel()
                 self.pillState = mode == .quick ? .listening(elapsedSeconds: elapsed) : .handsFree(elapsedSeconds: elapsed)
+                if elapsed >= 600 { await self.finishDictation() }
             }
         }
     }

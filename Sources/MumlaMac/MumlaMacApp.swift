@@ -22,6 +22,14 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        if let index = CommandLine.arguments.firstIndex(of: "--design-snapshot"),
+           CommandLine.arguments.indices.contains(index + 1) {
+            captureDesign(at: CommandLine.arguments[index + 1])
+            NSApp.terminate(nil)
+            return
+        }
+        #endif
         let historyStore = DictationHistoryStore.defaultStore()
         let modelDirectory = ModelPathResolver.resolveCompiledPianissimoModel()
         let transcriber = modelDirectory.map(LocalPianissimoTranscriber.init(modelDirectory:))
@@ -85,4 +93,30 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             coordinator.openSettings()
         }
     }
+
+    #if DEBUG
+    private func captureDesign(at path: String) {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaDesignSnapshot-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let snapshotCoordinator = AppCoordinator(
+            recorder: MicrophoneRecorder(), transcriber: nil,
+            historyStore: DictationHistoryStore(directory: directory),
+            dictionaryStore: DictionaryStore(directory: directory),
+            settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil
+        )
+        let view = NSHostingView(rootView: MainView(coordinator: snapshotCoordinator).environment(\.colorScheme, .dark))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 760), styleMask: [.borderless], backing: .buffered, defer: false)
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.contentView = view
+        view.frame = NSRect(x: 0, y: 0, width: 960, height: 760)
+        view.layoutSubtreeIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        if let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            if let data = bitmap.representation(using: .png, properties: [:]) {
+                try? data.write(to: URL(fileURLWithPath: path))
+            }
+        }
+    }
+    #endif
 }

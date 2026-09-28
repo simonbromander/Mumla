@@ -11,6 +11,7 @@ let package = Package(
     products: [
         .library(name: "MumlaCore", targets: ["MumlaCore"]),
         .library(name: "MumlaAudio", targets: ["MumlaAudio"]),
+        .library(name: "MumlaUI", targets: ["MumlaUI"]),
         .executable(name: "mumla-mac", targets: ["MumlaMac"]),
         .executable(name: "mumla-phase0", targets: ["MumlaPhase0CLI"]),
         .executable(name: "mumla-model-probe", targets: ["MumlaModelProbe"])
@@ -20,6 +21,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "MumlaCore"),
+        .target(name: "MumlaUI"),
         .target(
             name: "MumlaAudio",
             dependencies: [
@@ -31,7 +33,8 @@ let package = Package(
             name: "MumlaMac",
             dependencies: [
                 "MumlaCore",
-                "MumlaAudio"
+                "MumlaAudio",
+                "MumlaUI"
             ]
         ),
         .executableTarget(

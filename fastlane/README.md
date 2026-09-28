@@ -47,6 +47,38 @@ Upload an existing signed IPA to TestFlight
 
 Build and upload to TestFlight
 
+### ios mac_preflight
+
+```sh
+[bundle exec] fastlane ios mac_preflight
+```
+
+Read-only macOS release preflight: generate project, build macOS release, verify ASC app record/signing context
+
+### ios mac_build
+
+```sh
+[bundle exec] fastlane ios mac_build
+```
+
+Create a signed macOS App Store/TestFlight package without uploading
+
+### ios mac_upload
+
+```sh
+[bundle exec] fastlane ios mac_upload
+```
+
+Upload an existing signed macOS package to TestFlight
+
+### ios mac_beta
+
+```sh
+[bundle exec] fastlane ios mac_beta
+```
+
+Build and upload the macOS app to TestFlight
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.

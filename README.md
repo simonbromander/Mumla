@@ -1,7 +1,9 @@
 # Mumla
 
-Mumla is a fresh rebuild of the old Mumla idea: on-device Swedish and English
-dictation for macOS first, then private meeting transcription and iOS.
+Mumla is a native, on-device dictation app for macOS and iOS. Its recorder-inspired
+interface pairs a recessed sage display with tactile graphite controls and iPhone
+haptic feedback. Swedish dictation is implemented; English routing, meetings,
+keyboard extensions, and private iCloud sync remain planned work.
 
 This repo intentionally starts clean. The old `kb-ios` repo is kept locally as a
 reference at `/Users/bob/projects/_references/kb-ios`, but this implementation
@@ -14,8 +16,27 @@ does not inherit its Modal backend, StoreKit quota, paywall, or cloud ASR flow.
 - iCloud container: `iCloud.com.mumla.app`
 - Developer team observed in the old project: `PF2PWR4YG4`
 
-The macOS app is planned as a notarized Developer ID app outside the Mac App
-Store. The iOS app remains App Store/TestFlight.
+Both Xcode apps use `com.mumla.app` for TestFlight under the existing App Store
+Connect record. The local macOS development bundle retains `com.mumla.mac`.
+The unrestricted Mac app is also intended for Developer ID distribution;
+cross-app hotkeys and Accessibility behavior must be validated separately in
+the sandboxed TestFlight edition.
+
+## Native Apps
+
+```bash
+xcodegen generate
+open Mumla.xcodeproj
+```
+
+Choose `Mumla` for iOS or `MumlaMac` for macOS. Both use the local `MumlaCore`,
+`MumlaAudio`, and `MumlaUI` packages. Download the Swedish model in the app before
+recording. iOS supports recording, on-device transcription, history, copy/share,
+and a persistent replacement dictionary. It does not yet dictate into other
+apps through a keyboard extension.
+
+See [the design system](docs/design-system.md) and
+[TestFlight release instructions](docs/testflight.md).
 
 ## Phase 0
 

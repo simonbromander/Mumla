@@ -1,210 +1,59 @@
 import MumlaCore
+import MumlaUI
 import SwiftUI
 
 struct PillView: View {
     @ObservedObject var coordinator: AppCoordinator
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 14) {
-            stateGlyph
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .lineLimit(1)
-                    .foregroundStyle(.primary)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .lineLimit(1)
-                        .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: recording ? "record.circle.fill" : "waveform")
+                    .foregroundStyle(recording ? MumlaStyle.recording : MumlaStyle.lcdInk)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.system(size: 12, weight: .semibold, design: .monospaced)).lineLimit(1)
+                    if let subtitle { Text(subtitle).font(.system(size: 10, design: .monospaced)).monospacedDigit() }
                 }
+                Spacer(minLength: 0)
+                Text(language).font(.system(size: 10, weight: .medium, design: .monospaced))
             }
-
-            Spacer(minLength: 4)
-
-            if case .handsFree = coordinator.pillState {
-                iconButton(systemName: "stop.fill", help: "Stop") {
-                    Task { @MainActor in await coordinator.finishDictation() }
-                }
-
-                iconButton(systemName: "xmark", help: "Cancel") {
-                    coordinator.cancelDictation()
-                }
+            .foregroundStyle(MumlaStyle.lcdInk)
+            .padding(.horizontal, 12).frame(height: 46)
+            .background(RoundedRectangle(cornerRadius: 5).fill(MumlaStyle.lcd.shadow(.inner(color: .black.opacity(0.5), radius: 3, y: 2))))
+            if recording {
+                Button { Task { await coordinator.finishDictation() } } label: {
+                    Image(systemName: "stop.fill").frame(width: 34, height: 38)
+                }.buttonStyle(MumlaKeyStyle()).help(mText("Stoppa", "Stop")).accessibilityLabel(mText("Stoppa", "Stop"))
+                Button { coordinator.cancelDictation() } label: {
+                    Image(systemName: "xmark").frame(width: 34, height: 38)
+                }.buttonStyle(MumlaKeyStyle()).help(mText("Avbryt", "Cancel")).accessibilityLabel(mText("Avbryt", "Cancel"))
             }
-
-            languageBadge
         }
-        .padding(.leading, 9)
-        .padding(.trailing, 10)
-        .frame(width: 482, height: 62)
-        .background {
-            Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    Capsule(style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.34),
-                                    LiquidGlass.aqua.opacity(0.15),
-                                    LiquidGlass.iris.opacity(0.10),
-                                    Color.black.opacity(0.03)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-        }
-        .overlay {
-            Capsule(style: .continuous)
-                .stroke(LiquidGlass.edgeHighlight, lineWidth: 1)
-                .blendMode(.screen)
-        }
-        .overlay(alignment: .topLeading) {
-            Capsule(style: .continuous)
-                .trim(from: 0.03, to: 0.37)
-                .stroke(Color.white.opacity(0.82), lineWidth: 1.4)
-                .blur(radius: 0.2)
-        }
-        .shadow(color: LiquidGlass.aqua.opacity(0.18), radius: 18, y: 8)
-        .shadow(color: .black.opacity(0.26), radius: 30, y: 16)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: coordinator.pillState)
+        .padding(8).frame(width: 482, height: 62).mumlaSurface(radius: 11)
+        .preferredColorScheme(.dark).accessibilityElement(children: .contain)
     }
 
-    @ViewBuilder
-    private var stateGlyph: some View {
-        switch coordinator.pillState {
-        case let .preparing(progress):
-            ZStack {
-                Circle()
-                    .fill(LiquidGlass.aqua.opacity(0.16))
-                ProgressView(value: progress)
-                    .progressViewStyle(.circular)
-                    .controlSize(.small)
-                    .padding(8)
-            }
-            .frame(width: 46, height: 46)
-        case .listening, .handsFree:
-            ZStack {
-                Circle()
-                    .fill(LiquidGlass.coral.opacity(0.16))
-                    .frame(width: 42, height: 42)
-                Circle()
-                    .fill(LiquidGlass.coral)
-                    .frame(width: 12, height: 12)
-                Text("REC")
-                    .font(.system(size: 9, weight: .heavy, design: .rounded))
-                    .offset(y: 16)
-            }
-            .foregroundStyle(LiquidGlass.coral)
-            .frame(width: 46, height: 46)
-        case .transcribing:
-            ProgressView()
-                .controlSize(.regular)
-                .frame(width: 46, height: 46)
-                .background(Circle().fill(Color.white.opacity(0.12)))
-        case .message:
-            ZStack {
-                Circle()
-                    .fill(LiquidGlass.mint.opacity(0.18))
-                Image(systemName: "checkmark")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(LiquidGlass.mint)
-            }
-            .frame(width: 46, height: 46)
-        case .hidden:
-            EmptyView()
-        }
+    private var recording: Bool {
+        switch coordinator.pillState { case .listening, .handsFree: true; default: false }
     }
-
-    private var languageBadge: some View {
-        Text(languageTitle)
-            .font(.system(size: 11, weight: .heavy, design: .rounded))
-            .tracking(0.7)
-            .padding(.horizontal, 10)
-            .frame(height: 28)
-            .background {
-                Capsule(style: .continuous)
-                    .fill(.thinMaterial)
-                    .overlay(Capsule(style: .continuous).fill(LiquidGlass.aqua.opacity(0.10)))
-            }
-            .overlay {
-                Capsule(style: .continuous)
-                    .stroke(Color.white.opacity(0.36), lineWidth: 1)
-            }
-    }
-
-    private func iconButton(systemName: String, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 12, weight: .bold))
-                .frame(width: 30, height: 30)
-                .background {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .overlay(Circle().fill(Color.white.opacity(0.10)))
-                }
-                .overlay {
-                    Circle().stroke(Color.white.opacity(0.34), lineWidth: 1)
-                }
-        }
-        .buttonStyle(.plain)
-        .help(help)
-    }
-
     private var title: String {
         switch coordinator.pillState {
-        case .preparing:
-            return "Getting ready"
-        case .listening:
-            return "Listening"
-        case .handsFree:
-            return "Hands-free"
-        case .transcribing:
-            return "Transcribing"
-        case let .message(message):
-            return message
-        case .hidden:
-            return ""
+        case .preparing: mText("FÖRBEREDER", "PREPARING")
+        case .listening, .handsFree: "REC"
+        case .transcribing: mText("TRANSKRIBERAR", "TRANSCRIBING")
+        case let .message(message): message
+        case .hidden: "MUMla"
         }
     }
-
     private var subtitle: String? {
         switch coordinator.pillState {
-        case let .preparing(progress):
-            return "\(Int((progress * 100).rounded()))%"
-        case let .listening(elapsed), let .handsFree(elapsed):
-            return format(elapsed)
-        case .transcribing:
-            return "On device"
-        case .message, .hidden:
-            return nil
+        case let .preparing(progress): "\(Int(progress * 100)) %"
+        case let .listening(elapsed), let .handsFree(elapsed): String(format: "%02d:%02d", Int(elapsed) / 60, Int(elapsed) % 60)
+        case .transcribing: mText("På den här Macen", "On this Mac")
+        case .message, .hidden: nil
         }
     }
-
-    private var accessibilityLabel: String {
-        "Mumla, \(title)"
-    }
-
-    private var languageTitle: String {
-        switch coordinator.languageMode {
-        case .automatic:
-            return "AUTO"
-        case .swedish:
-            return "SV"
-        case .english:
-            return "EN"
-        }
-    }
-
-    private func format(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds.rounded(.down))
-        return String(format: "%d:%02d", total / 60, total % 60)
+    private var language: String {
+        switch coordinator.languageMode { case .automatic: "AUTO"; case .swedish: "SV"; case .english: "EN" }
     }
 }

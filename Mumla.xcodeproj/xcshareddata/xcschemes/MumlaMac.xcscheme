@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C8A7C6C1CFBEB957E9A70E84"
-               BuildableName = "Mumla.app"
-               BlueprintName = "Mumla"
+               BlueprintIdentifier = "45A5202F9C883FE1B67273FE"
+               BuildableName = "MumlaMac.app"
+               BlueprintName = "MumlaMac"
                ReferencedContainer = "container:Mumla.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -32,27 +32,14 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C8A7C6C1CFBEB957E9A70E84"
-            BuildableName = "Mumla.app"
-            BlueprintName = "Mumla"
+            BlueprintIdentifier = "45A5202F9C883FE1B67273FE"
+            BuildableName = "MumlaMac.app"
+            BlueprintName = "MumlaMac"
             ReferencedContainer = "container:Mumla.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "437EA56A822C97529DC23F62"
-               BuildableName = "MumlaUITests.xctest"
-               BlueprintName = "MumlaUITests"
-               ReferencedContainer = "container:Mumla.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
-      <CommandLineArguments>
-      </CommandLineArguments>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -68,9 +55,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C8A7C6C1CFBEB957E9A70E84"
-            BuildableName = "Mumla.app"
-            BlueprintName = "Mumla"
+            BlueprintIdentifier = "45A5202F9C883FE1B67273FE"
+            BuildableName = "MumlaMac.app"
+            BlueprintName = "MumlaMac"
             ReferencedContainer = "container:Mumla.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -87,9 +74,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C8A7C6C1CFBEB957E9A70E84"
-            BuildableName = "Mumla.app"
-            BlueprintName = "Mumla"
+            BlueprintIdentifier = "45A5202F9C883FE1B67273FE"
+            BuildableName = "MumlaMac.app"
+            BlueprintName = "MumlaMac"
             ReferencedContainer = "container:Mumla.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

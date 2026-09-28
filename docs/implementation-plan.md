@@ -1,6 +1,6 @@
 # Mumla Implementation Plan
 
-Status: active plan, 2026-09-24.
+Status: active plan, updated 2026-09-28.
 
 ## Product Decision
 
@@ -25,9 +25,9 @@ is local-first, macOS-first, and privacy-led.
 
 ## New Identity Decisions
 
-- macOS distribution: notarized Developer ID download, outside the Mac App Store.
-- macOS bundle ID: `com.mumla.mac` unless later App Store Connect constraints make
-  a universal `com.mumla.app` target preferable.
+- macOS distribution: TestFlight plus a planned notarized Developer ID download.
+- macOS TestFlight bundle ID: `com.mumla.app`, sharing the existing App Store
+  Connect record. Local development bundles retain `com.mumla.mac`.
 - iOS distribution: TestFlight/App Store with `com.mumla.app`.
 - No account system, no server-side quota, no analytics service.
 
@@ -39,11 +39,14 @@ Mumla is a native Swift/SwiftUI app with a shared Swift package:
   evaluation metrics, storage contracts.
 - `MumlaAudio`: AVFoundation, Core Audio, model loading, FluidAudio adapters,
   VAD, clip segmentation, and transcription sessions.
+- `MumlaUI`: shared recorder materials, LCD, microphone meter, mechanical keys,
+  and iOS haptic feedback. The tactile direction supersedes Liquid Glass.
 - `MumlaMac`: menu bar app, floating pill, hotkey event tap, paste/clipboard
   insertion, Accessibility field observation, meeting capture.
-- `MumlaIOS`: main app, keyboard extension, Live Activity, offline model store.
-- `MumlaStorage`: SwiftData models, local encrypted transcript fields, CloudKit
-  private database sync.
+- `Apps/iOS/Mumla`: main app, microphone recording, local transcription, history,
+  dictionary, and native model installer. Keyboard and Live Activity are deferred.
+- Future storage layer: encrypted transcript fields and CloudKit private database
+  sync. Current stores are local; iCloud entitlements do not imply working sync.
 
 Phase 0 started with `MumlaCore` plus the evaluation CLI. On 2026-09-24 the
 macOS Phase 1 app shell was started before the full owner-dataset gate by
@@ -123,9 +126,9 @@ macOS dictation only:
 
 Current implementation status:
 
-- macOS app shell, glass pill, menu bar, microphone recording, local transcriber
+- macOS app shell, recorder-style pill, menu bar, microphone recording, local transcriber
   adapter, paste/clipboard restore, and history are in place.
-- A first-launch five-step Liquid Glass onboarding flow is in place for value,
+- A first-launch five-step onboarding flow is in place for value,
   microphone, Accessibility, practice, and done. App settings persist locally,
   including onboarding completion and language mode.
 - Dictionary entries persist locally, can be managed in the app, and are applied
@@ -149,7 +152,14 @@ Current implementation status:
   artifact, resume partial files, verify checksums, and compile the CoreML
   packages into Application Support.
 - Remaining Phase 1 gaps include Parakeet first-pass language routing,
-  the learned-word Undo affordance, and release signing/notarization.
+  the learned-word Undo affordance, notarization, and physical-device acceptance
+  of sandboxed Mac hotkeys, insertion, and learning.
+- Both apps now share the tactile recorder design, real microphone meter,
+  matching icons, and model installer. The iOS main app was brought forward by
+  product direction: it records Swedish, saves transcripts locally, supports
+  copy/share and dictionary editing, and retains a failed clip for retry.
+- iPhone haptics distinguish key presses, navigation, recording boundaries,
+  successful saves, and errors. The preference is persistent and optional.
 
 ## Phase 2 Scope
 

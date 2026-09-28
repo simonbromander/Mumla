@@ -1,189 +1,261 @@
+import MumlaCore
+import MumlaUI
 import SwiftUI
 
 struct MumlaHomeView: View {
+    @StateObject private var session = DictationSession()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var tab = HomeTab.dictate
+    @State private var showSettings = false
+    @State private var showAddWord = false
+    @State private var query = ""
+
     var body: some View {
         ZStack {
-            LiquidBackdrop()
-
-            VStack(spacing: 30) {
-                Spacer(minLength: 32)
-
-                IconHalo()
-
-                VStack(spacing: 8) {
-                    Text("Mumla")
-                        .font(.system(size: 46, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
-
-                    Text("Privat diktering")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-
-                StatusGlass()
-
-                Spacer(minLength: 24)
-
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 118, height: 5)
-                    .overlay {
-                        Capsule().stroke(.white.opacity(0.45), lineWidth: 1)
+            MumlaBackdrop()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    HStack {
+                        MumlaWordmark()
+                        Spacer()
+                        MumlaIconButton("slider.horizontal.3", label: mText("Inställningar", "Settings")) { showSettings = true }
                     }
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 18)
+                    switch tab {
+                    case .dictate: dictate
+                    case .history: history
+                    case .dictionary: dictionary
+                    }
+                }
+                .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 24)
+                .frame(maxWidth: 640).frame(maxWidth: .infinity)
+            }.scrollIndicators(.hidden)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
+        .tint(MumlaStyle.accent)
+        .preferredColorScheme(.dark)
+        .onChange(of: tab) { _, _ in MumlaFeedback.selection() }
+        .onChange(of: session.error) { _, error in if error != nil { MumlaFeedback.error() } }
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: tab)
+        .sheet(isPresented: $showSettings) { MumlaSettingsSheet(session: session) }
+        .sheet(isPresented: $showAddWord) { AddWordSheet(session: session) }
+        .sheet(item: $session.selectedRecord) { record in TranscriptSheet(record: record, session: session) }
+        .alert("Mumla", isPresented: Binding(get: { session.error != nil }, set: { if !$0 { session.error = nil } })) {
+            Button("OK", role: .cancel) { session.error = nil }
+        } message: { Text(session.error ?? "") }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background && session.state == .recording { Task { await session.finish() } }
         }
     }
-}
 
-private struct LiquidBackdrop: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.91, green: 0.99, blue: 1.00),
-                    Color(red: 0.74, green: 0.94, blue: 0.93),
-                    Color(red: 0.72, green: 0.78, blue: 1.00),
-                    Color(red: 0.91, green: 0.86, blue: 0.98)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                LiquidBand(opacity: 0.34)
-                    .frame(height: 280)
-                    .offset(y: -48)
-
+    private var dictate: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            recorder
+            if !session.modelReady { modelDownload }
+            if session.hasPendingAudio && session.state == .idle {
+                Button { Task { await session.transcribePending() } } label: {
+                    Label(mText("Fortsätt sparad inspelning", "Resume saved recording"), systemImage: "arrow.clockwise")
+                }
+            }
+            HStack {
+                Text(mText("Senaste", "Recent")).font(.headline)
                 Spacer()
-
-                LiquidBand(opacity: 0.22)
-                    .frame(height: 250)
-                    .rotationEffect(.degrees(180))
-                    .offset(y: 42)
-            }
-            .ignoresSafeArea()
-            .accessibilityHidden(true)
-        }
-    }
-}
-
-private struct LiquidBand: View {
-    var opacity: Double
-
-    var body: some View {
-        LinearGradient(
-            colors: [
-                .white.opacity(opacity),
-                Color(red: 0.49, green: 0.97, blue: 0.90).opacity(opacity * 0.8),
-                Color(red: 0.54, green: 0.62, blue: 1.00).opacity(opacity * 0.7),
-                .white.opacity(opacity * 0.6)
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-        .mask {
-            RoundedRectangle(cornerRadius: 92, style: .continuous)
-                .rotationEffect(.degrees(-12))
-                .padding(.horizontal, -56)
-        }
-        .blur(radius: 18)
-    }
-}
-
-private struct IconHalo: View {
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 48, style: .continuous)
-                .fill(.thinMaterial)
-                .frame(width: 166, height: 166)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 48, style: .continuous)
-                        .stroke(.white.opacity(0.62), lineWidth: 1)
+                if !session.history.isEmpty {
+                    Button { tab = .history } label: { Image(systemName: "arrow.right").frame(width: 44, height: 32) }
+                        .accessibilityLabel(mText("Visa historik", "Show history"))
                 }
-                .shadow(color: Color(red: 0.28, green: 0.68, blue: 0.82).opacity(0.22), radius: 34, y: 18)
-
-            Image(systemName: "waveform")
-                .font(.system(size: 62, weight: .bold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.white, Color(red: 0.28, green: 0.82, blue: 0.88), Color(red: 0.56, green: 0.48, blue: 0.96)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: .white.opacity(0.75), radius: 12)
-        }
-        .accessibilityLabel("Mumla")
-    }
-}
-
-private struct StatusGlass: View {
-    var body: some View {
-        VStack(spacing: 18) {
-            HStack(spacing: 12) {
-                StatusChip(systemName: "lock.shield.fill", title: "On-device")
-                StatusChip(systemName: "waveform", title: "SV + EN")
+            }.padding(.top, 4)
+            if session.history.isEmpty {
+                MumlaEmptyState(mText("Inga dikteringar än", "No dictations yet"), symbol: "text.alignleft").padding(.top, -24)
+            } else {
+                ForEach(session.history.prefix(2)) { record in TranscriptRow(record: record) { session.selectedRecord = record } }
             }
+        }
+    }
 
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 110, height: 110)
-                    .overlay {
-                        Circle().stroke(.white.opacity(0.58), lineWidth: 1)
+    private var recorder: some View {
+        VStack(spacing: 14) {
+            MumlaRecorderDisplay(
+                status: displayStatus,
+                detail: recordingTitle,
+                elapsed: session.elapsed,
+                recording: session.state == .recording
+            )
+            MumlaInputMeter(level: session.samples.last ?? 0, active: session.state == .recording)
+            HStack(alignment: .center, spacing: 12) {
+                MumlaTransportKey("xmark", title: mText("Avbryt", "Cancel")) { session.cancel() }
+                    .disabled(session.state != .recording)
+                MumlaTransportKey(
+                    session.state == .recording ? "stop.fill" : "circle.fill",
+                    title: session.state == .recording ? mText("Stoppa", "Stop") : mText("Spela in", "Record"),
+                    primary: true, active: session.state == .recording,
+                    busy: session.state == .transcribing || session.state == .requestingPermission
+                ) {
+                    Task {
+                        if session.state == .recording { await session.finish() }
+                        else { await session.record() }
                     }
-
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 42, weight: .semibold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color(red: 0.18, green: 0.72, blue: 0.78), Color(red: 0.54, green: 0.44, blue: 0.96)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                }
+                .disabled(!session.modelReady || session.state == .transcribing || session.state == .requestingPermission || session.hasPendingAudio)
+                MumlaTransportKey("text.alignleft", title: mText("Senaste", "Latest")) {
+                    MumlaFeedback.press()
+                    session.selectedRecord = session.history.first
+                }.disabled(session.history.isEmpty)
             }
-            .shadow(color: Color(red: 0.32, green: 0.74, blue: 0.86).opacity(0.22), radius: 24, y: 12)
-
-            Text("Redo")
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(.secondary)
-        }
-        .padding(22)
-        .frame(maxWidth: 330)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 34, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 34, style: .continuous)
-                .stroke(.white.opacity(0.40), lineWidth: 1)
+            .padding(.horizontal, 10).padding(.vertical, 20).mumlaSurface(radius: 16)
+            if session.elapsed >= 540 && session.state == .recording {
+                Text(mText("Stoppas automatiskt vid 10 minuter", "Automatically stops at 10 minutes"))
+                    .font(.caption).foregroundStyle(MumlaStyle.recording)
+            }
         }
     }
-}
 
-private struct StatusChip: View {
-    var systemName: String
-    var title: String
+    private var modelDownload: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: "arrow.down.circle").font(.title2).foregroundStyle(MumlaStyle.accent)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(session.isInstalling ? mText("Förbereder svenska", "Preparing Swedish") : mText("Hämta svenska", "Download Swedish")).font(.subheadline.weight(.medium))
+                    Text(session.isInstalling ? "\(Int(session.progress.fraction * 100)) %" : session.downloadSize).font(.caption).foregroundStyle(MumlaStyle.secondary)
+                }
+                Spacer()
+                if !session.isInstalling {
+                    Button { Task { await session.install() } } label: { Image(systemName: "arrow.down").frame(width: 44, height: 44) }
+                        .buttonStyle(MumlaKeyStyle())
+                        .accessibilityLabel(mText("Hämta språkmodell", "Download language model"))
+                }
+            }
+            if session.isInstalling { ProgressView(value: session.progress.fraction) }
+        }.padding(.horizontal, 2)
+    }
 
-    var body: some View {
+    private var history: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            sectionHeading(mText("Historik", "History"), count: session.history.count)
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").foregroundStyle(MumlaStyle.secondary)
+                TextField(mText("Sök dikteringar", "Search dictations"), text: $query).textInputAutocapitalization(.never)
+                if !query.isEmpty {
+                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
+                        .accessibilityLabel(mText("Rensa sökning", "Clear search"))
+                }
+            }.padding(16).mumlaRecess(radius: 10)
+            if filteredHistory.isEmpty {
+                MumlaEmptyState(query.isEmpty ? mText("Inga dikteringar än", "No dictations yet") : mText("Inga träffar", "No results"), symbol: "text.magnifyingglass")
+            }
+            ForEach(filteredHistory) { record in TranscriptRow(record: record) { session.selectedRecord = record } }
+        }
+    }
+
+    private var dictionary: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            HStack {
+                sectionHeading(mText("Dina ord", "Your words"), count: session.dictionary.count)
+                Spacer()
+                MumlaIconButton("plus", label: mText("Lägg till ord", "Add word")) { showAddWord = true }
+            }
+            if session.dictionary.isEmpty {
+                MumlaEmptyState(mText("Din ordlista är tom", "Your dictionary is empty"), symbol: "text.book.closed")
+            }
+            ForEach(session.dictionary) { entry in
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(entry.replacement).font(.headline)
+                        Text(entry.original).font(.subheadline).foregroundStyle(MumlaStyle.secondary)
+                    }
+                    Spacer()
+                    Button(role: .destructive) { session.deleteWord(entry) } label: { Image(systemName: "trash").frame(width: 44, height: 44) }
+                        .accessibilityLabel(mText("Ta bort", "Delete") + " " + entry.replacement)
+                }.padding(.vertical, 8)
+                Divider()
+            }
+        }
+    }
+
+    private var tabBar: some View {
         HStack(spacing: 7) {
-            Image(systemName: systemName)
-                .font(.system(size: 12, weight: .bold))
-            Text(title)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+            ForEach(HomeTab.allCases) { item in
+                Button { tab = item } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: item.symbol).font(.system(size: 15, weight: .medium))
+                        Text(item.title).font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(tab == item ? MumlaStyle.accent : MumlaStyle.secondary)
+                    .frame(maxWidth: .infinity).frame(minHeight: 48)
+                    .overlay(alignment: .bottom) {
+                        if tab == item { Capsule().fill(MumlaStyle.accent).frame(width: 12, height: 2).padding(.bottom, 5) }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(MumlaKeyStyle(feedback: false))
+                .accessibilityAddTraits(tab == item ? .isSelected : [])
+            }
         }
-        .foregroundStyle(Color(red: 0.17, green: 0.45, blue: 0.55))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay {
-            Capsule().stroke(.white.opacity(0.48), lineWidth: 1)
+        .padding(8).mumlaRecess(radius: 13).frame(maxWidth: 520)
+        .padding(.horizontal, 20).padding(.top, 10).padding(.bottom, 10)
+        .background(MumlaStyle.background)
+    }
+
+    private func sectionHeading(_ title: String, count: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.system(size: 32, weight: .semibold))
+            Text("\(count) " + mText("sparade", "saved")).font(.subheadline).foregroundStyle(MumlaStyle.secondary)
+        }
+    }
+    private var filteredHistory: [DictationRecord] { session.history.filter { query.isEmpty || $0.text.localizedCaseInsensitiveContains(query) } }
+    private var displayStatus: String {
+        if session.isInstalling { return mText("HÄMTAR", "LOADING") }
+        switch session.state {
+        case .recording: return "REC"
+        case .transcribing: return mText("BEARBETAR", "PROCESSING")
+        case .requestingPermission: return mText("MIKROFON", "MICROPHONE")
+        case .idle: return session.modelReady ? "STANDBY" : mText("EJ REDO", "NOT READY")
+        }
+    }
+    private var recordingTitle: String {
+        if session.isInstalling { return mText("Förbereder svenska", "Preparing Swedish") + " \(Int(session.progress.fraction * 100)) %" }
+        switch session.state {
+        case .recording: return mText("Lyssnar", "Listening")
+        case .transcribing: return mText("Skriver dina ord", "Transcribing")
+        case .requestingPermission: return mText("Väntar på mikrofonen", "Waiting for microphone")
+        case .idle: return session.modelReady ? mText("Redo att lyssna", "Ready to listen") : mText("Hämta svenska för att börja", "Download Swedish to begin")
         }
     }
 }
 
-#Preview {
-    MumlaHomeView()
+private enum HomeTab: String, CaseIterable, Identifiable {
+    case dictate, history, dictionary
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .dictate: mText("Diktera", "Dictate")
+        case .history: mText("Historik", "History")
+        case .dictionary: mText("Ordlista", "Dictionary")
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .dictate: "waveform"
+        case .history: "clock"
+        case .dictionary: "text.book.closed"
+        }
+    }
+}
+
+private struct TranscriptRow: View {
+    var record: DictationRecord
+    var open: () -> Void
+    var body: some View {
+        Button(action: open) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                }.font(.caption).foregroundStyle(MumlaStyle.secondary)
+                Text(record.text).font(.system(size: 16)).lineSpacing(4).lineLimit(3).multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }.padding(20).mumlaSurface(radius: 10)
+        }.buttonStyle(.plain)
+    }
 }

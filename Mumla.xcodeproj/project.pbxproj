@@ -7,36 +7,127 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		065760EDCEF33AA9175A54F5 /* ControlHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */; };
+		0B9CC038F26F324291172FFF /* PillWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898B56239AD94246CC0FF25C /* PillWindowController.swift */; };
+		25AED98B3018961C52085E75 /* MumlaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1310E3572482FC03B0D19FEA /* MumlaUITests.swift */; };
+		3EEDD778CC07125E773AEF45 /* MumlaUI in Frameworks */ = {isa = PBXBuildFile; productRef = C6DED7A42B8D56339AB76A38 /* MumlaUI */; };
+		4BD34DE07A2E83C28BC39532 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */; };
+		4C360FB45B6D0C7DBACB2491 /* ClipboardTextInserter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */; };
 		4E2291D64BBE014A4FF6BE7D /* MumlaHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */; };
+		5383AD414A7C20B2C8D57A59 /* FocusedTextTargetInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */; };
+		57626479B27E8D104DD07047 /* MumlaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 5642B22DF990E1C9A6F8EE1A /* MumlaUI */; };
+		57D2461181FFD8C44BBB9162 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9B5D76BF5AEDB09D049D0E2 /* MainWindowController.swift */; };
+		748E13453C97705C236EE45A /* DictationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29B34DB8773C80755E4CDC9 /* DictationSession.swift */; };
+		79981F12C18B985B1A82EE66 /* MumlaSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */; };
 		92FEFDDA53433933C2D8C0F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DE0C3F8DC853DBE2181553E6 /* Assets.xcassets */; };
+		9C06DA0EACC523C9783D5717 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = C491BBC3375F9562F9A9D873 /* MumlaAudio */; };
+		ABD30B6FE86268ED77F7D69C /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0DDCBC9B5E04500DC92D19F9 /* MumlaCore */; };
+		AD90C06988792860C1D9F6FD /* PillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749B69E10CE6D1D7FC443EBA /* PillView.swift */; };
+		B20D8AB68B32ABBAD570899A /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */; };
+		B300AA5D46F982F27219F3C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92571BD96423422D811E989B /* Assets.xcassets */; };
+		B3C2CE5843FB1780074B06D0 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */; };
+		B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */; };
+		BA3F945570826A391E965859 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
 		BC59DCA6E81E340BEFFC281B /* MumlaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83E6911303AC4BC9E5177E8 /* MumlaApp.swift */; };
+		C269080771F75259FBDF0D4A /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = F2609A56CC257B5C0FCF5E47 /* MumlaCore */; };
+		D3354B508BC8C7CD6753E616 /* MumlaMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */; };
+		D6BA2CFD675261088FA2F5C2 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = DCCF805E83C2E642E16A02D7 /* MumlaAudio */; };
+		FCB324B1695DC0C9876A6350 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7F31C730CC34A340BDF44903 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C67C509A4F6F34DDB8C4594 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C8A7C6C1CFBEB957E9A70E84;
+			remoteInfo = Mumla;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		030F8A6D1C90CD95ABAE4536 /* Mumla.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mumla.entitlements; sourceTree = "<group>"; };
+		0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		0D7DC48BF893D41E14900954 /* Mumla.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mumla.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1310E3572482FC03B0D19FEA /* MumlaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaUITests.swift; sourceTree = "<group>"; };
+		2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedFieldEditObserver.swift; sourceTree = "<group>"; };
+		4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaSheets.swift; sourceTree = "<group>"; };
+		4F7F84A3491DB7F273F94E53 /* MumlaMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A3A2CDBEC82B9925A49C8C4 /* Mumla */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Mumla; path = .; sourceTree = SOURCE_ROOT; };
 		5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaHomeView.swift; sourceTree = "<group>"; };
+		749B69E10CE6D1D7FC443EBA /* PillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillView.swift; sourceTree = "<group>"; };
+		898B56239AD94246CC0FF25C /* PillWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillWindowController.swift; sourceTree = "<group>"; };
+		8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaMacApp.swift; sourceTree = "<group>"; };
+		92571BD96423422D811E989B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextInserter.swift; sourceTree = "<group>"; };
+		A26F840006A86E01CDD6438C /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginController.swift; sourceTree = "<group>"; };
+		B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuController.swift; sourceTree = "<group>"; };
+		D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTextTargetInspector.swift; sourceTree = "<group>"; };
+		D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermission.swift; sourceTree = "<group>"; };
 		DE0C3F8DC853DBE2181553E6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E8C8EAC8BCA99267DCFC8585 /* MumlaUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MumlaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F29B34DB8773C80755E4CDC9 /* DictationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationSession.swift; sourceTree = "<group>"; };
+		F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlHotkeyMonitor.swift; sourceTree = "<group>"; };
 		F83E6911303AC4BC9E5177E8 /* MumlaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaApp.swift; sourceTree = "<group>"; };
+		F9B5D76BF5AEDB09D049D0E2 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7A22940B9D7BEEACB64E9DA3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C269080771F75259FBDF0D4A /* MumlaCore in Frameworks */,
+				D6BA2CFD675261088FA2F5C2 /* MumlaAudio in Frameworks */,
+				57626479B27E8D104DD07047 /* MumlaUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C456B922BA4A7C5B12BFDE6E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ABD30B6FE86268ED77F7D69C /* MumlaCore in Frameworks */,
+				9C06DA0EACC523C9783D5717 /* MumlaAudio in Frameworks */,
+				3EEDD778CC07125E773AEF45 /* MumlaUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		19420A6CEF8F15B4641F4DA6 = {
 			isa = PBXGroup;
 			children = (
 				610D592A6678EA7B4E19E086 /* Mumla */,
+				657B700994A04EE67A400192 /* MumlaMac */,
+				52CCEF403C28F8BFB947B1D4 /* MumlaUITests */,
+				EF3BC2D02AC5C4708D03B55C /* Packages */,
+				7FFC68FB74EAB2B63D9F5E6F /* Resources */,
 				6519C290311E8BDCCE3A84D3 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		52CCEF403C28F8BFB947B1D4 /* MumlaUITests */ = {
+			isa = PBXGroup;
+			children = (
+				1310E3572482FC03B0D19FEA /* MumlaUITests.swift */,
+			);
+			name = MumlaUITests;
+			path = Tests/MumlaUITests;
 			sourceTree = "<group>";
 		};
 		610D592A6678EA7B4E19E086 /* Mumla */ = {
 			isa = PBXGroup;
 			children = (
+				F29B34DB8773C80755E4CDC9 /* DictationSession.swift */,
 				5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */,
 				030F8A6D1C90CD95ABAE4536 /* Mumla.entitlements */,
 				F83E6911303AC4BC9E5177E8 /* MumlaApp.swift */,
 				6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */,
+				4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */,
 				9E197791A43590C2139C946B /* Resources */,
 			);
 			name = Mumla;
@@ -47,8 +138,40 @@
 			isa = PBXGroup;
 			children = (
 				0D7DC48BF893D41E14900954 /* Mumla.app */,
+				4F7F84A3491DB7F273F94E53 /* MumlaMac.app */,
+				E8C8EAC8BCA99267DCFC8585 /* MumlaUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		657B700994A04EE67A400192 /* MumlaMac */ = {
+			isa = PBXGroup;
+			children = (
+				D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */,
+				0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */,
+				9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */,
+				F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */,
+				2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */,
+				D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */,
+				A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */,
+				A26F840006A86E01CDD6438C /* MainView.swift */,
+				F9B5D76BF5AEDB09D049D0E2 /* MainWindowController.swift */,
+				8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */,
+				749B69E10CE6D1D7FC443EBA /* PillView.swift */,
+				898B56239AD94246CC0FF25C /* PillWindowController.swift */,
+				B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */,
+			);
+			name = MumlaMac;
+			path = Sources/MumlaMac;
+			sourceTree = "<group>";
+		};
+		7FFC68FB74EAB2B63D9F5E6F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				92571BD96423422D811E989B /* Assets.xcassets */,
+			);
+			name = Resources;
+			path = Apps/macOS/Mumla/Resources;
 			sourceTree = "<group>";
 		};
 		9E197791A43590C2139C946B /* Resources */ = {
@@ -59,15 +182,64 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		EF3BC2D02AC5C4708D03B55C /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				5A3A2CDBEC82B9925A49C8C4 /* Mumla */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		437EA56A822C97529DC23F62 /* MumlaUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B852279F5AA0834EA7D8EACA /* Build configuration list for PBXNativeTarget "MumlaUITests" */;
+			buildPhases = (
+				8F64F9DB488E969158C15170 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				18DA3F0A835077703368651D /* PBXTargetDependency */,
+			);
+			name = MumlaUITests;
+			packageProductDependencies = (
+			);
+			productName = MumlaUITests;
+			productReference = E8C8EAC8BCA99267DCFC8585 /* MumlaUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		45A5202F9C883FE1B67273FE /* MumlaMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 25A931A159D21302F94AA575 /* Build configuration list for PBXNativeTarget "MumlaMac" */;
+			buildPhases = (
+				1F8797E6A68D2AC47FF18FDF /* Sources */,
+				9497492C5970F5293DE92544 /* Resources */,
+				7A22940B9D7BEEACB64E9DA3 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MumlaMac;
+			packageProductDependencies = (
+				F2609A56CC257B5C0FCF5E47 /* MumlaCore */,
+				DCCF805E83C2E642E16A02D7 /* MumlaAudio */,
+				5642B22DF990E1C9A6F8EE1A /* MumlaUI */,
+			);
+			productName = MumlaMac;
+			productReference = 4F7F84A3491DB7F273F94E53 /* MumlaMac.app */;
+			productType = "com.apple.product-type.application";
+		};
 		C8A7C6C1CFBEB957E9A70E84 /* Mumla */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8AFC3AAFC7512F7B14A82122 /* Build configuration list for PBXNativeTarget "Mumla" */;
 			buildPhases = (
 				44421AA357C72541E45C39A3 /* Sources */,
 				FDD131D29FA8E4769DDA84A3 /* Resources */,
+				C456B922BA4A7C5B12BFDE6E /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -75,6 +247,9 @@
 			);
 			name = Mumla;
 			packageProductDependencies = (
+				0DDCBC9B5E04500DC92D19F9 /* MumlaCore */,
+				C491BBC3375F9562F9A9D873 /* MumlaAudio */,
+				C6DED7A42B8D56339AB76A38 /* MumlaUI */,
 			);
 			productName = Mumla;
 			productReference = 0D7DC48BF893D41E14900954 /* Mumla.app */;
@@ -89,6 +264,15 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					437EA56A822C97529DC23F62 = {
+						DevelopmentTeam = PF2PWR4YG4;
+						ProvisioningStyle = Automatic;
+						TestTargetID = C8A7C6C1CFBEB957E9A70E84;
+					};
+					45A5202F9C883FE1B67273FE = {
+						DevelopmentTeam = PF2PWR4YG4;
+						ProvisioningStyle = Automatic;
+					};
 					C8A7C6C1CFBEB957E9A70E84 = {
 						DevelopmentTeam = PF2PWR4YG4;
 						ProvisioningStyle = Automatic;
@@ -104,17 +288,30 @@
 			);
 			mainGroup = 19420A6CEF8F15B4641F4DA6;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8B932B82DC184EEFAE8445ED /* XCLocalSwiftPackageReference "." */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6519C290311E8BDCCE3A84D3 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				C8A7C6C1CFBEB957E9A70E84 /* Mumla */,
+				45A5202F9C883FE1B67273FE /* MumlaMac */,
+				437EA56A822C97529DC23F62 /* MumlaUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		9497492C5970F5293DE92544 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B300AA5D46F982F27219F3C2 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		FDD131D29FA8E4769DDA84A3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -126,16 +323,54 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1F8797E6A68D2AC47FF18FDF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B20D8AB68B32ABBAD570899A /* AccessibilityPermission.swift in Sources */,
+				B3C2CE5843FB1780074B06D0 /* AppCoordinator.swift in Sources */,
+				4C360FB45B6D0C7DBACB2491 /* ClipboardTextInserter.swift in Sources */,
+				065760EDCEF33AA9175A54F5 /* ControlHotkeyMonitor.swift in Sources */,
+				B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */,
+				5383AD414A7C20B2C8D57A59 /* FocusedTextTargetInspector.swift in Sources */,
+				4BD34DE07A2E83C28BC39532 /* LaunchAtLoginController.swift in Sources */,
+				BA3F945570826A391E965859 /* MainView.swift in Sources */,
+				57D2461181FFD8C44BBB9162 /* MainWindowController.swift in Sources */,
+				D3354B508BC8C7CD6753E616 /* MumlaMacApp.swift in Sources */,
+				AD90C06988792860C1D9F6FD /* PillView.swift in Sources */,
+				0B9CC038F26F324291172FFF /* PillWindowController.swift in Sources */,
+				FCB324B1695DC0C9876A6350 /* StatusMenuController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		44421AA357C72541E45C39A3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				748E13453C97705C236EE45A /* DictationSession.swift in Sources */,
 				BC59DCA6E81E340BEFFC281B /* MumlaApp.swift in Sources */,
 				4E2291D64BBE014A4FF6BE7D /* MumlaHomeView.swift in Sources */,
+				79981F12C18B985B1A82EE66 /* MumlaSheets.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8F64F9DB488E969158C15170 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				25AED98B3018961C52085E75 /* MumlaUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		18DA3F0A835077703368651D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C8A7C6C1CFBEB957E9A70E84 /* Mumla */;
+			targetProxy = 7F31C730CC34A340BDF44903 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5E36377025CBDB0632C96B3C /* Debug */ = {
@@ -153,6 +388,43 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6C90CD9F6FDE6D3ABF682C57 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Apps/macOS/Mumla/Mumla.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Apps/macOS/Mumla/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
+				PRODUCT_NAME = Mumla;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		6D2ACF4B539B4CFA1E674E2D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Mumla;
 			};
 			name = Debug;
 		};
@@ -191,7 +463,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -211,12 +483,12 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -224,6 +496,43 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		838B28302C391A1E45390CDA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Mumla;
+			};
+			name = Release;
+		};
+		A75A986E41B2E2061B717ACD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Apps/macOS/Mumla/Mumla.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Apps/macOS/Mumla/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
+				PRODUCT_NAME = Mumla;
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -262,7 +571,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -276,11 +585,11 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -321,6 +630,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		25A931A159D21302F94AA575 /* Build configuration list for PBXNativeTarget "MumlaMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A75A986E41B2E2061B717ACD /* Debug */,
+				6C90CD9F6FDE6D3ABF682C57 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		8AFC3AAFC7512F7B14A82122 /* Build configuration list for PBXNativeTarget "Mumla" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -330,7 +648,50 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		B852279F5AA0834EA7D8EACA /* Build configuration list for PBXNativeTarget "MumlaUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6D2ACF4B539B4CFA1E674E2D /* Debug */,
+				838B28302C391A1E45390CDA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		8B932B82DC184EEFAE8445ED /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0DDCBC9B5E04500DC92D19F9 /* MumlaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaCore;
+		};
+		5642B22DF990E1C9A6F8EE1A /* MumlaUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaUI;
+		};
+		C491BBC3375F9562F9A9D873 /* MumlaAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaAudio;
+		};
+		C6DED7A42B8D56339AB76A38 /* MumlaUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaUI;
+		};
+		DCCF805E83C2E642E16A02D7 /* MumlaAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaAudio;
+		};
+		F2609A56CC257B5C0FCF5E47 /* MumlaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3C67C509A4F6F34DDB8C4594 /* Project object */;
 }

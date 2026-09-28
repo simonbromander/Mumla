@@ -8,12 +8,13 @@ final class MainWindowController {
     init(coordinator: AppCoordinator) {
         let contentView = MainView(coordinator: coordinator)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Mumla"
+        window.appearance = NSAppearance(named: .darkAqua)
         window.contentView = NSHostingView(rootView: contentView)
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true

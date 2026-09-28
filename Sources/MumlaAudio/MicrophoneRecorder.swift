@@ -63,6 +63,12 @@ public final class MicrophoneRecorder: NSObject, @unchecked Sendable {
         return outputURL
     }
 
+    public func inputLevel() -> Double {
+        guard let recorder, recorder.isRecording else { return 0 }
+        recorder.updateMeters()
+        return min(1, max(0, pow(10, Double(recorder.averagePower(forChannel: 0)) / 30)))
+    }
+
     public func cancel() {
         let url = outputURL
         recorder?.stop()
