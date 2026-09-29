@@ -119,7 +119,7 @@ public struct MumlaRecorderDisplay: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 HStack(spacing: 6) {
-                    Circle().fill(recording ? MumlaStyle.recording : MumlaStyle.lcdInk.opacity(0.65)).frame(width: 6, height: 6)
+                    MumlaRecordingLight(recording: recording)
                     Text(status).fontWeight(.semibold)
                 }
                 Spacer()
@@ -168,7 +168,10 @@ public struct MumlaRecorderDisplay: View {
 public struct MumlaWaveform: View {
     public var samples: [Double]
     public var active: Bool
-    public init(samples: [Double] = [], active: Bool = false) { self.samples = samples; self.active = active }
+    public var ink: Color
+    public init(samples: [Double] = [], active: Bool = false, ink: Color = MumlaStyle.accent) {
+        self.samples = samples; self.active = active; self.ink = ink
+    }
     public var body: some View {
         Canvas { context, size in
             let count = 43
@@ -177,7 +180,7 @@ public struct MumlaWaveform: View {
                 let value = samples.indices.contains(index) ? samples[index] : 0
                 let height = max(2, CGFloat(value) * size.height)
                 let rect = CGRect(x: CGFloat(index) * spacing, y: (size.height - height) / 2, width: max(1, spacing - 3), height: height)
-                context.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color(active ? MumlaStyle.accent : MumlaStyle.secondary.opacity(0.4)))
+                context.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color(active ? ink : MumlaStyle.secondary.opacity(0.4)))
             }
         }.accessibilityHidden(true)
     }

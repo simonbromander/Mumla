@@ -2,11 +2,13 @@ import AppKit
 import Foundation
 import MumlaAudio
 import MumlaCore
+import MumlaUI
 
 @MainActor
 final class AppCoordinator: ObservableObject {
     @Published var pillState: PillState = .hidden
     @Published private(set) var inputLevel: Double = 0
+    @Published private(set) var waveformSamples = Array(repeating: 0.0, count: 43)
     @Published var history: [DictationRecord] = []
     @Published var dictionaryEntries: [DictionaryEntry] = []
     @Published var languageMode: LanguageMode = .automatic
@@ -22,6 +24,7 @@ final class AppCoordinator: ObservableObject {
     var hidePill: (() -> Void)?
     var showMainWindow: (() -> Void)?
     var quit: (() -> Void)?
+    var triggerKeyChanged: ((DictationTriggerKey) -> Void)?
 
     private let recorder: MicrophoneRecorder
     private var transcriber: LocalPianissimoTranscriber?
@@ -29,6 +32,7 @@ final class AppCoordinator: ObservableObject {
     private let historyStore: DictationHistoryStore
     private let dictionaryStore: DictionaryStore
     private let settingsStore: AppSettingsStore
+    private let pasteboard: NSPasteboard
     private let inserter = ClipboardTextInserter()
     private let correctionLearner = CorrectionLearner()
     private let editObserver = FocusedFieldEditObserver()
@@ -37,6 +41,9 @@ final class AppCoordinator: ObservableObject {
     private var recordingStartedAt: Date?
     private var elapsedTimer: Timer?
     private var modelInstallTask: Task<Void, Never>?
+    private var hidePillTask: Task<Void, Never>?
+    private var pendingStartID: UUID?
+    private var insertionTarget: FocusedTextTargetSnapshot?
 
     init(
         recorder: MicrophoneRecorder,
@@ -45,7 +52,8 @@ final class AppCoordinator: ObservableObject {
         historyStore: DictationHistoryStore,
         dictionaryStore: DictionaryStore,
         settingsStore: AppSettingsStore,
-        modelDirectory: URL?
+        modelDirectory: URL?,
+        pasteboard: NSPasteboard = .general
     ) {
         self.recorder = recorder
         self.transcriber = transcriber
@@ -54,11 +62,13 @@ final class AppCoordinator: ObservableObject {
         self.dictionaryStore = dictionaryStore
         self.settingsStore = settingsStore
         self.modelDirectory = modelDirectory
+        self.pasteboard = pasteboard
     }
 
     func bootstrap() {
         settings = (try? settingsStore.load()) ?? .default
         languageMode = settings.languageMode
+        triggerKeyChanged?(settings.triggerKey)
         refreshLaunchAtLoginStatus()
         history = (try? historyStore.load()) ?? []
         dictionaryEntries = (try? dictionaryStore.load()) ?? []
@@ -108,7 +118,8 @@ final class AppCoordinator: ObservableObject {
     }
 
     func finishDictation() async {
-        guard activeMode != nil else { return }
+        guard activeMode != nil else { pendingStartID = nil; return }
+        hidePillTask?.cancel()
         elapsedTimer?.invalidate()
         elapsedTimer = nil
         inputLevel = 0
@@ -158,37 +169,66 @@ final class AppCoordinator: ObservableObject {
             history = try historyStore.append(record)
             updateLastLanguage(resolvedLanguage)
 
-            let insertion = inserter.insert(text)
-            switch insertion {
-            case .inserted:
-                pillState = .message("Inserted")
-                statusText = "Last dictation ready"
-                watchForCorrectionLearning()
-            case .copied:
-                pillState = .message("Copied - Command-V to paste")
-                statusText = "Copied to clipboard"
-            case .blockedSecureField:
-                pillState = .message("Secure field")
-                statusText = "Secure field blocked"
-            }
-            scheduleHidePill()
+            let insertion = await inserter.insert(text, target: insertionTarget)
+            presentInsertion(insertion, record: record)
         } catch {
             showError(error.localizedDescription)
         }
     }
 
     func cancelDictation() {
-        guard activeMode != nil else { return }
+        pendingStartID = nil
+        guard activeMode != nil else { dismissPill(); return }
         recorder.cancel()
         activeMode = nil
         elapsedTimer?.invalidate()
         elapsedTimer = nil
+        inputLevel = 0
         pillState = .message("Cancelled")
         scheduleHidePill()
     }
 
     func pasteRecord(_ record: DictationRecord) {
-        _ = inserter.insert(record.text)
+        guard activeMode == nil, pendingStartID == nil, pillState != .transcribing else { return }
+        editObserver.cancel()
+        let target = FocusedTextTargetInspector.captureEditableTarget()
+        hidePillTask?.cancel()
+        pillState = .transcribing
+        showPill?()
+        Task { presentInsertion(await inserter.insert(record.text, target: target), record: record) }
+    }
+
+    func copyPillTranscript() {
+        guard case let .transcript(record, _) = pillState else { return }
+        pasteboard.clearContents()
+        let copied = pasteboard.setString(record.text, forType: .string)
+        pillState = .transcript(record, copied: copied)
+    }
+
+    func dismissPill() {
+        guard activeMode == nil, pillState != .transcribing else { return }
+        hidePillTask?.cancel()
+        pillState = .hidden
+        hidePill?()
+    }
+
+    func presentInsertion(_ result: ClipboardInsertionResult, record: DictationRecord) {
+        switch result {
+        case .inserted:
+            pillState = .message(mText("Infogat", "Inserted"))
+            statusText = "Last dictation ready"
+            watchForCorrectionLearning()
+            scheduleHidePill()
+        case let .needsCopy(copied):
+            hidePillTask?.cancel()
+            pillState = .transcript(record, copied: copied)
+            statusText = "Transcript ready"
+        case .blockedSecureField:
+            hidePillTask?.cancel()
+            pillState = .transcript(record, copied: false)
+            statusText = "Secure field blocked"
+        }
+        showPill?()
     }
 
     func openSettings() {
@@ -199,6 +239,18 @@ final class AppCoordinator: ObservableObject {
         languageMode = mode
         settings.languageMode = mode
         persistSettings()
+    }
+
+    func setTriggerKey(_ key: DictationTriggerKey) {
+        guard key != settings.triggerKey else { return }
+        var updated = settings
+        updated.triggerKey = key
+        do {
+            try settingsStore.save(updated)
+            cancelDictation()
+            settings = updated
+            triggerKeyChanged?(key)
+        } catch { showError(error.localizedDescription) }
     }
 
     func setLaunchAtLoginEnabled(_ isEnabled: Bool) {
@@ -259,7 +311,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     func showPracticePill() {
-        pillState = .message("Hold Ctrl to dictate")
+        pillState = .message(mText("Håll", "Hold") + " \(settings.triggerKey.displayName) " + mText("för att diktera", "to dictate"))
         showPill?()
         scheduleHidePill()
     }
@@ -404,7 +456,9 @@ final class AppCoordinator: ObservableObject {
     }
 
     private func startDictation(mode: RecordingMode) async {
-        guard activeMode == nil, pillState != .transcribing else { return }
+        guard activeMode == nil, pendingStartID == nil, pillState != .transcribing else { return }
+        hidePillTask?.cancel()
+        editObserver.cancel()
 
         if FocusedTextTargetInspector.inspect() == .secureText {
             statusText = "Secure input active"
@@ -423,7 +477,13 @@ final class AppCoordinator: ObservableObject {
             return
         }
 
-        guard await recorder.microphonePermissionGranted() else {
+        let startID = UUID()
+        pendingStartID = startID
+        insertionTarget = FocusedTextTargetInspector.captureEditableTarget()
+        let permission = await recorder.microphonePermissionGranted()
+        guard pendingStartID == startID else { return }
+        pendingStartID = nil
+        guard permission else {
             pillState = .message("Microphone permission needed")
             showPill?()
             scheduleHidePill()
@@ -434,6 +494,7 @@ final class AppCoordinator: ObservableObject {
             _ = try recorder.start()
             activeMode = mode
             recordingStartedAt = Date()
+            waveformSamples = Array(repeating: 0, count: 43)
             pillState = mode == .quick ? .listening(elapsedSeconds: 0) : .handsFree(elapsedSeconds: 0)
             showPill?()
             startElapsedTimer(mode: mode)
@@ -449,6 +510,8 @@ final class AppCoordinator: ObservableObject {
                 guard let self, self.activeMode == mode, let startedAt = self.recordingStartedAt else { return }
                 let elapsed = Date().timeIntervalSince(startedAt)
                 self.inputLevel = self.recorder.inputLevel()
+                self.waveformSamples.removeFirst()
+                self.waveformSamples.append(min(1, self.inputLevel * 4))
                 self.pillState = mode == .quick ? .listening(elapsedSeconds: elapsed) : .handsFree(elapsedSeconds: elapsed)
                 if elapsed >= 600 { await self.finishDictation() }
             }
@@ -456,9 +519,12 @@ final class AppCoordinator: ObservableObject {
     }
 
     private func showError(_ message: String) {
+        recorder.cancel()
+        pendingStartID = nil
         activeMode = nil
         elapsedTimer?.invalidate()
         elapsedTimer = nil
+        inputLevel = 0
         pillState = .message(message)
         statusText = message
         showPill?()
@@ -466,14 +532,22 @@ final class AppCoordinator: ObservableObject {
     }
 
     private func scheduleHidePill() {
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_400_000_000)
-            if self.activeMode == nil {
-                self.pillState = .hidden
-                self.hidePill?()
-            }
+        hidePillTask?.cancel()
+        hidePillTask = Task { [weak self] in
+            do { try await Task.sleep(for: .milliseconds(1400)) } catch { return }
+            guard let self, self.activeMode == nil, self.pendingStartID == nil,
+                  case .message = self.pillState else { return }
+            self.pillState = .hidden
+            self.hidePill?()
         }
     }
+
+    #if DEBUG
+    func prepareRecordingSnapshot() {
+        pillState = .listening(elapsedSeconds: 17)
+        waveformSamples = (0..<43).map { 0.12 + abs(sin(Double($0) * 0.7)) * 0.75 }
+    }
+    #endif
 }
 
 enum RecordingMode {
@@ -488,6 +562,7 @@ enum PillState: Equatable {
     case handsFree(elapsedSeconds: TimeInterval)
     case transcribing
     case message(String)
+    case transcript(DictationRecord, copied: Bool)
 }
 
 enum OnboardingStep: Int, CaseIterable {

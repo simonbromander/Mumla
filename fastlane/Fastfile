@@ -1,6 +1,7 @@
 require "base64"
 require "digest"
 require "fileutils"
+require "json"
 require "open3"
 require "openssl"
 require "shellwords"
@@ -55,6 +56,60 @@ def mumla_context
 end
 
 platform :ios do
+  desc "Publish and verify localized testing notes for one explicitly selected build"
+  lane :beta_notes do |options|
+    UI.user_error!("Pass file:path to the versioned testing-notes JSON.") unless options[:file]
+    notes = JSON.parse(File.read(File.expand_path(options[:file], ROOT)))
+    context = mumla_context
+    UI.user_error!("The App Store Connect record is missing.") unless context[:app]
+    builds = context[:app].get_builds(filter: { "preReleaseVersion.version" => notes.fetch("version"), version: notes.fetch("build") }, includes: "preReleaseVersion")
+    matches = builds.select { |build| build.platform == notes.fetch("platform") }
+    UI.user_error!("Expected exactly one matching build.") unless matches.length == 1
+    build = matches.first
+    localizations = build.get_beta_build_localizations
+    notes.fetch("localizations").each do |locale, text|
+      existing = localizations.find { |item| item.locale == locale }
+      if existing
+        Spaceship::ConnectAPI.patch_beta_build_localizations(localization_id: existing.id, attributes: { whatsNew: text })
+      else
+        Spaceship::ConnectAPI.post_beta_build_localizations(build_id: build.id, attributes: { locale: locale, whatsNew: text })
+      end
+    end
+    verified = build.get_beta_build_localizations.to_h { |item| [item.locale, item.whats_new] }
+    notes.fetch("localizations").each do |locale, text|
+      UI.user_error!("Testing notes did not match for #{locale}.") unless verified[locale] == text
+    end
+    UI.success("Testing notes verified for #{build.platform} #{build.app_version} (#{build.version}), #{build.id}.")
+  end
+
+  desc "Read-only TestFlight status for both platforms and the existing internal audience"
+  lane :beta_status do
+    context = mumla_context
+    UI.user_error!("The App Store Connect record is missing.") unless context[:app]
+    app = context[:app]
+    builds = app.get_builds(filter: { "preReleaseVersion.version" => VERSION }, includes: "preReleaseVersion,buildBetaDetail", sort: "-uploadedDate")
+    groups = app.get_beta_groups.select(&:is_internal_group)
+    report = {
+      checked_at: Time.now.utc.iso8601,
+      app_id: app.id,
+      bundle_id: BUNDLE_ID,
+      builds: builds.map do |build|
+        {
+          id: build.id, platform: build.platform, version: build.app_version,
+          build: build.version, processing: build.processing_state,
+          internal: build.build_beta_detail&.internal_build_state,
+          external: build.build_beta_detail&.external_build_state
+        }
+      end,
+      internal_groups: groups.map do |group|
+        { name: group.name, all_builds: group.has_access_to_all_builds, build_ids: group.fetch_builds.map(&:id) }
+      end
+    }
+    FileUtils.mkdir_p(File.join(ROOT, ".build"))
+    File.write(File.join(ROOT, ".build", "testflight-status.json"), JSON.pretty_generate(report))
+    UI.message(JSON.pretty_generate(report))
+  end
+
   desc "Read-only release preflight: generate project, build simulator, verify ASC app record/signing context"
   lane :preflight do
     sh("xcodegen", "generate", "--spec", File.join(ROOT, "project.yml"))

@@ -18,6 +18,7 @@ final class MumlaUITests: XCTestCase {
         app.textFields["Ersätt"].typeText("Kubernetis")
         app.textFields["Med"].tap()
         app.textFields["Med"].typeText("Kubernetes")
+        capture("15-add-word", app: app)
         app.buttons["Spara"].tap()
         XCTAssertTrue(app.staticTexts["Kubernetes"].waitForExistence(timeout: 3))
         capture("03-dictionary", app: app)
@@ -73,7 +74,7 @@ final class MumlaUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Visa historik"].exists)
         XCTAssertFalse(app.staticTexts["An older transcript."].exists)
         preview.tap()
-        XCTAssertFalse(app.navigationBars["Diktering"].exists)
+        XCTAssertFalse(app.staticTexts["Diktering"].exists)
         copy.tap()
         XCTAssertEqual(app.staticTexts["latestTranscript.copyStatus"].label, "Kopierat")
         capture("06-latest-transcript", app: app)
@@ -90,7 +91,8 @@ final class MumlaUITests: XCTestCase {
         let record = app.buttons.containing(.staticText, identifier: "An older transcript.").firstMatch
         XCTAssertTrue(record.waitForExistence(timeout: 3))
         record.tap()
-        XCTAssertTrue(app.navigationBars["Diktering"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.textViews["transcript.text"].waitForExistence(timeout: 3))
+        capture("16-transcript-detail", app: app)
     }
 
     func testLatestTranscriptLargeText() {

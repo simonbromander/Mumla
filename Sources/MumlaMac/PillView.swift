@@ -4,37 +4,100 @@ import SwiftUI
 
 struct PillView: View {
     @ObservedObject var coordinator: AppCoordinator
+    static let width: CGFloat = 480
+    static func height(for state: PillState) -> CGFloat {
+        if case .transcript = state { return 248 }
+        return 124
+    }
 
     var body: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: recording ? "record.circle.fill" : "waveform")
-                    .foregroundStyle(recording ? MumlaStyle.recording : MumlaStyle.lcdInk)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.system(size: 12, weight: .semibold, design: .monospaced)).lineLimit(1)
-                    if let subtitle { Text(subtitle).font(.system(size: 10, design: .monospaced)).monospacedDigit() }
-                }
-                Spacer(minLength: 0)
-                Text(language).font(.system(size: 10, weight: .medium, design: .monospaced))
-            }
-            .foregroundStyle(MumlaStyle.lcdInk)
-            .padding(.horizontal, 12).frame(height: 46)
-            .background(RoundedRectangle(cornerRadius: 5).fill(MumlaStyle.lcd.shadow(.inner(color: .black.opacity(0.5), radius: 3, y: 2))))
-            if recording {
-                Button { Task { await coordinator.finishDictation() } } label: {
-                    Image(systemName: "stop.fill").frame(width: 34, height: 38)
-                }.buttonStyle(MumlaKeyStyle()).help(mText("Stoppa", "Stop")).accessibilityLabel(mText("Stoppa", "Stop"))
-                Button { coordinator.cancelDictation() } label: {
-                    Image(systemName: "xmark").frame(width: 34, height: 38)
-                }.buttonStyle(MumlaKeyStyle()).help(mText("Avbryt", "Cancel")).accessibilityLabel(mText("Avbryt", "Cancel"))
+        Group {
+            if case let .transcript(record, copied) = coordinator.pillState {
+                transcript(record, copied: copied)
+            } else {
+                recorder
             }
         }
-        .padding(8).frame(width: 482, height: 62).mumlaSurface(radius: 11)
-        .preferredColorScheme(.dark).accessibilityElement(children: .contain)
+        .padding(12)
+        .frame(width: Self.width, height: Self.height(for: coordinator.pillState))
+        .mumlaSurface(radius: 14)
+        .preferredColorScheme(.dark)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var recorder: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 7) {
+                    MumlaRecordingLight(recording: recording)
+                    Text(title).font(.system(size: 12, weight: .semibold, design: .monospaced)).lineLimit(2)
+                    Spacer(minLength: 6)
+                    if recording {
+                        Text(elapsed).font(.system(size: 20, weight: .light, design: .monospaced)).monospacedDigit()
+                    }
+                    Text(language).font(.system(size: 10, weight: .medium, design: .monospaced))
+                }
+                if recording {
+                    MumlaWaveform(samples: coordinator.waveformSamples, active: true, ink: MumlaStyle.lcdInk)
+                        .frame(height: 26)
+                } else if case let .preparing(progress) = coordinator.pillState {
+                    MumlaDownloadGauge(fraction: progress)
+                } else {
+                    Text(coordinator.pillState == .transcribing ? mText("PÅ DEN HÄR MACEN", "ON THIS MAC") : "16 kHz / MONO")
+                        .font(.system(size: 10, design: .monospaced))
+                }
+            }
+            .foregroundStyle(MumlaStyle.lcdInk)
+            .padding(14).frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(RoundedRectangle(cornerRadius: 7).fill(
+                LinearGradient(colors: [MumlaStyle.lcd, Color(red: 0.72, green: 0.83, blue: 0.67)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .shadow(.inner(color: .black.opacity(0.45), radius: 4, y: 2))
+            ))
+            VStack(spacing: 8) {
+                if recording {
+                    MumlaIconButton("stop.fill", label: mText("Stoppa", "Stop")) { Task { await coordinator.finishDictation() } }
+                    MumlaIconButton("xmark", label: mText("Avbryt", "Cancel")) { coordinator.cancelDictation() }
+                } else if coordinator.pillState != .transcribing {
+                    MumlaIconButton("xmark", label: mText("Stäng", "Close")) { coordinator.dismissPill() }
+                }
+            }
+        }
+    }
+
+    private func transcript(_ record: DictationRecord, copied: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Label(mText("Texten är klar", "Transcript ready"), systemImage: "text.alignleft")
+                    .font(.system(size: 12, weight: .medium, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
+                Spacer()
+                MumlaIconButton("xmark", label: mText("Stäng", "Close")) { coordinator.dismissPill() }
+            }
+            ScrollView {
+                Text(record.text).font(.system(size: 15)).lineSpacing(4)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(12)
+            }.frame(maxWidth: .infinity, maxHeight: .infinity).mumlaRecess(radius: 7)
+            HStack {
+                Text(copied ? mText("Kopierat", "Copied") : mText("Sparat i historiken", "Saved in History"))
+                    .font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                Spacer()
+                Button { coordinator.copyPillTranscript() } label: {
+                    Label(mText("Kopiera", "Copy"), systemImage: copied ? "checkmark" : "doc.on.doc")
+                        .padding(.horizontal, 16).frame(height: 44)
+                }.buttonStyle(MumlaKeyStyle()).accessibilityLabel(mText("Kopiera transkript", "Copy transcript"))
+            }
+        }
     }
 
     private var recording: Bool {
         switch coordinator.pillState { case .listening, .handsFree: true; default: false }
+    }
+    private var elapsed: String {
+        let seconds: TimeInterval
+        switch coordinator.pillState {
+        case let .listening(value), let .handsFree(value): seconds = value
+        default: seconds = 0
+        }
+        return String(format: "%02d:%02d", Int(seconds) / 60, Int(seconds) % 60)
     }
     private var title: String {
         switch coordinator.pillState {
@@ -42,15 +105,8 @@ struct PillView: View {
         case .listening, .handsFree: "REC"
         case .transcribing: mText("TRANSKRIBERAR", "TRANSCRIBING")
         case let .message(message): message
+        case .transcript: mText("TEXTEN ÄR KLAR", "TRANSCRIPT READY")
         case .hidden: "MUMla"
-        }
-    }
-    private var subtitle: String? {
-        switch coordinator.pillState {
-        case let .preparing(progress): "\(Int(progress * 100)) %"
-        case let .listening(elapsed), let .handsFree(elapsed): String(format: "%02d:%02d", Int(elapsed) / 60, Int(elapsed) % 60)
-        case .transcribing: mText("På den här Macen", "On this Mac")
-        case .message, .hidden: nil
         }
     }
     private var language: String {

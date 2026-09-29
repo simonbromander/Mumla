@@ -2,11 +2,13 @@ import SwiftUI
 
 public struct MumlaStereoKeyStyle: ButtonStyle {
     public var isLatched: Bool
+    public var height: CGFloat
     public var onPressChanged: (Bool) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(isLatched: Bool, onPressChanged: @escaping (Bool) -> Void) {
+    public init(isLatched: Bool, height: CGFloat = 64, onPressChanged: @escaping (Bool) -> Void = { _ in }) {
         self.isLatched = isLatched
+        self.height = max(44, height)
         self.onPressChanged = onPressChanged
     }
 
@@ -14,6 +16,12 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
         let down = isLatched || configuration.isPressed
         let cap = RoundedRectangle(cornerRadius: 7, style: .continuous)
         let travel: CGFloat = down ? 6 : 0
+        #if os(macOS)
+        // AppKit bitmap/layer hosting mispositions perspective-transformed caps.
+        let tilt = 0.0
+        #else
+        let tilt = reduceMotion || down ? 0.0 : -7.0
+        #endif
 
         ZStack(alignment: .top) {
             RoundedRectangle(cornerRadius: 9, style: .continuous)
@@ -34,7 +42,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
             .padding(.horizontal, 2).padding(.top, 7).padding(.bottom, 2)
 
             configuration.label
-                .frame(maxWidth: .infinity).frame(height: 52)
+                .frame(maxWidth: .infinity).frame(height: height - 12)
                 .foregroundStyle(down ? MumlaStyle.accent : Color(white: 0.84))
                 .background {
                     cap.fill(LinearGradient(
@@ -61,11 +69,11 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
                 }
                 .compositingGroup()
                 .shadow(color: .black.opacity(down ? 0.20 : 0.75), radius: down ? 1 : 2, y: down ? 0 : 5)
-                .rotation3DEffect(.degrees(reduceMotion || down ? 0 : -7), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.35)
+                .rotation3DEffect(.degrees(tilt), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.35)
                 .offset(y: travel + (configuration.isPressed && !reduceMotion ? 1 : 0))
                 .padding(.horizontal, 2).padding(.top, 2)
         }
-        .frame(height: 64)
+        .frame(height: height)
         .contentShape(Rectangle())
         .animation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.68), value: isLatched)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.08), value: configuration.isPressed)

@@ -1,4 +1,5 @@
 import ApplicationServices
+import AppKit
 import Carbon
 import Foundation
 
@@ -10,6 +11,37 @@ enum FocusedTextTarget {
 }
 
 enum FocusedTextTargetInspector {
+    static func captureEditableTarget() -> FocusedTextTargetSnapshot? {
+        guard !IsSecureEventInputEnabled(), AccessibilityPermission.isTrusted,
+              let element = focusedElement(), inspect(element: element) == .editableText else { return nil }
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(element, &pid) == .success else { return nil }
+        return FocusedTextTargetSnapshot(element: element, processID: pid)
+    }
+
+    static func isFocused(_ target: FocusedTextTargetSnapshot) -> Bool {
+        guard !IsSecureEventInputEnabled(), AccessibilityPermission.isTrusted,
+              NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processID,
+              let current = focusedElement(), CFEqual(current, target.element) else { return false }
+        return inspect(element: current) == .editableText
+    }
+
+    static func value(for target: FocusedTextTargetSnapshot) -> String? {
+        guard isFocused(target) else { return nil }
+        return textValue(from: target.element)
+    }
+
+    static func selectedRange(for target: FocusedTextTargetSnapshot) -> NSRange? {
+        guard isFocused(target) else { return nil }
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(target.element, kAXSelectedTextRangeAttribute as CFString, &value) == .success,
+              let value, CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+        let axValue = unsafeDowncast(value, to: AXValue.self)
+        var range = CFRange()
+        guard AXValueGetValue(axValue, .cfRange, &range), range.location >= 0, range.length >= 0 else { return nil }
+        return NSRange(location: range.location, length: range.length)
+    }
+
     static func inspect() -> FocusedTextTarget {
         if IsSecureEventInputEnabled() {
             return .secureText
@@ -60,7 +92,16 @@ enum FocusedTextTargetInspector {
         }
 
         if isEditableTextRole(role) {
-            return .editableText
+            var enabled: CFTypeRef?
+            if AXUIElementCopyAttributeValue(element, kAXEnabledAttribute as CFString, &enabled) == .success,
+               let enabled = enabled as? Bool, !enabled { return .nonText }
+            var valueSettable = DarwinBoolean(false)
+            var selectionSettable = DarwinBoolean(false)
+            _ = AXUIElementIsAttributeSettable(element, kAXValueAttribute as CFString, &valueSettable)
+            _ = AXUIElementIsAttributeSettable(element, kAXSelectedTextAttribute as CFString, &selectionSettable)
+            var editable: CFTypeRef?
+            _ = AXUIElementCopyAttributeValue(element, "AXEditable" as CFString, &editable)
+            return valueSettable.boolValue || selectionSettable.boolValue || (editable as? Bool == true) ? .editableText : .nonText
         }
 
         if role == nil {
@@ -71,6 +112,7 @@ enum FocusedTextTargetInspector {
     }
 
     private static func focusedElement() -> AXUIElement? {
+        guard !IsSecureEventInputEnabled() else { return nil }
         let systemWide = AXUIElementCreateSystemWide()
         var focusedValue: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(
@@ -125,4 +167,9 @@ enum FocusedTextTargetInspector {
 
         return nil
     }
+}
+
+struct FocusedTextTargetSnapshot {
+    let element: AXUIElement
+    let processID: pid_t
 }

@@ -66,7 +66,9 @@ struct MumlaHomeView: View {
             if session.hasPendingAudio && session.state == .idle {
                 Button { Task { await session.transcribePending() } } label: {
                     Label(mText("Fortsätt sparad inspelning", "Resume saved recording"), systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity).padding(16)
                 }
+                .buttonStyle(MumlaKeyStyle())
             }
             VStack(alignment: .leading, spacing: 16) {
                 Text(mText("Senaste", "Latest transcript")).font(.headline)
@@ -143,7 +145,7 @@ struct MumlaHomeView: View {
                         .accessibilityLabel(mText("Hämta språkmodell", "Download language model"))
                 }
             }
-            if session.isInstalling { ProgressView(value: session.progress.fraction) }
+            if session.isInstalling { MumlaDownloadGauge(fraction: session.progress.fraction) }
         }.padding(.horizontal, 2)
     }
 
@@ -183,6 +185,7 @@ struct MumlaHomeView: View {
                     }
                     Spacer()
                     Button(role: .destructive) { session.deleteWord(entry) } label: { Image(systemName: "trash").frame(width: 44, height: 44) }
+                        .buttonStyle(MumlaKeyStyle())
                         .accessibilityLabel(mText("Ta bort", "Delete") + " " + entry.replacement)
                 }.padding(.vertical, 8)
                 Divider()

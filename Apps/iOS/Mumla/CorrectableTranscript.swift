@@ -96,7 +96,8 @@ private struct CorrectWordSheet: View {
     private var word: String { replacement.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            MumlaPanelHeader(mText("Rätta ord", "Correct word"), closeLabel: mText("Avbryt", "Cancel"), closeIdentifier: "correction.cancel") { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -117,25 +118,20 @@ private struct CorrectWordSheet: View {
                         Text(mText("Ange ett ord.", "Enter a single word.")).font(.caption).foregroundStyle(MumlaStyle.secondary)
                     }
                     if let error { Text(error).font(.callout).foregroundStyle(MumlaStyle.recording) }
-                    Button(action: save) {
-                        Label(mText("Spara i ordlistan", "Save to dictionary"), systemImage: "checkmark")
-                            .frame(maxWidth: .infinity).padding(.vertical, 16)
-                    }
-                    .buttonStyle(MumlaKeyStyle(feedback: false))
-                    .disabled(!canSave)
-                    .accessibilityIdentifier("correction.save")
                 }.padding(24)
             }
-            .background(MumlaStyle.background)
-            .navigationTitle(mText("Rätta ord", "Correct word"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(mText("Avbryt", "Cancel")) { dismiss() }
-                        .accessibilityIdentifier("correction.cancel")
-                }
-            }
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button(action: save) {
+                Label(mText("Spara i ordlistan", "Save to dictionary"), systemImage: "checkmark")
+                    .frame(maxWidth: .infinity).padding(16)
+            }
+            .buttonStyle(MumlaKeyStyle(feedback: false)).disabled(!canSave)
+            .accessibilityIdentifier("correction.save")
+            .padding(24).background(MumlaStyle.background)
+        }
+        .background { MumlaBackdrop() }
+        .presentationBackground(MumlaStyle.background)
         .tint(MumlaStyle.accent).preferredColorScheme(.dark)
         .onAppear { focused = true }
     }

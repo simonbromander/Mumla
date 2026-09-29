@@ -1,0 +1,9 @@
+{
+  "version": "1.0.1",
+  "build": "26",
+  "platform": "MAC_OS",
+  "localizations": {
+    "en-US": "Recorder polish: physical sidebar keys, recessed fields, mechanical switches, and matching settings. Choose Ctrl, Right Option, or Fn as the dictation trigger. The mini recorder now slides up from the bottom with a live waveform and pulsing REC light. Releasing the key attempts a paste into the original editable field. If insertion cannot be confirmed, the transcript stays in the mini recorder with a Copy button. Clipboard restoration preserves anything copied in the meantime.\n\nPlease test hotkey hold/double-tap, cancellation, paste into your usual editors, clipboard restoration, and the transcript fallback after granting Accessibility access. Cross-app behavior still requires validation in the sandboxed TestFlight build.\n\nKnown limitations: English/automatic language routing, meetings, and iCloud sync are not ready. Swedish accuracy and latency targets have not yet passed the owner-dataset evaluation.",
+    "sv": "Förfinad inspelardesign med fysiska sidoknappar, nedsänkta fält och mekaniska reglage. Välj Ctrl, höger Option eller Fn som dikteringstangent. Miniinspelaren glider upp från nederkanten med vågform och pulserande REC-lampa. När du släpper tangenten försöker Mumla klistra in i det ursprungliga textfältet. Om infogningen inte kan bekräftas stannar texten i miniinspelaren med en Kopiera-knapp. Återställningen av urklipp bevarar sådant du kopierat under tiden.\n\nTesta håll/dubbeltryck, avbryt, infogning i dina vanliga appar, urklipp och textens reservläge efter att du gett behörighet för Hjälpmedel. Funktioner mellan appar behöver fortfarande verifieras i TestFlight-versionens sandbox.\n\nKända begränsningar: engelska/automatiskt språkval, möten och iCloud-synk är inte klara. Målen för svensk träffsäkerhet och fördröjning är ännu inte verifierade på ägarens testmaterial."
+  }
+}

@@ -6,19 +6,22 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var soundFeedbackEnabled: Bool
     public var launchAtLogin: Bool
     public var onboardingCompleted: Bool
+    public var triggerKey: DictationTriggerKey
 
     public init(
         languageMode: LanguageMode = .automatic,
         lastLanguage: MumlaLanguage = .swedish,
         soundFeedbackEnabled: Bool = true,
         launchAtLogin: Bool = false,
-        onboardingCompleted: Bool = false
+        onboardingCompleted: Bool = false,
+        triggerKey: DictationTriggerKey = .control
     ) {
         self.languageMode = languageMode
         self.lastLanguage = lastLanguage
         self.soundFeedbackEnabled = soundFeedbackEnabled
         self.launchAtLogin = launchAtLogin
         self.onboardingCompleted = onboardingCompleted
+        self.triggerKey = triggerKey
     }
 
     public static let `default` = AppSettings()
@@ -29,6 +32,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case soundFeedbackEnabled
         case launchAtLogin
         case onboardingCompleted
+        case triggerKey
     }
 
     public init(from decoder: Decoder) throws {
@@ -38,6 +42,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         soundFeedbackEnabled = try container.decodeIfPresent(Bool.self, forKey: .soundFeedbackEnabled) ?? true
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
         onboardingCompleted = try container.decodeIfPresent(Bool.self, forKey: .onboardingCompleted) ?? false
+        triggerKey = try container.decodeIfPresent(DictationTriggerKey.self, forKey: .triggerKey) ?? .control
     }
 }
 

@@ -1,0 +1,9 @@
+{
+  "version": "1.0.1",
+  "build": "26",
+  "platform": "IOS",
+  "localizations": {
+    "en-US": "A more consistent tactile finish throughout Mumla: mechanical switches, recessed fields, raised sheet controls, and a segmented model-download meter. The recorder's REC light now pulses gently and respects Reduce Motion.\n\nPlease test the stereo-style tabs and haptics, Settings, adding dictionary words, selecting a transcript word and choosing Correct word, and copying/sharing the latest transcript directly from the recorder. Check large text and keyboard layouts too.\n\nKnown limitations: Swedish dictation only. The system-wide keyboard/session flow, meetings, English routing, and iCloud sync are not ready. Model quality and latency still need the owner-dataset evaluation.",
+    "sv": "En mer sammanhållen taktil design i hela Mumla: mekaniska reglage, nedsänkta fält, upphöjda knappar och segmenterad mätare vid modellhämtning. Inspelarens REC-lampa pulserar mjukt och respekterar Minska rörelse.\n\nTesta stereoknapparna och haptiken, Inställningar, nya ord i ordlistan, att markera ett transkriptord och välja Rätta ord samt att kopiera/dela senaste texten direkt från inspelaren. Kontrollera gärna stor text och tangentbordsläget.\n\nKända begränsningar: endast svensk diktering. Systemtangentbord och sessionsflöde, möten, engelskt språkval och iCloud-synk är inte klara. Modellens träffsäkerhet och fördröjning behöver fortfarande utvärderas på ägarens testmaterial."
+  }
+}

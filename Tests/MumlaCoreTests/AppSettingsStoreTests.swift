@@ -22,12 +22,13 @@ final class AppSettingsStoreTests: XCTestCase {
             lastLanguage: .english,
             soundFeedbackEnabled: false,
             launchAtLogin: true,
-            onboardingCompleted: true
+            onboardingCompleted: true,
+            triggerKey: .rightOption
         )
 
         try store.save(settings)
 
-        XCTAssertEqual(try store.load(), settings)
+        XCTAssertEqual(try AppSettingsStore(directory: directory).load(), settings)
 
         try? FileManager.default.removeItem(at: directory)
     }
@@ -46,5 +47,6 @@ final class AppSettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(settings.lastLanguage, .swedish)
         XCTAssertTrue(settings.onboardingCompleted)
+        XCTAssertEqual(settings.triggerKey, .control)
     }
 }

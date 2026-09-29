@@ -1,155 +1,119 @@
 import AppKit
 import ApplicationServices
-import Foundation
+import Carbon
+import MumlaCore
 
+@MainActor
 final class ControlHotkeyMonitor {
-    var onHoldStarted: (@MainActor () -> Void)?
-    var onHoldEnded: (@MainActor () -> Void)?
-    var onTap: (@MainActor () -> Void)?
-    var onDoubleTap: (@MainActor () -> Void)?
-    var onCancel: (@MainActor () -> Void)?
-
+    var onHoldStarted: (() -> Void)?
+    var onHoldEnded: (() -> Void)?
+    var onTap: (() -> Void)?
+    var onDoubleTap: (() -> Void)?
+    var onCancel: (() -> Void)?
+    private var triggerKey: DictationTriggerKey = .control
+    private var gesture = DictationHotkeyGesture()
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    private var controlDown = false
-    private var holdStarted = false
-    private var cancelled = false
-    private var lastTapTime: CFTimeInterval?
     private var holdWorkItem: DispatchWorkItem?
 
-    func start() {
-        let events: [CGEventType] = [
-            .flagsChanged,
-            .keyDown,
-            .leftMouseDown,
-            .rightMouseDown,
-            .otherMouseDown,
-            .scrollWheel
-        ]
-        let mask = events.reduce(CGEventMask(0)) { partial, event in
-            partial | (1 << CGEventMask(event.rawValue))
-        }
+    func setTriggerKey(_ key: DictationTriggerKey) {
+        holdWorkItem?.cancel()
+        dispatch(gesture.reset())
+        triggerKey = key
+    }
 
-        let callback: CGEventTapCallBack = { proxy, type, event, userInfo in
-            guard let userInfo else {
-                return Unmanaged.passUnretained(event)
+    func start() {
+        guard eventTap == nil else { return }
+        let events: [CGEventType] = [.flagsChanged, .keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
+        let mask = events.reduce(CGEventMask(0)) { $0 | (1 << CGEventMask($1.rawValue)) }
+        let callback: CGEventTapCallBack = { _, type, event, userInfo in
+            guard let userInfo else { return Unmanaged.passUnretained(event) }
+            // This event tap is installed only on the main run loop.
+            MainActor.assumeIsolated {
+                Unmanaged<ControlHotkeyMonitor>.fromOpaque(userInfo).takeUnretainedValue().handle(type: type, event: event)
             }
-            let monitor = Unmanaged<ControlHotkeyMonitor>.fromOpaque(userInfo).takeUnretainedValue()
-            monitor.handle(type: type, event: event)
             return Unmanaged.passUnretained(event)
         }
-
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .listenOnly,
-            eventsOfInterest: mask,
-            callback: callback,
-            userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ) else {
-            return
-        }
-
+        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .listenOnly,
+                                         eventsOfInterest: mask, callback: callback, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return }
         eventTap = tap
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        if let runLoopSource {
-            CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        }
+        if let runLoopSource { CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes) }
         CGEvent.tapEnable(tap: tap, enable: true)
     }
 
     private func handle(type: CGEventType, event: CGEvent) {
-        switch type {
-        case .flagsChanged:
-            handleFlagsChanged(event: event)
-        case .keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel:
-            if controlDown {
-                cancelCurrentGesture()
-            }
-        default:
-            break
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            holdWorkItem?.cancel()
+            dispatch(gesture.reset())
+            if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
+            return
         }
-    }
-
-    private func handleFlagsChanged(event: CGEvent) {
+        if IsSecureEventInputEnabled() {
+            holdWorkItem?.cancel()
+            dispatch(gesture.reset())
+            return
+        }
+        if type == .keyDown, event.getIntegerValueField(.keyboardEventKeycode) == 53 {
+            holdWorkItem?.cancel()
+            _ = gesture.reset()
+            onCancel?()
+            return
+        }
+        guard type == .flagsChanged else {
+            holdWorkItem?.cancel()
+            dispatch(gesture.interrupt())
+            return
+        }
+        let code = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
-        let isControlNowDown = flags.contains(.maskControl)
-        let onlyControl = isControlNowDown && flags.intersection([.maskCommand, .maskAlternate, .maskShift]).isEmpty
-
-        if isControlNowDown && !controlDown {
-            beginControlDown(eligibleForHold: onlyControl)
-        } else if !isControlNowDown && controlDown {
-            endControlDown()
-        } else if controlDown && !onlyControl {
-            cancelCurrentGesture()
+        let isTriggerEvent: Bool
+        let down: Bool
+        let allowed: CGEventFlags
+        switch triggerKey {
+        case .control:
+            isTriggerEvent = code == 59 || code == 62
+            down = flags.contains(.maskControl)
+            allowed = .maskControl
+        case .rightOption:
+            isTriggerEvent = code == 61
+            down = flags.rawValue & UInt64(NX_DEVICERALTKEYMASK) != 0
+            allowed = .maskAlternate
+        case .function:
+            isTriggerEvent = code == 63
+            down = flags.contains(.maskSecondaryFn)
+            allowed = .maskSecondaryFn
         }
-    }
-
-    private func beginControlDown(eligibleForHold: Bool) {
-        controlDown = true
-        holdStarted = false
-        cancelled = !eligibleForHold
-
-        guard eligibleForHold else { return }
-
+        let modifiers: CGEventFlags = [.maskControl, .maskCommand, .maskAlternate, .maskShift, .maskSecondaryFn]
+        let alone = flags.rawValue & modifiers.rawValue & ~allowed.rawValue == 0
         let now = CACurrentMediaTime()
-        if let lastTapTime, now - lastTapTime <= 0.35 {
-            self.lastTapTime = nil
-            cancelled = true
-            callOnMain(onDoubleTap)
-            return
-        }
-
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self, self.controlDown, !self.cancelled else { return }
-            self.holdStarted = true
-            self.callOnMain(self.onHoldStarted)
-        }
-        holdWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
-    }
-
-    private func endControlDown() {
-        holdWorkItem?.cancel()
-        holdWorkItem = nil
-        controlDown = false
-
-        if holdStarted {
-            holdStarted = false
-            callOnMain(onHoldEnded)
-            return
-        }
-
-        guard !cancelled else {
-            cancelled = false
-            return
-        }
-
-        lastTapTime = CACurrentMediaTime()
-        callOnMain(onTap)
-    }
-
-    private func cancelCurrentGesture() {
-        let wasHolding = holdStarted
-        holdWorkItem?.cancel()
-        holdWorkItem = nil
-        cancelled = true
-        holdStarted = false
-        if wasHolding {
-            callOnMain(onCancel)
+        if isTriggerEvent, down, !gesture.isPressed {
+            dispatch(gesture.press(at: now, eligible: alone))
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                if IsSecureEventInputEnabled() { self.dispatch(self.gesture.reset()); return }
+                self.dispatch(self.gesture.tick(at: CACurrentMediaTime()))
+            }
+            holdWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
+        } else if isTriggerEvent, !down {
+            holdWorkItem?.cancel()
+            dispatch(gesture.release(at: now))
+        } else if !alone {
+            holdWorkItem?.cancel()
+            dispatch(gesture.interrupt())
         }
     }
 
-    private func callOnMain(_ callback: (@MainActor () -> Void)?) {
-        guard let callback else { return }
-        Task { @MainActor in
-            callback()
+    private func dispatch(_ actions: [DictationHotkeyGesture.Action]) {
+        for action in actions {
+            switch action {
+            case .startHold: onHoldStarted?()
+            case .endHold: onHoldEnded?()
+            case .tap: onTap?()
+            case .doubleTap: onDoubleTap?()
+            case .cancel: onCancel?()
+            }
         }
-    }
-}
-
-private extension CGEventFlags {
-    func intersection(_ flags: CGEventFlags) -> CGEventFlags {
-        CGEventFlags(rawValue: rawValue & flags.rawValue)
     }
 }

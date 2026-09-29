@@ -6,35 +6,73 @@ struct MumlaSettingsSheet: View {
     @AppStorage("mumla.hapticsEnabled") private var hapticsEnabled = true
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var showLicenses = false
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section(mText("Diktering", "Dictation")) {
+        VStack(spacing: 0) {
+            MumlaPanelHeader(mText("Inställningar", "Settings"), closeLabel: mText("Klart", "Done")) { dismiss() }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    sectionTitle(mText("Diktering", "Dictation"))
                     Toggle(mText("Haptisk återkoppling", "Haptic feedback"), isOn: $hapticsEnabled)
-                        .onChange(of: hapticsEnabled) { _, enabled in if enabled { MumlaFeedback.press() } }
-                    LabeledContent(mText("Språk", "Language"), value: "Svenska")
-                    LabeledContent(mText("Språkmodell", "Language model"), value: session.modelReady ? mText("Installerad", "Installed") : mText("Inte hämtad", "Not downloaded"))
+                        .toggleStyle(MumlaSwitchStyle())
+                    Divider()
+                    readout(mText("Språk", "Language"), value: "Svenska")
+                    readout(mText("Språkmodell", "Language model"), value: session.modelReady ? mText("Installerad", "Installed") : mText("Inte hämtad", "Not downloaded"))
                     if !session.modelReady {
-                        Button(mText("Hämta svenska", "Download Swedish")) { Task { await session.install() } }
+                        action(mText("Hämta svenska", "Download Swedish"), symbol: "arrow.down") { Task { await session.install() } }
                             .disabled(session.isInstalling)
+                        if session.isInstalling { MumlaDownloadGauge(fraction: session.progress.fraction) }
                     }
-                    Button(mText("Mikrofonbehörighet", "Microphone permission")) {
+                    action(mText("Mikrofonbehörighet", "Microphone permission"), symbol: "mic") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
-                }
-                Section(mText("Om Mumla", "About Mumla")) {
-                    LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
-                    NavigationLink(mText("Licenser", "Licenses")) {
-                        ScrollView {
-                            Text("Pianissimo by KlangAI. CC BY 4.0. CoreML conversion and quantization by markstrom.\n\nFluidAudio by Fluid Inference. Apache 2.0.")
-                                .padding(24).frame(maxWidth: .infinity, alignment: .leading)
-                        }.navigationTitle(mText("Licenser", "Licenses"))
-                    }
-                }
+                    Divider().padding(.vertical, 4)
+                    sectionTitle(mText("Om Mumla", "About Mumla"))
+                    readout("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
+                    action(mText("Licenser", "Licenses"), symbol: "doc.text") { showLicenses = true }
+                }.padding(24)
             }
-            .navigationTitle(mText("Inställningar", "Settings"))
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(mText("Klart", "Done")) { dismiss() } } }
-        }.tint(MumlaStyle.accent).preferredColorScheme(.dark)
+        }
+        .background { MumlaBackdrop() }
+        .tint(MumlaStyle.accent).preferredColorScheme(.dark)
+        .presentationBackground(MumlaStyle.background)
+        .sheet(isPresented: $showLicenses) { MumlaLicensesSheet() }
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title.uppercased()).font(.system(.caption, design: .monospaced).weight(.medium))
+            .foregroundStyle(MumlaStyle.secondary).accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder private func readout(_ title: String, value: String) -> some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 10) { Text(title); MumlaReadout(value) }
+        } else {
+            HStack(spacing: 16) { Text(title); Spacer(); MumlaReadout(value) }
+        }
+    }
+
+    private func action(_ title: String, symbol: String, perform: @escaping () -> Void) -> some View {
+        Button(action: perform) {
+            Label(title, systemImage: symbol).frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+        }.buttonStyle(MumlaKeyStyle())
+    }
+}
+
+private struct MumlaLicensesSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        VStack(spacing: 0) {
+            MumlaPanelHeader(mText("Licenser", "Licenses"), closeLabel: mText("Tillbaka", "Back")) { dismiss() }
+            ScrollView {
+                Text("Pianissimo by KlangAI. CC BY 4.0. CoreML conversion and quantization by markstrom.\n\nFluidAudio by Fluid Inference. Apache 2.0.")
+                    .font(.body).lineSpacing(6).textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(24)
+            }
+        }.background { MumlaBackdrop() }.presentationBackground(MumlaStyle.background)
     }
 }
 
@@ -43,27 +81,34 @@ struct TranscriptSheet: View {
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
     private var currentRecord: DictationRecord { session.history.first(where: { $0.id == record.id }) ?? record }
+
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            MumlaPanelHeader(mText("Diktering", "Dictation"), closeLabel: mText("Klart", "Done")) { dismiss() }
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Text(record.createdAt.formatted(date: .abbreviated, time: .shortened)).font(.subheadline).foregroundStyle(MumlaStyle.secondary)
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                     CorrectableTranscript(record: currentRecord, session: session)
-                }.frame(maxWidth: .infinity, alignment: .leading).padding(24)
+                        .padding(20).mumlaRecess(radius: 8)
+                }.padding(24)
             }
-            .navigationTitle(mText("Diktering", "Dictation"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button(mText("Klart", "Done")) { dismiss() } }
-                ToolbarItemGroup(placement: .bottomBar) {
-                    ShareLink(item: currentRecord.text) { Image(systemName: "square.and.arrow.up") }
-                    Spacer()
-                    Button { session.copy(currentRecord) } label: {
-                        Label(session.copiedID == record.id ? mText("Kopierat", "Copied") : mText("Kopiera", "Copy"), systemImage: session.copiedID == record.id ? "checkmark" : "doc.on.doc")
-                    }
-                }
-            }
-        }.tint(MumlaStyle.accent)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack(spacing: 16) {
+                Text(session.copiedID == record.id ? mText("Kopierat", "Copied") : "")
+                    .font(.caption).foregroundStyle(MumlaStyle.accent)
+                Spacer()
+                ShareLink(item: currentRecord.text) {
+                    Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
+                }.buttonStyle(MumlaKeyStyle()).accessibilityLabel(mText("Dela transkript", "Share transcript"))
+                Button { session.copy(currentRecord) } label: {
+                    Image(systemName: session.copiedID == record.id ? "checkmark" : "doc.on.doc").frame(width: 44, height: 44)
+                }.buttonStyle(MumlaKeyStyle(feedback: false)).accessibilityLabel(mText("Kopiera transkript", "Copy transcript"))
+            }.padding(24).background(MumlaStyle.background).overlay(alignment: .top) { Divider() }
+        }
+        .background { MumlaBackdrop() }.tint(MumlaStyle.accent)
+        .presentationBackground(MumlaStyle.background)
     }
 }
 
@@ -72,24 +117,29 @@ struct AddWordSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var original = ""
     @State private var replacement = ""
+
     var body: some View {
-        NavigationStack {
-            Form {
-                TextField(mText("Ersätt", "Replace"), text: $original)
-                TextField(mText("Med", "With"), text: $replacement)
+        VStack(spacing: 0) {
+            MumlaPanelHeader(mText("Nytt ord", "New word"), closeLabel: mText("Avbryt", "Cancel")) { dismiss() }
+            ScrollView {
+                VStack(spacing: 24) {
+                    MumlaTextField(mText("Ersätt", "Replace"), text: $original)
+                    MumlaTextField(mText("Med", "With"), text: $replacement)
+                }.padding(24)
+            }.autocorrectionDisabled().textInputAutocapitalization(.never)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                if session.addWord(original: original, replacement: replacement) { dismiss() }
+            } label: {
+                Label(mText("Spara", "Save"), systemImage: "checkmark")
+                    .frame(maxWidth: .infinity).padding(16)
             }
-            .autocorrectionDisabled()
-            .navigationTitle(mText("Nytt ord", "New word"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button(mText("Avbryt", "Cancel")) { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(mText("Spara", "Save")) {
-                        if session.addWord(original: original, replacement: replacement) { dismiss() }
-                    }
-                    .disabled(original.trimmingCharacters(in: .whitespaces).isEmpty || replacement.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-        }.presentationDetents([.medium, .large]).tint(MumlaStyle.accent)
+            .buttonStyle(MumlaKeyStyle(feedback: false))
+            .disabled(original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .padding(24).background(MumlaStyle.background)
+        }
+        .background { MumlaBackdrop() }.tint(MumlaStyle.accent)
+        .presentationBackground(MumlaStyle.background)
     }
 }

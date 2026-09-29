@@ -47,6 +47,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         mainWindowController = MainWindowController(coordinator: coordinator)
         statusController = StatusMenuController(coordinator: coordinator)
         hotkeyMonitor = ControlHotkeyMonitor()
+        coordinator.triggerKeyChanged = { [weak hotkeyMonitor] key in hotkeyMonitor?.setTriggerKey(key) }
 
         coordinator.showPill = { [weak pillWindowController] in
             pillWindowController?.show()
@@ -94,6 +95,10 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        hotkeyMonitor?.start()
+    }
+
     #if DEBUG
     private func captureDesign(at path: String) {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaDesignSnapshot-\(UUID().uuidString)")
@@ -104,11 +109,25 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             dictionaryStore: DictionaryStore(directory: directory),
             settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil
         )
-        let view = NSHostingView(rootView: MainView(coordinator: snapshotCoordinator).environment(\.colorScheme, .dark))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 760), styleMask: [.borderless], backing: .buffered, defer: false)
+        let sectionIndex = CommandLine.arguments.firstIndex(of: "--snapshot-section")
+        let section = sectionIndex.flatMap { CommandLine.arguments.indices.contains($0 + 1) ? CommandLine.arguments[$0 + 1] : nil } ?? "dictate"
+        let isPill = section.hasPrefix("pill-")
+        if section == "pill-recording" { snapshotCoordinator.prepareRecordingSnapshot() }
+        if section == "pill-transcript" {
+            snapshotCoordinator.pillState = .transcript(DictationRecord(
+                text: "Vi ses klockan nio. Jag tar med anteckningarna från mötet så att vi kan gå igenom nästa steg tillsammans.", language: .swedish
+            ), copied: true)
+        }
+        let compact = CommandLine.arguments.contains("--snapshot-compact")
+        let size = isPill ? NSSize(width: PillView.width, height: PillView.height(for: snapshotCoordinator.pillState))
+            : NSSize(width: compact ? 820 : 960, height: compact ? 560 : 760)
+        let root = isPill ? AnyView(PillView(coordinator: snapshotCoordinator))
+            : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section))
+        let view = NSHostingView(rootView: root.environment(\.colorScheme, .dark))
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: .darkAqua)
         window.contentView = view
-        view.frame = NSRect(x: 0, y: 0, width: 960, height: 760)
+        view.frame = NSRect(origin: .zero, size: size)
         view.layoutSubtreeIfNeeded()
         RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         if let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
