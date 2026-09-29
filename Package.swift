@@ -21,7 +21,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "MumlaCore"),
-        .target(name: "MumlaUI"),
+        .target(name: "MumlaUI", resources: [.process("Resources")]),
         .target(
             name: "MumlaAudio",
             dependencies: [

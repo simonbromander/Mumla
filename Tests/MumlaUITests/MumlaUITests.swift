@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
@@ -61,36 +62,28 @@ final class MumlaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-AppleLanguages", "(sv)"]
         app.launch()
-        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
-        app.buttons["showLatestTranscript"].tap()
-
-        let preview = app.textViews["latestTranscript.preview"]
+        let preview = app.staticTexts["latestTranscript.preview"]
         let copy = app.buttons["latestTranscript.copy"]
         let share = app.buttons["latestTranscript.share"]
-        let fullTranscript = preview.value as? String
-        XCTAssertTrue(copy.waitForExistence(timeout: 3))
+        XCTAssertTrue(copy.waitForExistence(timeout: 10))
+        XCTAssertEqual(preview.label, "Vi bestämde att…")
         XCTAssertTrue(copy.isHittable)
         XCTAssertTrue(share.isHittable)
-        XCTAssertFalse(app.buttons["Visa historik"].exists)
-        XCTAssertFalse(app.staticTexts["An older transcript."].exists)
         preview.tap()
-        XCTAssertFalse(app.staticTexts["Diktering"].exists)
+        XCTAssertFalse(app.textViews["transcript.text"].exists)
         copy.tap()
-        XCTAssertEqual(app.staticTexts["latestTranscript.copyStatus"].label, "Kopierat")
+        XCTAssertEqual(copy.value as? String, "Kopierat")
         capture("06-latest-transcript", app: app)
-
         share.tap()
         XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.otherElements["LP.CaptionBar.BottomCaption"].label, fullTranscript)
+        let shared = app.otherElements["LP.CaptionBar.BottomCaption"].label
+        XCTAssertTrue(shared.hasPrefix("Vi bestämde att börja med den svenska versionen"))
+        XCTAssertTrue(shared.hasSuffix("planera nästa steg tillsammans."))
         let systemCopy = app.cells.matching(NSPredicate(format: "label IN %@", ["Copy", "Kopiera"])).firstMatch
         XCTAssertTrue(systemCopy.waitForExistence(timeout: 5))
         capture("07-share-transcript", app: app)
         systemCopy.tap()
-        XCTAssertTrue(share.waitForExistence(timeout: 3))
-        app.buttons["Historik"].tap()
-        let record = app.buttons.containing(.staticText, identifier: "An older transcript.").firstMatch
-        XCTAssertTrue(record.waitForExistence(timeout: 3))
-        record.tap()
+        app.buttons["showLatestTranscript"].tap()
         XCTAssertTrue(app.textViews["transcript.text"].waitForExistence(timeout: 3))
         capture("16-transcript-detail", app: app)
     }
@@ -100,13 +93,15 @@ final class MumlaUITests: XCTestCase {
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-AppleLanguages", "(en)", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch()
         XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
-        app.buttons["showLatestTranscript"].tap()
         let copy = app.buttons["latestTranscript.copy"]
         let share = app.buttons["latestTranscript.share"]
         XCTAssertTrue(copy.waitForExistence(timeout: 3))
         XCTAssertTrue(copy.isHittable)
         XCTAssertTrue(share.isHittable)
         XCTAssertFalse(copy.frame.intersects(share.frame))
+        let preview = app.staticTexts["latestTranscript.preview"]
+        XCTAssertLessThanOrEqual(preview.frame.height, 44)
+        XCTAssertLessThanOrEqual(preview.frame.maxX, copy.frame.minX)
         capture("08-latest-transcript-large-text", app: app)
     }
 
@@ -149,7 +144,7 @@ final class MumlaUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
         app.buttons["showLatestTranscript"].tap()
-        let preview = app.textViews["latestTranscript.preview"]
+        let preview = app.textViews["transcript.text"]
         openCorrection(in: preview, app: app)
         XCTAssertFalse(app.buttons["correction.save"].isEnabled)
         app.textFields["correction.replacement"].typeText("Kubernetes")
@@ -158,12 +153,12 @@ final class MumlaUITests: XCTestCase {
         let corrected = "Kubernetes fungerar. Vi använder Kubernetis varje dag."
         XCTAssertTrue(preview.waitForExistence(timeout: 3))
         XCTAssertEqual(preview.value as? String, corrected)
-        app.buttons["latestTranscript.copy"].tap()
-        XCTAssertEqual(app.staticTexts["latestTranscript.copyStatus"].label, "Kopierat")
-        app.buttons["latestTranscript.share"].tap()
+        app.buttons["transcript.copy"].tap()
+        app.buttons["transcript.share"].tap()
         XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.otherElements["LP.CaptionBar.BottomCaption"].label, corrected)
         app.cells.matching(NSPredicate(format: "label IN %@", ["Copy", "Kopiera"])).firstMatch.tap()
+        app.buttons["Klart"].tap()
         app.buttons["tab.dictionary"].tap()
         XCTAssertTrue(app.staticTexts["Kubernetes"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Kubernetis"].exists)
@@ -197,7 +192,7 @@ final class MumlaUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
         app.buttons["showLatestTranscript"].tap()
-        let preview = app.textViews["latestTranscript.preview"]
+        let preview = app.textViews["transcript.text"]
         openCorrection(in: preview, app: app, title: "Correct word")
         let field = app.textFields["correction.replacement"]
         field.typeText("two words")
@@ -209,6 +204,64 @@ final class MumlaUITests: XCTestCase {
         XCTAssertEqual(preview.value as? String, "Kubernetes fungerar. Vi använder Kubernetis varje dag.")
     }
 
+    func testRecorderIsFixedInPortraitAndLandscape() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-AppleLanguages", "(sv)"]
+        app.launch()
+        let preview = app.staticTexts["latestTranscript.preview"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 10))
+        let before = preview.frame
+        XCTAssertEqual(app.scrollViews.count, 0)
+        app.swipeUp()
+        XCTAssertEqual(preview.frame.minY, before.minY, accuracy: 1)
+        XCTAssertTrue(app.buttons["latestTranscript.copy"].isHittable)
+        XCTAssertTrue(app.buttons["latestTranscript.share"].isHittable)
+        XCTAssertLessThan(preview.frame.maxY, app.buttons["tab.dictate"].frame.minY)
+        capture("17-fixed-recorder", app: app)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            XCUIDevice.shared.orientation = .landscapeLeft
+            defer { XCUIDevice.shared.orientation = .portrait }
+            let rotated = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 5), .completed)
+            Thread.sleep(forTimeInterval: 0.5)
+            XCTAssertTrue(app.buttons["latestTranscript.copy"].waitForExistence(timeout: 3))
+            XCTAssertEqual(app.scrollViews.count, 0)
+            XCTAssertTrue(app.buttons["latestTranscript.copy"].isHittable)
+            XCTAssertTrue(app.buttons["latestTranscript.share"].isHittable)
+            capture("18-landscape-recorder", app: app)
+        }
+    }
+
+    func testAboutCreditsAndBundledNotice() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(en)"]
+        app.launch()
+        app.buttons["Settings"].tap()
+        let about = app.buttons["settings.about"]
+        for _ in 0..<6 {
+            if about.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(about.isHittable)
+        about.tap()
+        XCTAssertTrue(app.staticTexts["Pianissimo-sv"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Klang AI AB"].exists)
+        capture("19-about", app: app)
+        let notice = app.buttons["about.notice.Pianissimo-attribution"]
+        for _ in 0..<12 {
+            if notice.isHittable { break }
+            app.scrollViews["about.content"].swipeUp()
+        }
+        XCTAssertTrue(notice.isHittable)
+        notice.tap()
+        let text = app.staticTexts["about.notice.text"]
+        XCTAssertTrue(text.waitForExistence(timeout: 3))
+        XCTAssertTrue(text.label.contains("Klang Pianissimo"))
+        XCTAssertTrue(text.label.contains("Creative Commons Attribution 4.0"))
+        XCTAssertTrue(text.label.contains("NVIDIA Parakeet"))
+        capture("20-bundled-notice", app: app)
+    }
+
     private func openCorrection(in text: XCUIElement, app: XCUIApplication, title: String = "Rätta ord") {
         XCTAssertTrue(text.waitForExistence(timeout: 3))
         text.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 40, dy: 12)).doubleTap()
@@ -216,7 +269,8 @@ final class MumlaUITests: XCTestCase {
         XCTAssertTrue(action.waitForExistence(timeout: 3))
         action.tap()
         XCTAssertTrue(app.textFields["correction.replacement"].waitForExistence(timeout: 3))
-        if app.buttons["Continue"].exists { app.buttons["Continue"].tap() }
+        let keyboardIntro = app.otherElements["UIContinuousPathIntroductionView"].buttons["Continue"]
+        if keyboardIntro.exists { keyboardIntro.tap() }
     }
 
     private func assertLatchedKey(_ index: Int, keys: [XCUIElement]) {
@@ -226,7 +280,7 @@ final class MumlaUITests: XCTestCase {
     }
 
     private func capture(_ name: String, app: XCUIApplication) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)

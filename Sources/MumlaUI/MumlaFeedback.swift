@@ -32,7 +32,7 @@ public enum MumlaFeedback {
     public static func latch() {
         #if os(iOS)
         guard enabled else { return }
-        latchGenerator.impactOccurred(intensity: 0.75)
+        latchGenerator.impactOccurred(intensity: 1)
         #endif
     }
     public static func recordStart() {

@@ -1,0 +1,9 @@
+{
+  "version": "1.0.1",
+  "build": "27",
+  "platform": "IOS",
+  "localizations": {
+    "en-US": "A fixed, non-scrolling recorder console. The latest transcript is a one-row, three-word preview with Copy and Share for the full text. Mode keys now latch with an orange top insert, deeper mechanical travel, and firmer haptics. Consistent retro typography and a new About screen include model credits and offline license notices.\n\nPlease test the fixed layout on your iPhone, mode switching, copy/share, word correction, large text, and haptic feel. iPad landscape is supported.\n\nKnown limitations: Swedish dictation only. The system keyboard/session flow, meetings, English routing, and iCloud sync are not ready. Model quality and latency still need the owner-dataset evaluation.",
+    "sv": "En fast inspelarpanel utan rullning. Senaste transkriptet visas som tre ord på en rad, med Kopiera och Dela för hela texten. Lägesknapparna har nu orange markering, tydligare mekanisk rörelse och fastare haptik. Enhetligt retrotypsnitt och en ny Om-sida med modellkrediter och licensnotiser som går att läsa offline.\n\nTesta den fasta layouten på din iPhone, lägesbyten, kopiera/dela, ordrättning, stor text och känslan i haptiken. Liggande läge stöds på iPad.\n\nKända begränsningar: endast svensk diktering. Systemtangentbord och sessionsflöde, möten, engelskt språkval och iCloud-synk är inte klara. Modellens träffsäkerhet och fördröjning behöver fortfarande utvärderas på ägarens testmaterial."
+  }
+}

@@ -1,0 +1,36 @@
+Klang Pianissimo (CoreML conversion)
+====================================
+
+Model:     "Klang Pianissimo" by Klang AI AB
+Source:    https://huggingface.co/KlangAI/pianissimo-sv
+           (revision 8f1f6d8f8bd7482a5ea1d2bfaf6ef5be61597138, file pianissimo-sv.nemo,
+           sha256 ca340b827dc9e18d2019341fa7b6dc163f00284d84066ce2cbfffcaa129920cd)
+License:   Creative Commons Attribution 4.0 International (CC BY 4.0)
+           https://creativecommons.org/licenses/by/4.0/
+Base:      Pianissimo is a fine-tune of NVIDIA Parakeet TDT 0.6B v3
+           (https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3, CC BY 4.0).
+
+Changes made in this repository (the weights were not retrained or fine-tuned):
+
+1. Format conversion: the NeMo checkpoint was exported to Apple CoreML (ML Program,
+   iOS 17 / macOS 14 target) with coremltools 9.0b1 / PyTorch 2.7.0 / NeMo 2.3.1,
+   split into the components FluidAudio's Parakeet TDT v3 loader expects:
+   Preprocessor, Encoder, Decoder and JointDecisionv3. They are distributed as .mlpackage
+   and compiled on the device that uses them. The inputs are fixed to a 15-second window (240,000 samples at 16 kHz).
+   The joint network was wrapped in a single-step "decision" head that returns the argmax
+   token, its probability, the TDT duration and the top-64 token logits.
+2. Attention mode: the encoder was switched from the checkpoint's default local attention
+   (rel_pos_local_attn, +/-256 encoder frames) to full relative-position attention (rel_pos),
+   using the same weights. Every encoder window is 188 frames, which is shorter than the
+   256-frame local window, so the two modes compute the same function. On the test clips
+   the encoder outputs of the two modes were bit-identical in PyTorch.
+3. Quantization: the encoder's weights were quantized to int8 (linear, per-channel,
+   coremltools linear_quantize_weights). The decoder and joint store fp16 weights, which is
+   the coremltools default. The preprocessor runs in fp32.
+4. Vocabulary: parakeet_vocab.json was generated from Pianissimo's own SentencePiece
+   tokenizer (id -> piece, with U+2581 replaced by a space). It is identical to the
+   Parakeet TDT v3 vocabulary.
+
+Verification: on 45 synthesized Swedish test clips the converted model matched the original
+NeMo checkpoint word for word on 40 clips (0.78% WER relative to the original); the rest differ
+in punctuation or capitalisation.

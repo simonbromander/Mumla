@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import MumlaAudio
 import MumlaCore
+import MumlaUI
 import SwiftUI
 
 @main
@@ -119,9 +120,9 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             ), copied: true)
         }
         let compact = CommandLine.arguments.contains("--snapshot-compact")
-        let size = isPill ? NSSize(width: PillView.width, height: PillView.height(for: snapshotCoordinator.pillState))
+        let size = section == "about" ? NSSize(width: 580, height: 520) : isPill ? NSSize(width: PillView.width, height: PillView.height(for: snapshotCoordinator.pillState))
             : NSSize(width: compact ? 820 : 960, height: compact ? 560 : 760)
-        let root = isPill ? AnyView(PillView(coordinator: snapshotCoordinator))
+        let root = section == "about" ? AnyView(MumlaAboutView()) : isPill ? AnyView(PillView(coordinator: snapshotCoordinator))
             : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section))
         let view = NSHostingView(rootView: root.environment(\.colorScheme, .dark))
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)

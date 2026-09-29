@@ -1,0 +1,9 @@
+{
+  "version": "1.0.1",
+  "build": "27",
+  "platform": "MAC_OS",
+  "localizations": {
+    "en-US": "A fixed recorder console that fits the compact Mac window without scrolling. The latest transcript is a short preview with direct Copy and Share for the full text. The sidebar keys now have orange active inserts, and the app and mini recorder share retro typography. A new About screen includes model credits, conversion details, and offline license notices.\n\nPlease test compact windows, copy/share, and About. Continue testing Ctrl, Right Option or Fn hold/release, automatic paste, clipboard restoration, and the persistent mini-recorder transcript fallback. Cross-app behavior still needs acceptance in the sandboxed TestFlight build.\n\nKnown limitations: English/automatic routing, meetings, and iCloud sync are not ready. Swedish accuracy and latency targets still need the owner-dataset evaluation.",
+    "sv": "En fast inspelarpanel som ryms även i ett kompakt Mac-fönster utan rullning. Senaste transkriptet visas kort, med Kopiera och Dela för hela texten. Sidoknapparna har orange markering i aktivt läge, och appen och miniinspelaren använder samma retrotypsnitt. En ny Om-sida visar modellkrediter, konverteringsdetaljer och licensnotiser offline.\n\nTesta kompakta fönster, kopiera/dela och Om-sidan. Fortsätt testa håll/släpp med Ctrl, höger Option eller Fn, automatisk inklistring, återställning av urklipp och transkriptets reservläge i miniinspelaren. Funktioner mellan appar behöver fortfarande verifieras i TestFlight-versionens sandbox.\n\nKända begränsningar: engelska/automatiskt språkval, möten och iCloud-synk är inte klara. Målen för svensk träffsäkerhet och fördröjning behöver fortfarande utvärderas på ägarens testmaterial."
+  }
+}

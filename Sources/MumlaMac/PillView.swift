@@ -22,6 +22,7 @@ struct PillView: View {
         .frame(width: Self.width, height: Self.height(for: coordinator.pillState))
         .mumlaSurface(radius: 14)
         .preferredColorScheme(.dark)
+        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .accessibilityElement(children: .contain)
     }
 
@@ -73,7 +74,7 @@ struct PillView: View {
                 MumlaIconButton("xmark", label: mText("Stäng", "Close")) { coordinator.dismissPill() }
             }
             ScrollView {
-                Text(record.text).font(.system(size: 15)).lineSpacing(4)
+                Text(record.text).font(.system(size: 15, design: .monospaced)).lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(12)
             }.frame(maxWidth: .infinity, maxHeight: .infinity).mumlaRecess(radius: 7)
             HStack {

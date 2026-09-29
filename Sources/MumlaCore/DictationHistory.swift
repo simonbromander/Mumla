@@ -7,6 +7,11 @@ public struct DictationRecord: Codable, Equatable, Identifiable, Sendable {
     public var language: MumlaLanguage
     public var durationMilliseconds: Double?
 
+    public var compactPreview: String {
+        let words = text.split(whereSeparator: \.isWhitespace)
+        return words.prefix(3).joined(separator: " ") + (words.count > 3 ? "…" : "")
+    }
+
     public init(
         id: UUID = UUID(),
         createdAt: Date = Date(),

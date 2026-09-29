@@ -12,6 +12,7 @@ public enum MumlaStyle {
     public static let lcd = Color(red: 0.63, green: 0.76, blue: 0.59)
     public static let lcdInk = Color(red: 0.10, green: 0.18, blue: 0.11)
     public static let recording = Color(red: 0.91, green: 0.36, blue: 0.28)
+    public static let activeKey = Color(red: 0.96, green: 0.40, blue: 0.15)
 }
 
 public struct MumlaBackdrop: View {
@@ -83,7 +84,7 @@ public struct MumlaWordmark: View {
     public init() {}
     public var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 9) {
-            Text("mumla").font(.system(size: 28, weight: .semibold))
+            Text("mumla").font(.system(size: 28, weight: .semibold, design: .monospaced))
             Text("/ 01").font(.system(size: 11, weight: .medium, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
         }.accessibilityElement(children: .ignore).accessibilityLabel("Mumla")
     }
@@ -98,7 +99,7 @@ public struct MumlaIconButton: View {
     }
     public var body: some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 17, weight: .regular))
+            Image(systemName: symbol).font(.system(size: 17, weight: .regular, design: .monospaced))
                 .frame(width: 44, height: 44).contentShape(Rectangle())
         }.buttonStyle(MumlaKeyStyle()).accessibilityLabel(label).help(label)
     }
@@ -110,13 +111,15 @@ public struct MumlaRecorderDisplay: View {
     public var elapsed: TimeInterval
     public var language: String
     public var recording: Bool
+    public var compact: Bool
 
-    public init(status: String, detail: String, elapsed: TimeInterval, language: String = "SV", recording: Bool = false) {
+    public init(status: String, detail: String, elapsed: TimeInterval, language: String = "SV", recording: Bool = false, compact: Bool = false) {
         self.status = status; self.detail = detail; self.elapsed = elapsed; self.language = language; self.recording = recording
+        self.compact = compact
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: compact ? 8 : 16) {
             HStack {
                 HStack(spacing: 6) {
                     MumlaRecordingLight(recording: recording)
@@ -134,18 +137,20 @@ public struct MumlaRecorderDisplay: View {
                 Spacer(minLength: 0)
             }.frame(minHeight: 64)
             Text(detail).font(.system(size: 12, weight: .medium, design: .monospaced))
-                .fixedSize(horizontal: false, vertical: true)
-            HStack {
-                Text("16 kHz")
-                Spacer()
-                Text("MONO / PCM")
+                .lineLimit(1).truncationMode(.tail)
+            if !compact {
+                HStack {
+                    Text("16 kHz")
+                    Spacer()
+                    Text("MONO / PCM")
+                }
+                .font(.system(size: 10, design: .monospaced))
+                .padding(.top, 10)
+                .overlay(alignment: .top) { Rectangle().fill(MumlaStyle.lcdInk.opacity(0.25)).frame(height: 1) }
             }
-            .font(.system(size: 10, design: .monospaced))
-            .padding(.top, 10)
-            .overlay(alignment: .top) { Rectangle().fill(MumlaStyle.lcdInk.opacity(0.25)).frame(height: 1) }
         }
         .foregroundStyle(MumlaStyle.lcdInk)
-        .padding(20)
+        .padding(compact ? 14 : 20)
         .background {
             RoundedRectangle(cornerRadius: 7)
                 .fill(LinearGradient(colors: [MumlaStyle.lcd, Color(red: 0.72, green: 0.83, blue: 0.67)], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -189,7 +194,8 @@ public struct MumlaWaveform: View {
 public struct MumlaInputMeter: View {
     public var level: Double
     public var active: Bool
-    public init(level: Double, active: Bool) { self.level = level; self.active = active }
+    public var compact: Bool
+    public init(level: Double, active: Bool, compact: Bool = false) { self.level = level; self.active = active; self.compact = compact }
     public var body: some View {
         let decibels = max(-60, 30 * log10(max(0.01, level)))
         let fraction = (decibels + 60) / 60
@@ -206,15 +212,17 @@ public struct MumlaInputMeter: View {
                 Text(active ? String(format: "%.0f dB", 30 * log10(max(0.01, level))) : "-- dB")
                     .font(.system(size: 10, design: .monospaced)).monospacedDigit().frame(width: 46, alignment: .trailing)
             }
-            HStack {
-                Text("-60")
-                Spacer()
-                Text("-40")
-                Spacer()
-                Text("-20")
-                Spacer()
-                Text("0")
-            }.font(.system(size: 9, design: .monospaced)).padding(.leading, 32).padding(.trailing, 54)
+            if !compact {
+                HStack {
+                    Text("-60")
+                    Spacer()
+                    Text("-40")
+                    Spacer()
+                    Text("-20")
+                    Spacer()
+                    Text("0")
+                }.font(.system(size: 9, design: .monospaced)).padding(.leading, 32).padding(.trailing, 54)
+            }
         }
         .foregroundStyle(MumlaStyle.secondary).padding(15).mumlaRecess(radius: 9)
         .accessibilityElement(children: .ignore)
@@ -230,21 +238,23 @@ public struct MumlaTransportKey: View {
     public var primary: Bool
     public var active: Bool
     public var busy: Bool
+    public var compact: Bool
     public var action: () -> Void
-    public init(_ symbol: String, title: String, primary: Bool = false, active: Bool = false, busy: Bool = false, action: @escaping () -> Void) {
+    public init(_ symbol: String, title: String, primary: Bool = false, active: Bool = false, busy: Bool = false, compact: Bool = false, action: @escaping () -> Void) {
         self.symbol = symbol; self.title = title; self.primary = primary; self.active = active; self.busy = busy; self.action = action
+        self.compact = compact
     }
     public var body: some View {
-        VStack(spacing: 13) {
+        VStack(spacing: compact ? 8 : 13) {
             Button(action: action) {
                 ZStack {
                     if busy { ProgressView().tint(MumlaStyle.accent) }
                     else {
-                        Image(systemName: symbol).font(.system(size: primary ? 27 : 18, weight: .medium))
+                        Image(systemName: symbol).font(.system(size: primary ? 27 : 18, weight: .medium, design: .monospaced))
                             .foregroundStyle(!enabled ? MumlaStyle.secondary.opacity(0.35) : primary && !active ? MumlaStyle.recording : Color(white: 0.91))
                     }
                 }
-                .frame(width: primary ? 88 : 54, height: primary ? 88 : 54)
+                .frame(width: primary ? (compact ? 66 : 88) : 48, height: primary ? (compact ? 66 : 88) : 48)
                 .contentShape(Circle())
             }
             .buttonStyle(MumlaKeyStyle(radius: 50, feedback: false))
@@ -265,8 +275,8 @@ public struct MumlaEmptyState: View {
     public init(_ title: String, symbol: String) { self.title = title; self.symbol = symbol }
     public var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: symbol).font(.system(size: 17, weight: .light))
-            Text(title).font(.system(size: 13))
+            Image(systemName: symbol).font(.system(size: 17, weight: .light, design: .monospaced))
+            Text(title).font(.system(size: 13, design: .monospaced))
         }.foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity).padding(.vertical, 24)
     }
 }

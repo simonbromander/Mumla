@@ -7,7 +7,7 @@ struct MumlaSettingsSheet: View {
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var typeSize
-    @State private var showLicenses = false
+    @State private var showAbout = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,14 +31,16 @@ struct MumlaSettingsSheet: View {
                     Divider().padding(.vertical, 4)
                     sectionTitle(mText("Om Mumla", "About Mumla"))
                     readout("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
-                    action(mText("Licenser", "Licenses"), symbol: "doc.text") { showLicenses = true }
+                    action(mText("Om Mumla", "About Mumla"), symbol: "info.circle") { showAbout = true }
+                        .accessibilityIdentifier("settings.about")
                 }.padding(24)
             }
         }
         .background { MumlaBackdrop() }
         .tint(MumlaStyle.accent).preferredColorScheme(.dark)
         .presentationBackground(MumlaStyle.background)
-        .sheet(isPresented: $showLicenses) { MumlaLicensesSheet() }
+        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .sheet(isPresented: $showAbout) { MumlaAboutView() }
     }
 
     private func sectionTitle(_ title: String) -> some View {
@@ -59,20 +61,6 @@ struct MumlaSettingsSheet: View {
             Label(title, systemImage: symbol).frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
         }.buttonStyle(MumlaKeyStyle())
-    }
-}
-
-private struct MumlaLicensesSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    var body: some View {
-        VStack(spacing: 0) {
-            MumlaPanelHeader(mText("Licenser", "Licenses"), closeLabel: mText("Tillbaka", "Back")) { dismiss() }
-            ScrollView {
-                Text("Pianissimo by KlangAI. CC BY 4.0. CoreML conversion and quantization by markstrom.\n\nFluidAudio by Fluid Inference. Apache 2.0.")
-                    .font(.body).lineSpacing(6).textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(24)
-            }
-        }.background { MumlaBackdrop() }.presentationBackground(MumlaStyle.background)
     }
 }
 
@@ -97,18 +85,21 @@ struct TranscriptSheet: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HStack(spacing: 16) {
                 Text(session.copiedID == record.id ? mText("Kopierat", "Copied") : "")
-                    .font(.caption).foregroundStyle(MumlaStyle.accent)
+                    .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
                 Spacer()
                 ShareLink(item: currentRecord.text) {
-                    Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
-                }.buttonStyle(MumlaKeyStyle()).accessibilityLabel(mText("Dela transkript", "Share transcript"))
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 18, weight: .medium, design: .monospaced)).frame(width: 44, height: 44)
+                }.buttonStyle(MumlaKeyStyle()).accessibilityLabel(mText("Dela transkript", "Share transcript")).accessibilityIdentifier("transcript.share")
                 Button { session.copy(currentRecord) } label: {
-                    Image(systemName: session.copiedID == record.id ? "checkmark" : "doc.on.doc").frame(width: 44, height: 44)
-                }.buttonStyle(MumlaKeyStyle(feedback: false)).accessibilityLabel(mText("Kopiera transkript", "Copy transcript"))
+                    Image(systemName: session.copiedID == record.id ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 18, weight: .medium, design: .monospaced)).frame(width: 44, height: 44)
+                }.buttonStyle(MumlaKeyStyle(feedback: false)).accessibilityLabel(mText("Kopiera transkript", "Copy transcript")).accessibilityIdentifier("transcript.copy")
             }.padding(24).background(MumlaStyle.background).overlay(alignment: .top) { Divider() }
         }
         .background { MumlaBackdrop() }.tint(MumlaStyle.accent)
         .presentationBackground(MumlaStyle.background)
+        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
     }
 }
 
@@ -141,5 +132,6 @@ struct AddWordSheet: View {
         }
         .background { MumlaBackdrop() }.tint(MumlaStyle.accent)
         .presentationBackground(MumlaStyle.background)
+        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
     }
 }

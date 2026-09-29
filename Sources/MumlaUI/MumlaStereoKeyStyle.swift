@@ -6,7 +6,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
     public var onPressChanged: (Bool) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(isLatched: Bool, height: CGFloat = 64, onPressChanged: @escaping (Bool) -> Void = { _ in }) {
+    public init(isLatched: Bool, height: CGFloat = 72, onPressChanged: @escaping (Bool) -> Void = { _ in }) {
         self.isLatched = isLatched
         self.height = max(44, height)
         self.onPressChanged = onPressChanged
@@ -15,7 +15,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         let down = isLatched || configuration.isPressed
         let cap = RoundedRectangle(cornerRadius: 7, style: .continuous)
-        let travel: CGFloat = down ? 6 : 0
+        let travel: CGFloat = down ? 8 : 0
         #if os(macOS)
         // AppKit bitmap/layer hosting mispositions perspective-transformed caps.
         let tilt = 0.0
@@ -42,8 +42,8 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
             .padding(.horizontal, 2).padding(.top, 7).padding(.bottom, 2)
 
             configuration.label
-                .frame(maxWidth: .infinity).frame(height: height - 12)
-                .foregroundStyle(down ? MumlaStyle.accent : Color(white: 0.84))
+                .frame(maxWidth: .infinity).frame(height: height - 14)
+                .foregroundStyle(down ? Color(white: 0.98) : Color(white: 0.74))
                 .background {
                     cap.fill(LinearGradient(
                         colors: down
@@ -60,11 +60,12 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
                         startPoint: .top, endPoint: .bottom
                     ), lineWidth: 1)
                 }
-                .overlay(alignment: .topTrailing) {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(down ? MumlaStyle.accent : Color(white: 0.08))
-                        .frame(width: 4, height: 2)
-                        .padding(8)
+                .overlay(alignment: .top) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(LinearGradient(colors: down ? [Color(red: 1, green: 0.62, blue: 0.28), MumlaStyle.activeKey] : [Color(white: 0.14), Color(white: 0.10)], startPoint: .top, endPoint: .bottom))
+                        .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(.black.opacity(0.45), lineWidth: 0.5))
+                        .frame(width: height > 48 ? 30 : 22, height: 5)
+                        .padding(.top, 4)
                         .accessibilityHidden(true)
                 }
                 .compositingGroup()
@@ -75,7 +76,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
         }
         .frame(height: height)
         .contentShape(Rectangle())
-        .animation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.68), value: isLatched)
+        .animation(reduceMotion ? nil : .spring(response: 0.19, dampingFraction: 0.78), value: isLatched)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.08), value: configuration.isPressed)
         .onChange(of: configuration.isPressed) { _, pressed in onPressChanged(pressed) }
     }

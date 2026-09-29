@@ -27,7 +27,7 @@ public struct MumlaPanelHeader: View {
 
     public var body: some View {
         HStack(spacing: 16) {
-            Text(title).font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
+            Text(title).font(.system(.title2, design: .monospaced).weight(.semibold)).accessibilityAddTraits(.isHeader)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             MumlaIconButton("xmark", label: closeLabel, action: close)
@@ -35,6 +35,7 @@ public struct MumlaPanelHeader: View {
         }
         .padding(24)
         .background(MumlaStyle.background)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .overlay(alignment: .bottom) { Divider().overlay(.white.opacity(0.04)) }
     }
 }
@@ -50,9 +51,9 @@ public struct MumlaTextField: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.caption.weight(.medium)).foregroundStyle(MumlaStyle.secondary)
+            Text(title).font(.system(.caption, design: .monospaced).weight(.medium)).foregroundStyle(MumlaStyle.secondary)
             TextField(title, text: $text)
-                .textFieldStyle(.plain).font(.body)
+                .textFieldStyle(.plain).font(.system(.body, design: .monospaced))
                 .padding(16).mumlaRecess(radius: 8)
         }
     }
@@ -90,7 +91,7 @@ public struct MumlaSwitchStyle: ToggleStyle {
                         Image(systemName: "power").foregroundStyle(configuration.isOn ? MumlaStyle.accent : MumlaStyle.secondary)
                         Spacer()
                         Circle().strokeBorder(MumlaStyle.secondary, lineWidth: 1).frame(width: 8, height: 8)
-                    }.font(.system(size: 10, weight: .bold)).padding(.horizontal, 8)
+                    }.font(.system(size: 10, weight: .bold, design: .monospaced)).padding(.horizontal, 8)
                     RoundedRectangle(cornerRadius: 5)
                         .fill(LinearGradient(colors: [Color(white: 0.40), Color(white: 0.21)], startPoint: .top, endPoint: .bottom))
                         .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.white.opacity(0.25), lineWidth: 1))

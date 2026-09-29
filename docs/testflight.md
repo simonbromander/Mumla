@@ -6,7 +6,30 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
-## Verified macOS Release: 2026-09-28
+## Verified iOS and macOS Release: 2026-09-29
+
+- Both platforms: `1.0.1 (26)`, source commit `768bdcc`.
+- iOS build ID: `2f758716-3a5d-481c-ba24-3560c9fb9ba8`.
+- macOS build ID: `d6256734-6a31-4b94-8d3e-ad0b246b7791`.
+- App Store Connect app `6759602919`; both builds verified `VALID` and
+  `IN_BETA_TESTING` at `2026-09-29T04:51:42Z`.
+- Both are included in the existing internal `Test` and `Friends` groups.
+  No audience changes or external review submissions were made.
+- Both preflights and archives/exports passed. Exported app signatures,
+  identities, and distribution entitlements were checked. The Mac installer
+  signature was verified; the Mac app is universal arm64/x86_64 and sandboxed.
+- 50 core/Mac tests and 14 iPhone/iPad UI runs passed for this release.
+- English and Swedish testing notes were published and read back successfully;
+  source notes are under `fastlane/testflight/*-1.0.1-26.json`.
+- Physical haptics, microphone quality, and cross-app hotkey/paste behavior in
+  the Mac TestFlight sandbox still need device acceptance.
+- The fixed-console, orange-key, typography, and About changes after `768bdcc`
+  are not included in build 26 until a subsequent release is uploaded.
+
+Open TestFlight on either platform and install build 26. Release state is a
+dated snapshot; use `fastlane ios beta_status` to refresh it.
+
+## Previous macOS Release: 2026-09-28
 
 - Build: `1.0.1 (25)`, native macOS, macOS 14 minimum.
 - App Store Connect app: `6759602919`.
@@ -24,9 +47,7 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Swedish and English testing notes were published and verified, and are retained in
   `fastlane/testflight/macos-1.0.1-25.json`.
 
-Open TestFlight on a Mac signed into an existing internal tester account, select
-Mumla, and install build 25. First launch downloads the Swedish model separately.
-Recheck live status before reusing this dated release snapshot.
+First launch downloads the Swedish model separately.
 
 ## Commands
 

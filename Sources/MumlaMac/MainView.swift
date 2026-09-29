@@ -13,6 +13,7 @@ struct MainView: View {
     @State private var replacement = ""
     @State private var selectedRecord: DictationRecord?
     @State private var copied = false
+    @State private var showAbout = false
 
     init(coordinator: AppCoordinator, initialSection: String = "dictate") {
         self.coordinator = coordinator
@@ -27,10 +28,14 @@ struct MainView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(selection.title).font(.system(size: 28, weight: .semibold))
-                            Text(subtitle).font(.subheadline).foregroundStyle(MumlaStyle.secondary)
+                            Text(selection.title).font(.system(size: 28, weight: .semibold, design: .monospaced))
+                            Text(subtitle).font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                         }
                         Spacer()
+                        if selection == .dictate && coordinator.modelDirectory == nil {
+                            MumlaIconButton("arrow.down", label: mText("Hämta språkmodell", "Download language model")) { coordinator.installModel() }
+                                .disabled(coordinator.isInstallingModel)
+                        }
                         if selection == .history {
                             Button {
                                 Task { await coordinator.toggleHandsFreeDictation() }
@@ -49,13 +54,15 @@ struct MainView: View {
                     case .settings: settings
                     }
                 }
-                .padding(.horizontal, 34).padding(.top, 48).padding(.bottom, 24)
+                .padding(.horizontal, 34).padding(.top, 24).padding(.bottom, 24)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .frame(minWidth: 820, minHeight: 560)
         .tint(MumlaStyle.accent)
         .preferredColorScheme(.dark)
+        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .sheet(isPresented: $showAbout) { MumlaAboutView().frame(width: 580, height: 520) }
         .sheet(isPresented: $coordinator.isOnboardingVisible) { OnboardingView(coordinator: coordinator) }
         .sheet(item: $selectedRecord) { record in
             VStack(alignment: .leading, spacing: 20) {
@@ -64,9 +71,9 @@ struct MainView: View {
                     Spacer()
                     MumlaIconButton("xmark", label: mText("Stäng", "Close")) { selectedRecord = nil }
                 }
-                ScrollView { Text(record.text).font(.system(size: 18)).lineSpacing(6).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(18) }.mumlaRecess(radius: 8)
+                ScrollView { Text(record.text).font(.system(size: 18, design: .monospaced)).lineSpacing(6).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(18) }.mumlaRecess(radius: 8)
                 HStack {
-                    Text(copied ? mText("Kopierat", "Copied") : "").font(.caption).foregroundStyle(MumlaStyle.accent)
+                    Text(copied ? mText("Kopierat", "Copied") : "").font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
                     Spacer()
                     ShareLink(item: record.text) { Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44) }
                         .accessibilityLabel(mText("Dela", "Share")).help(mText("Dela", "Share"))
@@ -78,6 +85,7 @@ struct MainView: View {
                         .accessibilityLabel(mText("Kopiera", "Copy")).help(mText("Kopiera", "Copy"))
                 }.buttonStyle(MumlaKeyStyle())
             }.padding(28).frame(width: 540, height: 400).background { MumlaBackdrop() }
+                .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         }
     }
 
@@ -106,11 +114,11 @@ struct MainView: View {
             Spacer()
             VStack(alignment: .leading, spacing: 12) {
                 Label(mText("På den här Macen", "On this Mac"), systemImage: "lock")
-                    .font(.system(size: 12)).foregroundStyle(MumlaStyle.secondary)
+                    .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                 HStack(spacing: 7) {
                     Image(systemName: coordinator.modelDirectory == nil ? "arrow.down.circle" : "checkmark.circle")
                     Text(coordinator.modelDirectory == nil ? mText("Modell saknas", "Model needed") : mText("Redo att lyssna", "Ready to listen"))
-                }.font(.system(size: 12)).foregroundStyle(MumlaStyle.secondary)
+                }.font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
             }.padding(.horizontal, 10)
         }
         .padding(.horizontal, 16).padding(.top, 28).padding(.bottom, 20)
@@ -119,44 +127,43 @@ struct MainView: View {
     }
 
     private var recorder: some View {
-        ScrollView {
-            VStack(spacing: 18) {
+        GeometryReader { geometry in
+            let compact = geometry.size.height < 540
+            VStack(spacing: compact ? 12 : 18) {
                 MumlaRecorderDisplay(
                     status: isRecording ? "REC" : coordinator.pillState == .transcribing ? mText("BEARBETAR", "PROCESSING") : coordinator.isInstallingModel ? mText("HÄMTAR", "LOADING") : coordinator.modelDirectory == nil ? mText("EJ REDO", "NOT READY") : "STANDBY",
-                    detail: recorderDetail,
-                    elapsed: elapsed,
+                    detail: recorderDetail, elapsed: elapsed,
                     language: coordinator.languageMode == .english ? "EN" : coordinator.languageMode == .automatic ? "AUTO" : "SV",
-                    recording: isRecording
+                    recording: isRecording, compact: compact
                 )
-                MumlaInputMeter(level: coordinator.inputLevel, active: isRecording)
                 if isRecording {
                     MumlaWaveform(samples: coordinator.waveformSamples, active: true)
-                        .frame(height: 32).padding(12).mumlaRecess(radius: 8)
+                        .frame(height: compact ? 18 : 36).padding(12).mumlaRecess(radius: 8)
+                } else {
+                    MumlaInputMeter(level: coordinator.inputLevel, active: false, compact: compact)
                 }
+                Spacer(minLength: 0)
                 HStack(alignment: .center, spacing: 16) {
-                    MumlaTransportKey("xmark", title: mText("Avbryt", "Cancel")) { coordinator.cancelDictation() }
+                    MumlaTransportKey("xmark", title: mText("Avbryt", "Cancel"), compact: compact) { coordinator.cancelDictation() }
                         .disabled(!isRecording)
-                    MumlaTransportKey(isRecording ? "stop.fill" : "circle.fill", title: isRecording ? mText("Stoppa", "Stop") : mText("Spela in", "Record"), primary: true, active: isRecording, busy: coordinator.pillState == .transcribing) {
+                    MumlaTransportKey(isRecording ? "stop.fill" : "circle.fill", title: isRecording ? mText("Stoppa", "Stop") : mText("Spela in", "Record"), primary: true, active: isRecording, busy: coordinator.pillState == .transcribing, compact: compact) {
                         Task { await coordinator.toggleHandsFreeDictation() }
                     }.disabled(coordinator.modelDirectory == nil || coordinator.pillState == .transcribing)
-                    MumlaTransportKey("text.alignleft", title: mText("Senaste", "Latest")) {
+                    MumlaTransportKey("text.alignleft", title: mText("Senaste", "Latest"), compact: compact) {
                         copied = false
                         selectedRecord = coordinator.history.first
                     }.disabled(coordinator.history.isEmpty)
-                }.padding(18).mumlaSurface(radius: 14)
-                if coordinator.modelDirectory == nil { modelDownload }
-                if let record = coordinator.history.first {
-                    HStack(spacing: 12) {
-                        Image(systemName: "text.alignleft").foregroundStyle(MumlaStyle.secondary)
-                        Text(record.text).lineLimit(2).font(.system(size: 13))
-                        Spacer()
-                        Button { selectedRecord = record } label: { Image(systemName: "arrow.up.right").frame(width: 44, height: 44) }.buttonStyle(MumlaKeyStyle())
-                            .help(mText("Öppna diktering", "Open dictation"))
-                    }.padding(.vertical, 8)
+                }.padding(compact ? 12 : 18).mumlaSurface(radius: 14)
+                MumlaTranscriptStrip(preview: coordinator.history.first?.compactPreview, text: coordinator.history.first?.text, copied: copied) {
+                    guard let record = coordinator.history.first else { return }
+                    NSPasteboard.general.clearContents()
+                    copied = NSPasteboard.general.setString(record.text, forType: .string)
                 }
-            }.frame(maxWidth: 560).padding(.bottom, 12).padding(.horizontal, 2)
-                .frame(maxWidth: .infinity)
-        }.scrollIndicators(.hidden)
+            }
+            .frame(maxWidth: 560, maxHeight: 630)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+        .onChange(of: coordinator.history.first?.id) { _, _ in copied = false }
     }
 
     private var isRecording: Bool {
@@ -212,8 +219,8 @@ struct MainView: View {
                                     Spacer()
                                     Text(record.language == .swedish ? "SV" : "EN")
                                     Image(systemName: "arrow.up.right").padding(.leading, 12)
-                                }.font(.system(size: 11)).foregroundStyle(MumlaStyle.secondary)
-                                Text(record.text).font(.system(size: 15)).lineSpacing(4).lineLimit(3).multilineTextAlignment(.leading)
+                                }.font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                                Text(record.text).font(.system(size: 15, design: .monospaced)).lineSpacing(4).lineLimit(3).multilineTextAlignment(.leading)
                             }
                             .padding(.vertical, 20).padding(.horizontal, 2)
                             .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
@@ -311,19 +318,22 @@ struct MainView: View {
                     }
                 }
                 if coordinator.isInstallingModel { MumlaDownloadGauge(fraction: coordinator.modelInstallProgress.fraction).padding(.top, 16) }
-                Text(coordinator.statusText).font(.caption).foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 24)
+                settingRow(mText("Om Mumla", "About Mumla"), symbol: "info.circle") {
+                    Button { showAbout = true } label: { Label(mText("Modeller och licenser", "Models and licenses"), systemImage: "doc.text").padding(12) }
+                }
+                Text(coordinator.statusText).font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 24)
             }.buttonStyle(MumlaKeyStyle())
         }
     }
 
     private var modelDownload: some View {
         HStack(spacing: 18) {
-            Image(systemName: "arrow.down.circle").font(.system(size: 26, weight: .light)).foregroundStyle(MumlaStyle.accent)
+            Image(systemName: "arrow.down.circle").font(.system(size: 26, weight: .light, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
             VStack(alignment: .leading, spacing: 6) {
-                Text(coordinator.isInstallingModel ? mText("Förbereder svenska", "Preparing Swedish") : mText("Hämta svenska", "Download Swedish")).font(.headline)
+                Text(coordinator.isInstallingModel ? mText("Förbereder svenska", "Preparing Swedish") : mText("Hämta svenska", "Download Swedish")).font(.system(.headline, design: .monospaced))
                 if coordinator.isInstallingModel {
                     MumlaDownloadGauge(fraction: coordinator.modelInstallProgress.fraction).frame(maxWidth: 260)
-                } else { Text("688 MB").font(.caption).foregroundStyle(MumlaStyle.secondary) }
+                } else { Text("688 MB").font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary) }
             }
             Spacer()
             Button { coordinator.installModel() } label: {
@@ -383,11 +393,11 @@ private struct OnboardingView: View {
             HStack {
                 MumlaWordmark()
                 Spacer()
-                Text("\(coordinator.onboardingStep.rawValue + 1) / 5").font(.caption).foregroundStyle(MumlaStyle.secondary)
+                Text("\(coordinator.onboardingStep.rawValue + 1) / 5").font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
             }
             VStack(alignment: .leading, spacing: 12) {
-                Text(title).font(.system(size: 30, weight: .semibold))
-                Text(detail).font(.system(size: 15)).foregroundStyle(MumlaStyle.secondary).lineSpacing(4)
+                Text(title).font(.system(size: 30, weight: .semibold, design: .monospaced))
+                Text(detail).font(.system(size: 15, design: .monospaced)).foregroundStyle(MumlaStyle.secondary).lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
             }.frame(maxWidth: .infinity, minHeight: 120, alignment: .leading)
             HStack {
@@ -398,6 +408,7 @@ private struct OnboardingView: View {
                 }.buttonStyle(MumlaKeyStyle())
             }
         }.padding(36).frame(width: 470).background { MumlaBackdrop() }
+            .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
     }
     private var title: String {
         switch coordinator.onboardingStep {

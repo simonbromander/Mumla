@@ -47,7 +47,7 @@ private struct SelectableTranscriptText: UIViewRepresentable {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = preview ? 4 : 7
         let text = NSAttributedString(string: record.text, attributes: [
-            .font: UIFont.preferredFont(forTextStyle: preview ? .body : .title3),
+            .font: UIFontMetrics(forTextStyle: preview ? .body : .title3).scaledFont(for: UIFont.monospacedSystemFont(ofSize: preview ? 17 : 20, weight: .regular)),
             .foregroundColor: UIColor.label,
             .paragraphStyle: paragraph
         ])
@@ -101,37 +101,40 @@ private struct CorrectWordSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(mText("Ersätt", "Replace")).font(.caption).foregroundStyle(MumlaStyle.secondary)
-                        Text(selection.original).font(.title3)
+                        Text(mText("Ersätt", "Replace")).font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        Text(selection.original).font(.system(.title3, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(16).mumlaRecess(radius: 8)
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(mText("Med", "With")).font(.caption).foregroundStyle(MumlaStyle.secondary)
+                        Text(mText("Med", "With")).font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                         TextField(mText("Rätt stavning", "Correct spelling"), text: $replacement, prompt: Text(selection.original))
-                            .font(.title3).autocorrectionDisabled().textInputAutocapitalization(.never)
+                            .font(.system(.title3, design: .monospaced)).autocorrectionDisabled().textInputAutocapitalization(.never)
                             .focused($focused).submitLabel(.done).onSubmit(save)
                             .accessibilityIdentifier("correction.replacement")
                             .padding(16).mumlaRecess(radius: 8)
                     }
                     if !word.isEmpty && !TranscriptWordSelection.isWord(word) {
-                        Text(mText("Ange ett ord.", "Enter a single word.")).font(.caption).foregroundStyle(MumlaStyle.secondary)
+                        Text(mText("Ange ett ord.", "Enter a single word.")).font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                     }
-                    if let error { Text(error).font(.callout).foregroundStyle(MumlaStyle.recording) }
+                    if let error { Text(error).font(.system(.callout, design: .monospaced)).foregroundStyle(MumlaStyle.recording) }
                 }.padding(24)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button(action: save) {
-                Label(mText("Spara i ordlistan", "Save to dictionary"), systemImage: "checkmark")
+                Label(mText("Spara", "Save"), systemImage: "checkmark")
                     .frame(maxWidth: .infinity).padding(16)
             }
+            .font(.system(.headline, design: .monospaced))
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .buttonStyle(MumlaKeyStyle(feedback: false)).disabled(!canSave)
             .accessibilityIdentifier("correction.save")
             .padding(24).background(MumlaStyle.background)
         }
         .background { MumlaBackdrop() }
         .presentationBackground(MumlaStyle.background)
+        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .tint(MumlaStyle.accent).preferredColorScheme(.dark)
         .onAppear { focused = true }
     }
