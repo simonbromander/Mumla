@@ -6,6 +6,32 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
+## macOS Release 28: 2026-09-30
+
+- macOS `1.0.1 (28)`, source commit `7ff8af8` (paste changes from `1b674ef`).
+- App Store Connect accepted the package at `2026-09-30T16:32:35Z`.
+  Processing completed at `2026-09-30T16:34:43Z`.
+- Build ID: `36b9e22c-8252-48db-ac79-d709b26119b8`; verified `VALID` and
+  `IN_BETA_TESTING` at `2026-09-30T16:35:41Z`. Both existing internal groups
+  `Test` and `Friends` include the build. No audience changes or external beta
+  review submissions were made; external state is `READY_FOR_BETA_SUBMISSION`.
+- 65 core/Mac tests and the Mac release preflight passed. Archive/export passed.
+  The exported package's app and installer signatures were checked against team
+  `PF2PWR4YG4`. The app is universal arm64/x86_64, hardened, sandboxed, and has
+  microphone/network entitlements without a debugging entitlement. The embedded
+  distribution profile expires `2027-07-03T11:46:39Z`.
+- The package includes offline About/license notices and the paste-confirmation,
+  clipboard-restoration, and successful-pill-dismissal changes. Full unrestricted
+  cross-app paste/learning still requires the direct Mac build, not the standard
+  TestFlight sandbox. Live cross-app device acceptance remains unverified.
+- Swedish and English testing notes from `fastlane/testflight/macos-1.0.1-28.json`
+  were published and read back successfully at `2026-09-30T16:35:44Z`.
+- Package SHA-256:
+  `2ec82a0a07f7cf1649aa6c7a0e44c27faac395d07a93f9bd3bbc3cbef1817d6e`.
+- Artifact: `.build/TestFlightMac/Mumla.pkg`; preserved package, expanded app,
+  and entitlement/profile audit under `.build/ReleaseAudit28/`.
+- iOS remains at its verified build 27; no iOS upload is part of this Mac release.
+
 ## Verified iOS and macOS Release: 2026-09-30
 
 - Both platforms: `1.0.1 (27)`, source commit `5bf1474`.
