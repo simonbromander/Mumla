@@ -6,6 +6,23 @@ import XCTest
 
 final class TranscriptPillTests: XCTestCase {
     @MainActor
+    func testSuccessfulInsertionHidesPillWithoutPresentingCopyDialog() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally(); try? FileManager.default.removeItem(at: directory) }
+        let coordinator = makeCoordinator(directory: directory, pasteboard: board)
+        var presentations = 0
+        var dismissals = 0
+        coordinator.showPill = { presentations += 1 }
+        coordinator.hidePill = { dismissals += 1 }
+        coordinator.pillState = .transcribing
+        coordinator.presentInsertion(.inserted, record: DictationRecord(text: "Hej Mumla", language: .swedish))
+        XCTAssertEqual(coordinator.pillState, .hidden)
+        XCTAssertEqual(presentations, 0)
+        XCTAssertEqual(dismissals, 1)
+    }
+
+    @MainActor
     func testFallbackPersistsPastOldHideDeadlineAndCopiesEntireTranscript() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let board = NSPasteboard.withUniqueName()

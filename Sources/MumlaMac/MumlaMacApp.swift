@@ -31,17 +31,23 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             return
         }
         #endif
-        let historyStore = DictationHistoryStore.defaultStore()
-        let modelDirectory = ModelPathResolver.resolveCompiledPianissimoModel()
+        let storageDirectory = MacStorageDirectory.resolve()
+        let compiledDirectory = storageDirectory.appendingPathComponent("Models/markstrom-pianissimo-sv-coreml-compiled", isDirectory: true)
+        let historyStore = DictationHistoryStore(directory: storageDirectory)
+        let modelDirectory = ModelPathResolver.isCompiledPianissimoModel(at: compiledDirectory)
+            ? compiledDirectory : ModelPathResolver.resolveCompiledPianissimoModel()
         let transcriber = modelDirectory.map(LocalPianissimoTranscriber.init(modelDirectory:))
 
         coordinator = AppCoordinator(
             recorder: MicrophoneRecorder(),
             transcriber: transcriber,
-            modelInstaller: ModelInstaller(),
+            modelInstaller: ModelInstaller(
+                downloadDirectory: storageDirectory.appendingPathComponent("Downloads/markstrom-pianissimo-sv-coreml", isDirectory: true),
+                compiledDirectory: compiledDirectory
+            ),
             historyStore: historyStore,
-            dictionaryStore: .defaultStore(),
-            settingsStore: .defaultStore(),
+            dictionaryStore: DictionaryStore(directory: storageDirectory),
+            settingsStore: AppSettingsStore(directory: storageDirectory),
             modelDirectory: modelDirectory
         )
         pillWindowController = PillWindowController(coordinator: coordinator)

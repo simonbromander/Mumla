@@ -17,6 +17,7 @@ TEAM_ID = "PF2PWR4YG4"
 VERSION = "1.0.1"
 OUTPUT = File.join(ROOT, ".build", "TestFlight")
 MAC_OUTPUT = File.join(ROOT, ".build", "TestFlightMac")
+DIRECT_OUTPUT = File.join(ROOT, ".build", "DirectMac")
 
 def require_env!(names)
   missing = names.select { |name| ENV[name].to_s.strip.empty? }
@@ -300,5 +301,69 @@ platform :ios do
   lane :mac_beta do
     mac_build
     mac_upload
+  end
+
+  desc "Create the full-capability Mac app signed with Developer ID, without publishing"
+  lane :mac_direct_build do |options|
+    context = mumla_context
+    FileUtils.mkdir_p(DIRECT_OUTPUT)
+    get_certificates(
+      api_key: context[:api_key],
+      type: "developer_id_application",
+      output_path: File.join(ROOT, ".build", "DirectSigning")
+    )
+    sh("xcodegen", "generate", "--spec", File.join(ROOT, "project.yml"))
+    build_number = Integer(options[:build] || 28)
+    UI.user_error!("Build number must be positive.") unless build_number.positive?
+    build_app(
+      project: PROJECT,
+      scheme: "MumlaMacDirect",
+      configuration: "Direct",
+      archive_path: File.join(ROOT, ".build", "MumlaMac-direct.xcarchive"),
+      output_directory: DIRECT_OUTPUT,
+      output_name: "Mumla",
+      buildlog_path: File.join(ROOT, ".build", "fastlane-logs"),
+      skip_profile_detection: true,
+      skip_package_pkg: true,
+      export_method: "developer-id",
+      destination: "generic/platform=macOS",
+      xcargs: ["DEVELOPMENT_TEAM=#{TEAM_ID}", "CURRENT_PROJECT_VERSION=#{build_number}",
+               "CODE_SIGN_STYLE=Manual", "CODE_SIGN_IDENTITY=Developer ID Application"].shelljoin
+    )
+    app = File.join(DIRECT_OUTPUT, "Mumla.app")
+    UI.user_error!("The direct app was not produced.") unless File.directory?(app)
+    sh("codesign", "--verify", "--deep", "--strict", "--verbose=2", app)
+    entitlements, error, status = Open3.capture3("codesign", "-d", "--entitlements", ":-", app)
+    UI.user_error!("Cannot read direct app entitlements: #{error}") unless status.success?
+    UI.user_error!("The direct app must not be sandboxed.") if entitlements.include?("com.apple.security.app-sandbox")
+    # codesign writes signature details to stderr.
+    _, signature, = Open3.capture3("codesign", "-dv", "--verbose=4", app)
+    UI.user_error!("Expected this team's Developer ID Application signature.") unless signature.include?("Authority=Developer ID Application:") && signature.include?("TeamIdentifier=#{TEAM_ID}")
+    UI.success("Direct Mac build created. Notarization and runtime acceptance are still separate steps.")
+  end
+
+  desc "Notarize and staple the existing direct Mac app, then produce an installable ZIP"
+  lane :mac_direct_notarize do
+    require_env!(%w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_PATH])
+    app = File.join(DIRECT_OUTPUT, "Mumla.app")
+    UI.user_error!("Run mac_direct_build first.") unless File.directory?(app)
+    sh("codesign", "--verify", "--deep", "--strict", "--verbose=2", app)
+    info = JSON.parse(sh("plutil", "-convert", "json", "-o", "-", File.join(app, "Contents", "Info.plist"), log: false))
+    zip = File.join(DIRECT_OUTPUT, "Mumla-#{info.fetch("CFBundleShortVersionString")}-#{info.fetch("CFBundleVersion")}.zip")
+    FileUtils.rm_f(zip)
+    sh("ditto", "-c", "-k", "--keepParent", app, zip)
+    response = sh("xcrun", "notarytool", "submit", zip,
+                  "--key", File.expand_path(ENV.fetch("ASC_KEY_PATH")),
+                  "--key-id", ENV.fetch("ASC_KEY_ID"), "--issuer", ENV.fetch("ASC_ISSUER_ID"),
+                  "--wait", "--output-format", "json", log: false)
+    report = JSON.parse(response)
+    File.write(File.join(DIRECT_OUTPUT, "notarization.json"), JSON.pretty_generate(report))
+    UI.user_error!("Notarization was not accepted; inspect .build/DirectMac/notarization.json.") unless report["status"] == "Accepted"
+    sh("xcrun", "stapler", "staple", app)
+    sh("xcrun", "stapler", "validate", app)
+    sh("spctl", "--assess", "--type", "execute", "--verbose=2", app)
+    FileUtils.rm_f(zip)
+    sh("ditto", "-c", "-k", "--keepParent", app, zip)
+    UI.success("Notarized direct Mac ZIP ready: #{zip}")
   end
 end

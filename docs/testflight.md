@@ -6,7 +6,31 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
-## Verified iOS and macOS Release: 2026-09-29
+## Verified iOS and macOS Release: 2026-09-30
+
+- Both platforms: `1.0.1 (27)`, source commit `5bf1474`.
+- iOS build ID: `d9098b27-ea63-4fb4-b821-e25eb63de0ce`.
+- macOS build ID: `4685aac4-c5a3-4f88-9abd-0f9c7f8902b1`.
+- App Store Connect app `6759602919`; both builds verified `VALID` and
+  `IN_BETA_TESTING` at `2026-09-30T13:48:44Z`.
+- Both are included in the existing internal `Test` and `Friends` groups.
+  No audience changes or external review submissions were made.
+- English and Swedish notes were published and read back on both platforms.
+- The release includes the fixed recorder console, orange mechanical mode keys,
+  retro typography, compact transcript actions, and offline About/model credits.
+- 53 core/Mac tests and 27 iPhone/iPad UI runs passed for this release.
+  Exported distribution signatures and entitlements were checked; the Mac
+  installer signature was verified and its app is universal arm64/x86_64.
+- Physical haptics and microphone quality still require device acceptance.
+- The Mac TestFlight app is sandboxed. Its unrestricted cross-app Accessibility
+  insertion/learning workflow is not supported by that sandbox. See
+  [the direct Mac build](mac-direct-release.md) for the full dictation version.
+- Build 27 does **not** include the subsequent auto-paste changes. Do not present
+  it as the auto-paste fix.
+
+Release state is a dated snapshot; use `fastlane ios beta_status` to refresh it.
+
+## Previous iOS and macOS Release: 2026-09-29
 
 - Both platforms: `1.0.1 (26)`, source commit `768bdcc`.
 - iOS build ID: `2f758716-3a5d-481c-ba24-3560c9fb9ba8`.
@@ -25,9 +49,6 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
   the Mac TestFlight sandbox still need device acceptance.
 - The fixed-console, orange-key, typography, and About changes after `768bdcc`
   are not included in build 26 until a subsequent release is uploaded.
-
-Open TestFlight on either platform and install build 26. Release state is a
-dated snapshot; use `fastlane ios beta_status` to refresh it.
 
 ## Previous macOS Release: 2026-09-28
 

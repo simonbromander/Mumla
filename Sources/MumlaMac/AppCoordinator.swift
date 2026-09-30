@@ -33,7 +33,7 @@ final class AppCoordinator: ObservableObject {
     private let dictionaryStore: DictionaryStore
     private let settingsStore: AppSettingsStore
     private let pasteboard: NSPasteboard
-    private let inserter = ClipboardTextInserter()
+    private let inserter: ClipboardTextInserter
     private let correctionLearner = CorrectionLearner()
     private let editObserver = FocusedFieldEditObserver()
 
@@ -63,6 +63,7 @@ final class AppCoordinator: ObservableObject {
         self.settingsStore = settingsStore
         self.modelDirectory = modelDirectory
         self.pasteboard = pasteboard
+        self.inserter = ClipboardTextInserter(pasteboard: pasteboard)
     }
 
     func bootstrap() {
@@ -215,10 +216,12 @@ final class AppCoordinator: ObservableObject {
     func presentInsertion(_ result: ClipboardInsertionResult, record: DictationRecord) {
         switch result {
         case .inserted:
-            pillState = .message(mText("Infogat", "Inserted"))
+            hidePillTask?.cancel()
+            pillState = .hidden
+            hidePill?()
             statusText = "Last dictation ready"
             watchForCorrectionLearning()
-            scheduleHidePill()
+            return
         case let .needsCopy(copied):
             hidePillTask?.cancel()
             pillState = .transcript(record, copied: copied)

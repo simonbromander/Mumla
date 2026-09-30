@@ -53,5 +53,16 @@ final class ClipboardTests: XCTestCase {
         XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Mumla old", after: "Mumla changed", selectedRange: NSRange(location: 9, length: 0)))
         XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: nil, after: "Mumla", selectedRange: nil))
         XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "", after: "Mumla", selectedRange: NSRange(location: 5, length: 0)))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "", after: "Mumla", selectedRange: NSRange(location: -1, length: 0)))
+    }
+
+    @MainActor
+    func testEditorWithoutCursorRangeRequiresAnExactNewInsertion() {
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Hello ", after: "Hello Mumla", selectedRange: nil))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("abc", before: "ab", after: "abcab", selectedRange: nil))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("cab", before: "ab", after: "abcab", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Mumla", after: "Mumla", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Hello", after: "Changed Mumla", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("", before: "Hello", after: "Hello", selectedRange: nil))
     }
 }

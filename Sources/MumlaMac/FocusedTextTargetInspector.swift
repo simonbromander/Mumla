@@ -95,13 +95,10 @@ enum FocusedTextTargetInspector {
             var enabled: CFTypeRef?
             if AXUIElementCopyAttributeValue(element, kAXEnabledAttribute as CFString, &enabled) == .success,
                let enabled = enabled as? Bool, !enabled { return .nonText }
-            var valueSettable = DarwinBoolean(false)
-            var selectionSettable = DarwinBoolean(false)
-            _ = AXUIElementIsAttributeSettable(element, kAXValueAttribute as CFString, &valueSettable)
-            _ = AXUIElementIsAttributeSettable(element, kAXSelectedTextAttribute as CFString, &selectionSettable)
             var editable: CFTypeRef?
             _ = AXUIElementCopyAttributeValue(element, "AXEditable" as CFString, &editable)
-            return valueSettable.boolValue || selectionSettable.boolValue || (editable as? Bool == true) ? .editableText : .nonText
+            // Browser and Electron editors can accept paste without AX setters.
+            return acceptsPaste(role: role, enabled: enabled as? Bool, editable: editable as? Bool) ? .editableText : .nonText
         }
 
         if role == nil {
@@ -130,6 +127,10 @@ enum FocusedTextTargetInspector {
         }
 
         return unsafeDowncast(focusedValue, to: AXUIElement.self)
+    }
+
+    static func acceptsPaste(role: String?, enabled: Bool?, editable: Bool?) -> Bool {
+        isEditableTextRole(role) && enabled != false && editable != false
     }
 
     private static func isEditableTextRole(_ role: String?) -> Bool {

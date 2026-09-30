@@ -34,6 +34,8 @@
 	<string>Mumla uses the microphone for private on-device dictation.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>MumlaDistribution</key>
+	<string>$(MUMLA_DISTRIBUTION)</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.com.mumla.app</key>

@@ -1,4 +1,8 @@
 name: Mumla
+configs:
+  Debug: debug
+  Release: release
+  Direct: release
 options:
   bundleIdPrefix: com.mumla
   deploymentTarget:
@@ -55,6 +59,14 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Apps/macOS/Mumla/Mumla.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MUMLA_DISTRIBUTION: app-store
+      configs:
+        Direct:
+          CODE_SIGN_ENTITLEMENTS: Apps/macOS/Mumla/MumlaDirect.entitlements
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Developer ID Application
+          CURRENT_PROJECT_VERSION: "28"
+          MUMLA_DISTRIBUTION: direct
   Mumla:
     type: application
     platform: iOS
@@ -103,3 +115,15 @@ schemes:
       config: Debug
     archive:
       config: Release
+  MumlaMacDirect:
+    build:
+      targets:
+        MumlaMac: all
+    run:
+      config: Direct
+    profile:
+      config: Direct
+    analyze:
+      config: Direct
+    archive:
+      config: Direct

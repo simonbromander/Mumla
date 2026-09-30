@@ -95,6 +95,22 @@ Upload an existing signed macOS package to TestFlight
 
 Build and upload the macOS app to TestFlight
 
+### ios mac_direct_build
+
+```sh
+[bundle exec] fastlane ios mac_direct_build
+```
+
+Create the full-capability Mac app signed with Developer ID, without publishing
+
+### ios mac_direct_notarize
+
+```sh
+[bundle exec] fastlane ios mac_direct_notarize
+```
+
+Notarize and staple the existing direct Mac app, then produce an installable ZIP
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.

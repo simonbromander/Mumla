@@ -33,6 +33,7 @@
 		C269080771F75259FBDF0D4A /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = F2609A56CC257B5C0FCF5E47 /* MumlaCore */; };
 		D3354B508BC8C7CD6753E616 /* MumlaMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */; };
 		D6BA2CFD675261088FA2F5C2 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = DCCF805E83C2E642E16A02D7 /* MumlaAudio */; };
+		F78A2C4346174E97A1701275 /* MacStorageDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */; };
 		FCB324B1695DC0C9876A6350 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */; };
 /* End PBXBuildFile section */
 
@@ -64,6 +65,7 @@
 		9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextInserter.swift; sourceTree = "<group>"; };
 		A26F840006A86E01CDD6438C /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginController.swift; sourceTree = "<group>"; };
+		AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacStorageDirectory.swift; sourceTree = "<group>"; };
 		B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuController.swift; sourceTree = "<group>"; };
 		CE353AB1AAC2AB5A392B97A0 /* CorrectableTranscript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectableTranscript.swift; sourceTree = "<group>"; };
 		D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTextTargetInspector.swift; sourceTree = "<group>"; };
@@ -157,6 +159,7 @@
 				2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */,
 				D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */,
 				A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */,
+				AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */,
 				A26F840006A86E01CDD6438C /* MainView.swift */,
 				F9B5D76BF5AEDB09D049D0E2 /* MainWindowController.swift */,
 				8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */,
@@ -274,7 +277,6 @@
 					};
 					45A5202F9C883FE1B67273FE = {
 						DevelopmentTeam = PF2PWR4YG4;
-						ProvisioningStyle = Automatic;
 					};
 					C8A7C6C1CFBEB957E9A70E84 = {
 						DevelopmentTeam = PF2PWR4YG4;
@@ -337,6 +339,7 @@
 				B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */,
 				5383AD414A7C20B2C8D57A59 /* FocusedTextTargetInspector.swift in Sources */,
 				4BD34DE07A2E83C28BC39532 /* LaunchAtLoginController.swift in Sources */,
+				F78A2C4346174E97A1701275 /* MacStorageDirectory.swift in Sources */,
 				BA3F945570826A391E965859 /* MainView.swift in Sources */,
 				57D2461181FFD8C44BBB9162 /* MainWindowController.swift in Sources */,
 				D3354B508BC8C7CD6753E616 /* MumlaMacApp.swift in Sources */,
@@ -377,6 +380,30 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		325FA22EE68976BF5E897516 /* Direct */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Apps/macOS/Mumla/MumlaDirect.entitlements;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 28;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Apps/macOS/Mumla/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MUMLA_DISTRIBUTION = direct;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
+				PRODUCT_NAME = Mumla;
+				SDKROOT = macosx;
+			};
+			name = Direct;
+		};
 		5E36377025CBDB0632C96B3C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -409,6 +436,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MUMLA_DISTRIBUTION = "app-store";
 				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
 				PRODUCT_NAME = Mumla;
 				SDKROOT = macosx;
@@ -520,6 +548,88 @@
 			};
 			name = Release;
 		};
+		9EB937EB204091CCD2A8C4BA /* Direct */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 27;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = PF2PWR4YG4;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Direct;
+		};
+		A5DCD21840A78AD20E8107DE /* Direct */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Apps/iOS/Mumla/Mumla.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Apps/iOS/Mumla/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Direct;
+		};
 		A75A986E41B2E2061B717ACD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -534,11 +644,29 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MUMLA_DISTRIBUTION = "app-store";
 				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
 				PRODUCT_NAME = Mumla;
 				SDKROOT = macosx;
 			};
 			name = Debug;
+		};
+		AEB4D427D5E964AF581DB193 /* Direct */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Mumla;
+			};
+			name = Direct;
 		};
 		CDCB1C05076CA340789877F4 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -629,6 +757,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				78B40A637EDF8CED96AC3BA4 /* Debug */,
+				9EB937EB204091CCD2A8C4BA /* Direct */,
 				CDCB1C05076CA340789877F4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -638,6 +767,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A75A986E41B2E2061B717ACD /* Debug */,
+				325FA22EE68976BF5E897516 /* Direct */,
 				6C90CD9F6FDE6D3ABF682C57 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -647,6 +777,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5E36377025CBDB0632C96B3C /* Debug */,
+				A5DCD21840A78AD20E8107DE /* Direct */,
 				FD119ACAF2F8B0B87045CF73 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -656,6 +787,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				6D2ACF4B539B4CFA1E674E2D /* Debug */,
+				AEB4D427D5E964AF581DB193 /* Direct */,
 				838B28302C391A1E45390CDA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;

@@ -53,8 +53,10 @@ final class PillWindowController {
             context.duration = reduceMotion ? 0 : 0.16
             window.animator().alphaValue = 0
         } completionHandler: { [weak self] in
-            guard let self, self.presentationID == id else { return }
-            self.window.orderOut(nil)
+            Task { @MainActor [weak self] in
+                guard let self, self.presentationID == id else { return }
+                self.window.orderOut(nil)
+            }
         }
     }
 }
