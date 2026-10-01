@@ -4,7 +4,7 @@ import SwiftUI
 
 @MainActor
 final class PillWindowController {
-    private let window: NSPanel
+    let window: NSPanel
     private let coordinator: AppCoordinator
     private var presentationID = UUID()
 
@@ -14,7 +14,13 @@ final class PillWindowController {
             contentRect: NSRect(x: 0, y: 0, width: PillView.width, height: PillView.height(for: .hidden)),
             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false
         )
-        panel.contentView = NSHostingView(rootView: PillView(coordinator: coordinator))
+        let contentView = PillHostingView(rootView: PillView(coordinator: coordinator))
+        contentView.wantsLayer = true
+        contentView.layer?.backgroundColor = NSColor.clear.cgColor
+        contentView.layer?.cornerRadius = PillView.cornerRadius
+        contentView.layer?.cornerCurve = .continuous
+        contentView.layer?.masksToBounds = true
+        panel.contentView = contentView
         panel.isFloatingPanel = true
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
@@ -59,6 +65,10 @@ final class PillWindowController {
             }
         }
     }
+}
+
+private final class PillHostingView: NSHostingView<PillView> {
+    override var isOpaque: Bool { false }
 }
 
 private final class DictationPanel: NSPanel {

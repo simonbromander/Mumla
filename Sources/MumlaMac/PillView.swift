@@ -5,6 +5,7 @@ import SwiftUI
 struct PillView: View {
     @ObservedObject var coordinator: AppCoordinator
     static let width: CGFloat = 480
+    static let cornerRadius: CGFloat = 14
     static func height(for state: PillState) -> CGFloat {
         if case .transcript = state { return 248 }
         return 124
@@ -20,7 +21,8 @@ struct PillView: View {
         }
         .padding(12)
         .frame(width: Self.width, height: Self.height(for: coordinator.pillState))
-        .mumlaSurface(radius: 14)
+        .mumlaSurface(radius: Self.cornerRadius)
+        .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
         .preferredColorScheme(.dark)
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .accessibilityElement(children: .contain)

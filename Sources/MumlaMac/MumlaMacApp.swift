@@ -128,12 +128,21 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         let compact = CommandLine.arguments.contains("--snapshot-compact")
         let size = section == "about" ? NSSize(width: 580, height: 520) : isPill ? NSSize(width: PillView.width, height: PillView.height(for: snapshotCoordinator.pillState))
             : NSSize(width: compact ? 820 : 960, height: compact ? 560 : 760)
-        let root = section == "about" ? AnyView(MumlaAboutView()) : isPill ? AnyView(PillView(coordinator: snapshotCoordinator))
-            : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section))
-        let view = NSHostingView(rootView: root.environment(\.colorScheme, .dark))
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
+        let view: NSView
+        let window: NSWindow
+        if isPill {
+            let controller = PillWindowController(coordinator: snapshotCoordinator)
+            window = controller.window
+            window.setContentSize(size)
+            view = window.contentView!
+        } else {
+            let root = section == "about" ? AnyView(MumlaAboutView())
+                : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section))
+            view = NSHostingView(rootView: root.environment(\.colorScheme, .dark))
+            window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
+            window.contentView = view
+        }
         window.appearance = NSAppearance(named: .darkAqua)
-        window.contentView = view
         view.frame = NSRect(origin: .zero, size: size)
         view.layoutSubtreeIfNeeded()
         RunLoop.current.run(until: Date().addingTimeInterval(0.2))
