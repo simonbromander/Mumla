@@ -6,6 +6,9 @@ DerivedData/
 *.xcuserstate
 *.xcresult
 fastlane/report.xml
+*.p12
+*.pfx
+*.key
 build/
 dist/
 Models/

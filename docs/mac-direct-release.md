@@ -46,18 +46,27 @@ with its private key on the build Mac. Keep that key local and out of Git.
 
 ```bash
 security find-identity -v -p codesigning
+ruby fastlane/tests/direct_signing_test.rb
 swift test
-fastlane ios mac_direct_build build:28
+fastlane ios mac_direct_build build:30
 fastlane ios mac_direct_notarize
 ```
 
-The lanes read the same `ASC_KEY_ID`, `ASC_ISSUER_ID`, and `ASC_KEY_PATH` used by
-the existing release workflow. They do not upload to TestFlight or publish a
-download. The build lane verifies this team's Developer ID signature and the
-absence of sandboxing. The notarization lane requires `Accepted`, staples and
-validates the ticket, checks Gatekeeper, and repackages the stapled app as:
+The build lane uses an already-installed, unexpired Developer ID Application
+identity for this team, selected by certificate fingerprint. It never requests
+or creates certificates through Apple's API and does not require App Store
+Connect access. Importing a `.cer` without its matching private key is not
+enough; use a CSR generated on the build Mac or import a password-protected
+`.p12` containing the certificate and its key. Keep all signing material local.
 
-`.build/DirectMac/Mumla-1.0.1-28.zip`
+The notarization lane reads the same `ASC_KEY_ID`, `ASC_ISSUER_ID`, and
+`ASC_KEY_PATH` used by the existing release workflow. The lanes do not upload
+to TestFlight or publish a download. The build lane verifies this team's
+Developer ID signature and the absence of sandboxing. The notarization lane
+requires `Accepted`, staples and validates the ticket, checks Gatekeeper, and
+repackages the stapled app as:
+
+`.build/DirectMac/Mumla-1.0.1-30.zip`
 
 Quit the TestFlight app before replacing it with the direct app. Launch the
 direct app and grant Microphone and Accessibility access in System Settings.
@@ -76,6 +85,21 @@ Do not disable Gatekeeper or instruct testers to bypass signing checks.
 - The local test process reports Accessibility trust and event-posting access
   as false. Unit tests exercise a simulated editor; they do not establish live
   cross-app acceptance.
+
+## Signing Preparation: 2026-10-01
+
+- Direct build 30 is reserved; Mac TestFlight build 29 and iOS are unchanged.
+- 10 signing-selection tests and all 67 Swift tests passed. Signing tests cover
+  missing private-key identities, the wrong certificate type/team, validity
+  dates, and deterministic selection of a usable local identity.
+- The supplied Developer ID Application certificate is valid for this team,
+  but its public key does not match the CSR/private key generated on this Mac.
+  Importing the certificate did not create a usable codesigning identity.
+- The actual build lane stops at its local signing preflight with an actionable
+  missing-private-key error, before archiving or contacting Apple's API. Create
+  a certificate from the supplied CSR or import a matching `.p12` as a file.
+- No signed/notarized build 30 or GitHub release has been produced. Real
+  auto-paste acceptance remains unverified; passing tests do not resolve that.
 
 ## Runtime Acceptance Before Release
 

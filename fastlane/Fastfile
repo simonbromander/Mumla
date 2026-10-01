@@ -5,6 +5,7 @@ require "json"
 require "open3"
 require "openssl"
 require "shellwords"
+require_relative "direct_signing"
 
 default_platform(:ios)
 
@@ -305,15 +306,14 @@ platform :ios do
 
   desc "Create the full-capability Mac app signed with Developer ID, without publishing"
   lane :mac_direct_build do |options|
-    context = mumla_context
+    begin
+      signing_identity = MumlaDirectSigning.identity(team_id: TEAM_ID)
+    rescue MumlaDirectSigning::Error => error
+      UI.user_error!(error.message)
+    end
     FileUtils.mkdir_p(DIRECT_OUTPUT)
-    get_certificates(
-      api_key: context[:api_key],
-      type: "developer_id_application",
-      output_path: File.join(ROOT, ".build", "DirectSigning")
-    )
     sh("xcodegen", "generate", "--spec", File.join(ROOT, "project.yml"))
-    build_number = Integer(options[:build] || 28)
+    build_number = Integer(options[:build] || 30)
     UI.user_error!("Build number must be positive.") unless build_number.positive?
     build_app(
       project: PROJECT,
@@ -326,9 +326,15 @@ platform :ios do
       skip_profile_detection: true,
       skip_package_pkg: true,
       export_method: "developer-id",
+      export_options: {
+        method: "developer-id",
+        signingStyle: "manual",
+        signingCertificate: signing_identity,
+        teamID: TEAM_ID
+      },
       destination: "generic/platform=macOS",
       xcargs: ["DEVELOPMENT_TEAM=#{TEAM_ID}", "CURRENT_PROJECT_VERSION=#{build_number}",
-               "CODE_SIGN_STYLE=Manual", "CODE_SIGN_IDENTITY=Developer ID Application"].shelljoin
+               "CODE_SIGN_STYLE=Manual", "CODE_SIGN_IDENTITY=#{signing_identity}"].shelljoin
     )
     app = File.join(DIRECT_OUTPUT, "Mumla.app")
     UI.user_error!("The direct app was not produced.") unless File.directory?(app)
