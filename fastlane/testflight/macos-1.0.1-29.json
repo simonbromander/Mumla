@@ -1,0 +1,9 @@
+{
+  "version": "1.0.1",
+  "build": "29",
+  "platform": "MAC_OS",
+  "localizations": {
+    "en-US": "Fixed the mini recorder's bottom-edge artifacts and corner clipping. The recording and manual-copy panels now have properly transparent, rounded outer corners, including with long transcripts.\n\nPlease test the recorder panel during recording, transcription, and manual copying, including long transcripts. The panel should never take keyboard focus from the destination app.\n\nKnown limitation: full cross-app auto-paste and correction learning remain unsupported by the standard TestFlight sandbox. This is a panel-rendering update, not a verified auto-paste fix. A separately signed direct Mac build is required for the full workflow. English/automatic language routing, meetings, and iCloud sync remain unfinished.",
+    "sv": "Åtgärdat kantartefakter längst ned i miniinspelaren och felaktig klippning av hörnen. Inspelningspanelen och kopieringspanelen har nu genomskinliga, rundade ytterhörn, även med långa transkript.\n\nTesta miniinspelaren under inspelning, transkribering och manuell kopiering, även med långa transkript. Panelen ska aldrig ta tangentbordsfokus från appen du skriver i.\n\nKänd begränsning: automatisk inklistring mellan appar och automatisk inlärning av rättningar stöds fortfarande inte av TestFlight-versionens vanliga sandbox. Det här är en uppdatering av panelens utseende, inte en verifierad lösning på automatisk inklistring. Hela arbetsflödet kräver en separat signerad Mac-version för direktdistribution. Engelska/automatiskt språkval, möten och iCloud-synk är fortfarande inte klara."
+  }
+}
