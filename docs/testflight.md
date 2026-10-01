@@ -6,6 +6,36 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
+## macOS Release 29: 2026-10-01
+
+- macOS `1.0.1 (29)`, source commit `7bfe96c` (recorder rendering fix from
+  `b151913`).
+- App Store Connect accepted the package at `2026-10-01T07:46:30Z`.
+  Processing completed at `2026-10-01T07:49:42Z`.
+- Build ID: `b026878f-4e70-428a-9e69-5651e8174b82`; verified `VALID` and
+  `IN_BETA_TESTING` at `2026-10-01T07:51:06Z`. Both existing internal groups
+  `Test` and `Friends` include the build. No audience changes or external beta
+  review submissions were made; external state is `READY_FOR_BETA_SUBMISSION`.
+- All 67 core/Mac tests and the Mac release preflight passed, including native
+  panel-rendering checks for recording, short transcripts, and long transcripts.
+  Archive/export passed. Exported app and installer signatures were verified
+  against team `PF2PWR4YG4`; the app is universal arm64/x86_64, hardened,
+  sandboxed, and has microphone/network entitlements without debugging access.
+  The distribution profile expires `2027-07-03T11:46:39Z`.
+- Fixes square bottom-edge artifacts and clips the mini recorder to transparent,
+  rounded corners without making the panel focusable.
+- Full unrestricted cross-app paste/learning still requires the direct Mac
+  build, not the standard TestFlight sandbox. This release does not establish
+  live auto-paste acceptance or resolve the sandbox limitation.
+- Swedish and English testing notes from `fastlane/testflight/macos-1.0.1-29.json`
+  were published and read back successfully at `2026-10-01T07:50:51Z`.
+- Package SHA-256:
+  `0358880b3791a5dfe4ef48e739521de873fe482acd4a8960b9921d162d60bf46`.
+- Artifact: `.build/TestFlightMac/Mumla.pkg`; preserved package, expanded app,
+  and entitlement/profile audit under `.build/ReleaseAudit29/`. Validation and
+  upload logs are under `.build/release29-*.log`.
+- iOS remains at its verified build 27; no iOS upload is part of this Mac release.
+
 ## macOS Release 28: 2026-09-30
 
 - macOS `1.0.1 (28)`, source commit `7ff8af8` (paste changes from `1b674ef`).
