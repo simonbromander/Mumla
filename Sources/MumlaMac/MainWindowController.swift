@@ -14,7 +14,6 @@ final class MainWindowController {
             defer: false
         )
         window.title = "Mumla"
-        window.appearance = NSAppearance(named: .darkAqua)
         window.contentView = NSHostingView(rootView: contentView)
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true

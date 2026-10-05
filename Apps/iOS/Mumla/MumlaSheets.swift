@@ -15,6 +15,10 @@ struct MumlaSettingsSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     sectionTitle(mText("Diktering", "Dictation"))
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(mText("Utseende", "Appearance"))
+                        MumlaAppearancePicker()
+                    }
                     Toggle(mText("Haptisk återkoppling", "Haptic feedback"), isOn: $hapticsEnabled)
                         .toggleStyle(MumlaSwitchStyle())
                     Divider()
@@ -37,7 +41,7 @@ struct MumlaSettingsSheet: View {
             }
         }
         .background { MumlaBackdrop() }
-        .tint(MumlaStyle.accent).preferredColorScheme(.dark)
+        .tint(MumlaStyle.accent).mumlaAppearance()
         .presentationBackground(MumlaStyle.background)
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .sheet(isPresented: $showAbout) { MumlaAboutView() }

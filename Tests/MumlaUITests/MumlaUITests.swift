@@ -3,6 +3,40 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testAppearanceSelectionPersistsAndSharesWithSheets() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-AppleLanguages", "(sv)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Inställningar"].waitForExistence(timeout: 10))
+        app.buttons["Inställningar"].tap()
+        let light = app.buttons["appearance.light"]
+        XCTAssertTrue(light.waitForExistence(timeout: 3))
+        light.tap()
+        XCTAssertTrue(light.isSelected)
+        XCTAssertFalse(app.buttons["appearance.dark"].isSelected)
+        capture("21-light-settings", app: app)
+        app.buttons["Klart"].tap()
+        capture("22-light-recorder", app: app)
+        app.buttons["Historik"].tap()
+        capture("23-light-history", app: app)
+        app.buttons["Ordlista"].tap()
+        capture("24-light-dictionary", app: app)
+        app.terminate()
+        app.launch()
+        app.buttons["Inställningar"].tap()
+        XCTAssertTrue(app.buttons["appearance.light"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["appearance.light"].isSelected)
+        app.buttons["appearance.dark"].tap()
+        XCTAssertTrue(app.buttons["appearance.dark"].isSelected)
+        XCTAssertFalse(app.buttons["appearance.light"].isSelected)
+        capture("25-dark-settings", app: app)
+        app.buttons["Klart"].tap()
+        capture("26-dark-recorder", app: app)
+        app.buttons["Inställningar"].tap()
+        app.buttons["appearance.system"].tap()
+        XCTAssertTrue(app.buttons["appearance.system"].isSelected)
+    }
+
     func testNavigationAndDictionaryPersistence() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(sv)"]

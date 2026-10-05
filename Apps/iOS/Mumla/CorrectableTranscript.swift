@@ -135,7 +135,7 @@ private struct CorrectWordSheet: View {
         .background { MumlaBackdrop() }
         .presentationBackground(MumlaStyle.background)
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
-        .tint(MumlaStyle.accent).preferredColorScheme(.dark)
+        .tint(MumlaStyle.accent).mumlaAppearance()
         .onAppear { focused = true }
     }
 

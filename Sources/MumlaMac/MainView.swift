@@ -62,7 +62,7 @@ struct MainView: View {
         }
         .frame(minWidth: 820, minHeight: 560)
         .tint(MumlaStyle.accent)
-        .preferredColorScheme(.dark)
+        .mumlaAppearance()
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .sheet(isPresented: $showAbout) { MumlaAboutView().frame(width: 580, height: 520) }
         .onChange(of: coordinator.settingsOpenRequest) { _, _ in selection = .settings }
@@ -271,6 +271,9 @@ struct MainView: View {
     private var settings: some View {
         ScrollView {
             VStack(spacing: 0) {
+                settingRow(mText("Utseende", "Appearance"), symbol: "circle.lefthalf.filled") {
+                    MumlaAppearancePicker()
+                }
                 settingRow(mText("Dikteringstangent", "Trigger key"), symbol: "keyboard") {
                     HStack(spacing: 4) {
                         ForEach(DictationTriggerKey.allCases, id: \.self) { key in
@@ -376,8 +379,8 @@ struct MainView: View {
                 Image(systemName: symbol).frame(width: 22).foregroundStyle(MumlaStyle.secondary)
                 Text(title)
                 Spacer()
-                accessory()
-            }.frame(minHeight: 66)
+                accessory().fixedSize(horizontal: false, vertical: true)
+            }.padding(.vertical, 10).frame(minHeight: 66)
             Divider().opacity(0.6)
         }
     }

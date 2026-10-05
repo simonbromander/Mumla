@@ -23,7 +23,7 @@ struct PillView: View {
         .frame(width: Self.width, height: Self.height(for: coordinator.pillState))
         .mumlaSurface(radius: Self.cornerRadius)
         .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
-        .preferredColorScheme(.dark)
+        .mumlaAppearance()
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .accessibilityElement(children: .contain)
     }
@@ -53,7 +53,7 @@ struct PillView: View {
             .foregroundStyle(MumlaStyle.lcdInk)
             .padding(14).frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(RoundedRectangle(cornerRadius: 7).fill(
-                LinearGradient(colors: [MumlaStyle.lcd, Color(red: 0.72, green: 0.83, blue: 0.67)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                LinearGradient(colors: [MumlaStyle.lcd, MumlaStyle.lcdEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
                     .shadow(.inner(color: .black.opacity(0.45), radius: 4, y: 2))
             ))
             VStack(spacing: 8) {

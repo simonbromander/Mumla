@@ -148,6 +148,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             ), copied: true)
         }
         let compact = CommandLine.arguments.contains("--snapshot-compact")
+        let light = CommandLine.arguments.contains("--snapshot-light")
         let size = section == "about" ? NSSize(width: 580, height: 520) : isPill ? NSSize(width: PillView.width, height: PillView.height(for: snapshotCoordinator.pillState))
             : NSSize(width: compact ? 820 : 960, height: compact ? 560 : 760)
         let view: NSView
@@ -160,11 +161,11 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         } else {
             let root = section == "about" ? AnyView(MumlaAboutView())
                 : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section))
-            view = NSHostingView(rootView: root.environment(\.colorScheme, .dark))
+            view = NSHostingView(rootView: root.environment(\.colorScheme, light ? .light : .dark))
             window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
             window.contentView = view
         }
-        window.appearance = NSAppearance(named: .darkAqua)
+        window.appearance = NSAppearance(named: light ? .aqua : .darkAqua)
         view.frame = NSRect(origin: .zero, size: size)
         view.layoutSubtreeIfNeeded()
         RunLoop.current.run(until: Date().addingTimeInterval(0.2))

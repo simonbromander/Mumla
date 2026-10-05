@@ -93,7 +93,7 @@ public struct MumlaSwitchStyle: ToggleStyle {
                         Circle().strokeBorder(MumlaStyle.secondary, lineWidth: 1).frame(width: 8, height: 8)
                     }.font(.system(size: 10, weight: .bold, design: .monospaced)).padding(.horizontal, 8)
                     RoundedRectangle(cornerRadius: 5)
-                        .fill(LinearGradient(colors: [Color(white: 0.40), Color(white: 0.21)], startPoint: .top, endPoint: .bottom))
+                        .fill(LinearGradient(colors: [MumlaStyle.keyTop, MumlaStyle.keyBottom], startPoint: .top, endPoint: .bottom))
                         .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.white.opacity(0.25), lineWidth: 1))
                         .overlay {
                             HStack(spacing: 3) {
@@ -125,7 +125,7 @@ public struct MumlaDownloadGauge: View {
     public var body: some View {
         HStack(spacing: 3) {
             ForEach(0..<24) { index in
-                Rectangle().fill(Double(index) / 24 < fraction ? MumlaStyle.accent : Color(white: 0.22))
+                Rectangle().fill(Double(index) / 24 < fraction ? MumlaStyle.accent : MumlaStyle.meterOff)
                     .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.12)).frame(height: 1) }
             }
         }

@@ -5,20 +5,36 @@ public func mText(_ swedish: String, _ english: String) -> String {
 }
 
 public enum MumlaStyle {
-    public static let background = Color(red: 0.075, green: 0.082, blue: 0.078)
-    public static let panel = Color(red: 0.15, green: 0.16, blue: 0.15)
-    public static let secondary = Color(red: 0.66, green: 0.69, blue: 0.66)
-    public static let accent = Color(red: 0.69, green: 0.81, blue: 0.66)
-    public static let lcd = Color(red: 0.63, green: 0.76, blue: 0.59)
+    public static let background = mumlaAdaptive((0.96, 0.965, 0.95), (0.075, 0.082, 0.078))
+    public static let backdropTop = mumlaAdaptive((0.995, 0.995, 0.98), (0.13, 0.13, 0.13))
+    public static let panel = mumlaAdaptive((0.90, 0.91, 0.89), (0.15, 0.16, 0.15))
+    public static let ink = mumlaAdaptive((0.12, 0.14, 0.12), (0.92, 0.93, 0.91))
+    public static let secondary = mumlaAdaptive((0.32, 0.34, 0.32), (0.66, 0.69, 0.66))
+    public static let accent = mumlaAdaptive((0.69, 0.23, 0.035), (0.69, 0.81, 0.66))
+    public static let lcd = mumlaAdaptive((0.85, 0.89, 0.79), (0.63, 0.76, 0.59))
+    public static let lcdEnd = mumlaAdaptive((0.94, 0.96, 0.89), (0.72, 0.83, 0.67))
     public static let lcdInk = Color(red: 0.10, green: 0.18, blue: 0.11)
-    public static let recording = Color(red: 0.91, green: 0.36, blue: 0.28)
+    public static let recording = mumlaAdaptive((0.83, 0.25, 0.05), (0.91, 0.36, 0.28))
     public static let activeKey = Color(red: 0.96, green: 0.40, blue: 0.15)
+    public static let surfaceTop = mumlaAdaptive((0.995, 0.995, 0.98), (0.19, 0.19, 0.19))
+    public static let surfaceBottom = mumlaAdaptive((0.89, 0.90, 0.88), (0.13, 0.13, 0.13))
+    public static let recessTop = mumlaAdaptive((0.82, 0.84, 0.81), (0.045, 0.045, 0.045))
+    public static let recessBottom = mumlaAdaptive((0.94, 0.95, 0.92), (0.08, 0.08, 0.08))
+    public static let keyTop = mumlaAdaptive((1, 1, 0.99), (0.34, 0.34, 0.34))
+    public static let keyBottom = mumlaAdaptive((0.86, 0.88, 0.85), (0.22, 0.22, 0.22))
+    public static let keyPressed = mumlaAdaptive((0.82, 0.84, 0.81), (0.16, 0.16, 0.16))
+    public static let buttonTop = mumlaAdaptive((1, 1, 0.99), (0.23, 0.23, 0.23))
+    public static let buttonBottom = mumlaAdaptive((0.86, 0.88, 0.85), (0.15, 0.15, 0.15))
+    public static let buttonPressedTop = mumlaAdaptive((0.82, 0.84, 0.81), (0.10, 0.10, 0.10))
+    public static let buttonPressedBottom = mumlaAdaptive((0.90, 0.91, 0.89), (0.14, 0.14, 0.14))
+    public static let socket = mumlaAdaptive((0.69, 0.71, 0.68), (0.035, 0.035, 0.035))
+    public static let meterOff = mumlaAdaptive((0.68, 0.70, 0.66), (0.23, 0.23, 0.23))
 }
 
 public struct MumlaBackdrop: View {
     public init() {}
     public var body: some View {
-        LinearGradient(colors: [Color(white: 0.13), MumlaStyle.background], startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(colors: [MumlaStyle.backdropTop, MumlaStyle.background], startPoint: .topLeading, endPoint: .bottomTrailing)
             .ignoresSafeArea().accessibilityHidden(true)
     }
 }
@@ -29,6 +45,7 @@ public extension View {
 }
 
 private struct MachinedSurface: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
     var radius: CGFloat
     var inset: Bool
     func body(content: Content) -> some View {
@@ -36,17 +53,17 @@ private struct MachinedSurface: ViewModifier {
         content
             .background {
                 shape.fill(LinearGradient(
-                    colors: inset ? [Color(white: 0.045), Color(white: 0.08)] : [Color(white: 0.19), Color(white: 0.13)],
+                    colors: inset ? [MumlaStyle.recessTop, MumlaStyle.recessBottom] : [MumlaStyle.surfaceTop, MumlaStyle.surfaceBottom],
                     startPoint: .top, endPoint: .bottom
-                ).shadow(.inner(color: .black.opacity(inset ? 0.8 : 0.1), radius: inset ? 3 : 1, y: 2)))
+                ).shadow(.inner(color: .black.opacity(inset ? (scheme == .light ? 0.18 : 0.8) : 0.1), radius: inset ? 3 : 1, y: 2)))
             }
             .overlay {
                 shape.strokeBorder(LinearGradient(
-                    colors: inset ? [.black.opacity(0.85), .white.opacity(0.12)] : [.white.opacity(0.20), .black.opacity(0.7)],
+                    colors: inset ? [.black.opacity(scheme == .light ? 0.25 : 0.85), .white.opacity(scheme == .light ? 0.8 : 0.12)] : [.white.opacity(scheme == .light ? 0.9 : 0.20), .black.opacity(scheme == .light ? 0.22 : 0.7)],
                     startPoint: .top, endPoint: .bottom
                 ), lineWidth: 1).allowsHitTesting(false)
             }
-            .shadow(color: .black.opacity(inset ? 0 : 0.22), radius: 4, y: 3)
+            .shadow(color: .black.opacity(inset ? 0 : scheme == .light ? 0.09 : 0.22), radius: 4, y: 3)
     }
 }
 
@@ -54,6 +71,7 @@ public struct MumlaKeyStyle: ButtonStyle {
     public var radius: CGFloat
     public var feedback: Bool
     @Environment(\.isEnabled) private var enabled
+    @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(radius: CGFloat = 9, feedback: Bool = true) { self.radius = radius; self.feedback = feedback }
@@ -61,17 +79,17 @@ public struct MumlaKeyStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         configuration.label
-            .foregroundStyle(enabled ? Color(white: 0.92) : MumlaStyle.secondary.opacity(0.45))
+            .foregroundStyle(enabled ? MumlaStyle.ink : MumlaStyle.secondary.opacity(0.45))
             .background {
                 shape.fill(LinearGradient(
-                    colors: configuration.isPressed ? [Color(white: 0.10), Color(white: 0.14)] : [Color(white: 0.23), Color(white: 0.15)],
+                    colors: configuration.isPressed ? [MumlaStyle.buttonPressedTop, MumlaStyle.buttonPressedBottom] : [MumlaStyle.buttonTop, MumlaStyle.buttonBottom],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 ).shadow(.inner(color: .white.opacity(configuration.isPressed ? 0 : 0.045), radius: 1, y: 1)))
             }
             .overlay {
-                shape.strokeBorder(LinearGradient(colors: [.white.opacity(configuration.isPressed ? 0.05 : 0.20), .black.opacity(0.95)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
+                shape.strokeBorder(LinearGradient(colors: [.white.opacity(configuration.isPressed ? 0.05 : scheme == .light ? 0.6 : 0.20), .black.opacity(scheme == .light ? 0.3 : 0.95)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(configuration.isPressed ? 0.1 : 0.65), radius: configuration.isPressed ? 1 : 2, y: configuration.isPressed ? 0 : 3)
+            .shadow(color: .black.opacity(configuration.isPressed ? 0.1 : scheme == .light ? 0.20 : 0.65), radius: configuration.isPressed ? 1 : 2, y: configuration.isPressed ? 0 : 3)
             .offset(y: configuration.isPressed && !reduceMotion ? 2 : 0)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.10), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
@@ -153,7 +171,7 @@ public struct MumlaRecorderDisplay: View {
         .padding(compact ? 14 : 20)
         .background {
             RoundedRectangle(cornerRadius: 7)
-                .fill(LinearGradient(colors: [MumlaStyle.lcd, Color(red: 0.72, green: 0.83, blue: 0.67)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                .fill(LinearGradient(colors: [MumlaStyle.lcd, MumlaStyle.lcdEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
                     .shadow(.inner(color: .black.opacity(0.45), radius: 5, x: 0, y: 3)))
         }
         .overlay {
@@ -205,7 +223,7 @@ public struct MumlaInputMeter: View {
                 GeometryReader { geometry in
                     HStack(spacing: 2) {
                         ForEach(0..<32, id: \.self) { index in
-                            Rectangle().fill(active && Double(index) / 32 < fraction ? (index > 27 ? MumlaStyle.recording : MumlaStyle.accent) : Color(white: 0.23))
+                            Rectangle().fill(active && Double(index) / 32 < fraction ? (index > 27 ? MumlaStyle.recording : MumlaStyle.accent) : MumlaStyle.meterOff)
                         }
                     }.frame(width: geometry.size.width, height: 12)
                 }.frame(height: 12)
@@ -251,7 +269,7 @@ public struct MumlaTransportKey: View {
                     if busy { ProgressView().tint(MumlaStyle.accent) }
                     else {
                         Image(systemName: symbol).font(.system(size: primary ? 27 : 18, weight: .medium, design: .monospaced))
-                            .foregroundStyle(!enabled ? MumlaStyle.secondary.opacity(0.35) : primary && !active ? MumlaStyle.recording : Color(white: 0.91))
+                            .foregroundStyle(!enabled ? MumlaStyle.secondary.opacity(0.35) : primary && !active ? MumlaStyle.recording : MumlaStyle.ink)
                     }
                 }
                 .frame(width: primary ? (compact ? 66 : 88) : 48, height: primary ? (compact ? 66 : 88) : 48)
@@ -259,7 +277,7 @@ public struct MumlaTransportKey: View {
             }
             .buttonStyle(MumlaKeyStyle(radius: 50, feedback: false))
             .padding(4)
-            .background(Circle().fill(Color(white: 0.06).shadow(.inner(color: .black, radius: 2, y: 1))))
+            .background(Circle().fill(MumlaStyle.socket.shadow(.inner(color: .black.opacity(0.4), radius: 2, y: 1))))
             .overlay(Circle().strokeBorder(.white.opacity(0.065), lineWidth: 1))
             .accessibilityLabel(title).help(title)
             Text(title.uppercased()).font(.system(size: 9, weight: .medium, design: .monospaced))

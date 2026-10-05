@@ -5,6 +5,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
     public var height: CGFloat
     public var onPressChanged: (Bool) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var scheme
 
     public init(isLatched: Bool, height: CGFloat = 72, onPressChanged: @escaping (Bool) -> Void = { _ in }) {
         self.isLatched = isLatched
@@ -25,7 +26,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
 
         ZStack(alignment: .top) {
             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(Color(white: 0.035).shadow(.inner(color: .black, radius: 3, y: 2)))
+                .fill(MumlaStyle.socket.shadow(.inner(color: .black.opacity(scheme == .light ? 0.28 : 1), radius: 3, y: 2)))
                 .overlay {
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
                         .strokeBorder(.white.opacity(0.07), lineWidth: 1)
@@ -33,7 +34,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
 
             // The lower key wall stays in the socket as the face travels into it.
             cap.fill(LinearGradient(
-                colors: [Color(white: 0.12), Color(white: 0.055)],
+                colors: [MumlaStyle.panel, MumlaStyle.socket],
                 startPoint: .top, endPoint: .bottom
             ))
             .overlay(alignment: .bottom) {
@@ -43,33 +44,33 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
 
             configuration.label
                 .frame(maxWidth: .infinity).frame(height: height - 14)
-                .foregroundStyle(down ? Color(white: 0.98) : Color(white: 0.74))
+                .foregroundStyle(MumlaStyle.ink)
                 .background {
                     cap.fill(LinearGradient(
                         colors: down
-                            ? [Color(white: 0.16), Color(white: 0.20)]
-                            : [Color(white: 0.34), Color(white: 0.22)],
+                            ? [MumlaStyle.keyPressed, MumlaStyle.panel]
+                            : [MumlaStyle.keyTop, MumlaStyle.keyBottom],
                         startPoint: .top, endPoint: .bottom
-                    ).shadow(.inner(color: down ? .black.opacity(0.38) : .white.opacity(0.10), radius: down ? 3 : 1, y: down ? 2 : 1)))
+                    ).shadow(.inner(color: down ? .black.opacity(scheme == .light ? 0.12 : 0.38) : .white.opacity(0.10), radius: down ? 3 : 1, y: down ? 2 : 1)))
                 }
                 .overlay {
                     cap.strokeBorder(LinearGradient(
                         colors: down
-                            ? [.black.opacity(0.85), .white.opacity(0.10)]
-                            : [.white.opacity(0.38), .white.opacity(0.05), .black.opacity(0.85)],
+                            ? [.black.opacity(scheme == .light ? 0.28 : 0.85), .white.opacity(0.5)]
+                            : [.white.opacity(0.8), .white.opacity(0.05), .black.opacity(scheme == .light ? 0.30 : 0.85)],
                         startPoint: .top, endPoint: .bottom
                     ), lineWidth: 1)
                 }
                 .overlay(alignment: .top) {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(LinearGradient(colors: down ? [Color(red: 1, green: 0.62, blue: 0.28), MumlaStyle.activeKey] : [Color(white: 0.14), Color(white: 0.10)], startPoint: .top, endPoint: .bottom))
+                        .fill(LinearGradient(colors: down ? [Color(red: 1, green: 0.62, blue: 0.28), MumlaStyle.activeKey] : [MumlaStyle.meterOff, MumlaStyle.socket], startPoint: .top, endPoint: .bottom))
                         .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(.black.opacity(0.45), lineWidth: 0.5))
                         .frame(width: height > 48 ? 30 : 22, height: 5)
                         .padding(.top, 4)
                         .accessibilityHidden(true)
                 }
                 .compositingGroup()
-                .shadow(color: .black.opacity(down ? 0.20 : 0.75), radius: down ? 1 : 2, y: down ? 0 : 5)
+                .shadow(color: .black.opacity(down ? 0.12 : scheme == .light ? 0.28 : 0.75), radius: down ? 1 : 2, y: down ? 0 : 5)
                 .rotation3DEffect(.degrees(tilt), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.35)
                 .offset(y: travel + (configuration.isPressed && !reduceMotion ? 1 : 0))
                 .padding(.horizontal, 2).padding(.top, 2)

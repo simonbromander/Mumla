@@ -51,7 +51,7 @@ let package = Package(
                 .product(name: "FluidAudio", package: "FluidAudio")
             ]
         ),
-        .testTarget(name: "MumlaMacTests", dependencies: ["MumlaMac", "MumlaCore", "MumlaAudio"]),
+        .testTarget(name: "MumlaMacTests", dependencies: ["MumlaMac", "MumlaCore", "MumlaAudio", "MumlaUI"]),
         .testTarget(
             name: "MumlaCoreTests",
             dependencies: ["MumlaCore"],

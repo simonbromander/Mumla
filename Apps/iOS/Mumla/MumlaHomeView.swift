@@ -45,7 +45,7 @@ struct MumlaHomeView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
         .tint(MumlaStyle.accent)
-        .preferredColorScheme(.dark)
+        .mumlaAppearance()
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .onChange(of: tab) { _, _ in MumlaFeedback.latch() }
         .onChange(of: session.error) { _, error in if error != nil { MumlaFeedback.error() } }

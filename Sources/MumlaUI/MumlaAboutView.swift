@@ -50,7 +50,7 @@ public struct MumlaAboutView: View {
             }.accessibilityIdentifier("about.content")
         }
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
-        .background { MumlaBackdrop() }.tint(MumlaStyle.accent).preferredColorScheme(.dark)
+        .background { MumlaBackdrop() }.tint(MumlaStyle.accent).mumlaAppearance()
         .presentationBackground(MumlaStyle.background)
         .sheet(item: $notice) { item in
             VStack(spacing: 0) {
@@ -60,7 +60,7 @@ public struct MumlaAboutView: View {
                         .accessibilityIdentifier("about.notice.text")
                         .frame(maxWidth: .infinity, alignment: .leading).padding(24)
                 }
-            }.background { MumlaBackdrop() }.preferredColorScheme(.dark)
+            }.background { MumlaBackdrop() }.mumlaAppearance()
                 .presentationBackground(MumlaStyle.background)
                 #if os(macOS)
                 .frame(width: 580, height: 520)
