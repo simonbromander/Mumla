@@ -101,7 +101,39 @@ Do not disable Gatekeeper or instruct testers to bypass signing checks.
 - No signed/notarized build 30 or GitHub release has been produced. Real
   auto-paste acceptance remains unverified; passing tests do not resolve that.
 
-## Runtime Acceptance Before Release
+## Direct Beta: 2026-10-05
+
+- The Account Holder supplied a G2 Developer ID Application certificate created
+  from this build Mac's CSR. Its matching private key and certificate were
+  verified and imported locally. No signing keys or passwords enter Git.
+- Universal `1.0.1 (30)` was archived and exported for arm64 and x86_64, minimum
+  macOS 14.0, bundle `com.mumla.app`, distribution marker `direct`.
+- The exported app has this team's Developer ID signature, hardened runtime,
+  and a secure timestamp. Its only entitlement is microphone access: no App
+  Sandbox, debugger, app-group, or unused CloudKit entitlements.
+- All 67 Swift tests and 10 signing-selection tests passed again.
+- Apple notarization `94da0777-b974-43e2-9dca-51d9acb086b1` was `Accepted`.
+  The ticket was stapled and validated; Gatekeeper reports
+  `source=Notarized Developer ID`.
+- The final ZIP was unpacked into a fresh verification directory. Its code
+  signature, stapled ticket, Gatekeeper acceptance, and ZIP integrity were
+  independently verified. Size: 22,539,868 bytes.
+- SHA-256: `9002fa5d58480d087de290bae884ee4eceaee508aae7f952a734a746a3bbf531`.
+- App source is `b80915118dcb265d2fc7cdf9e3148a8a6f4f5d6d`; the tracked Xcode
+  project is regenerated from its existing `project.yml` to synchronize the
+  Direct build number. No transcription or insertion behavior changed here.
+- GitHub prerelease tag: `macos-1.0.1-30`. Only the notarized ZIP and its checksum
+  are release assets. The repository remains private; download requires access.
+  [Installation and beta notes](releases/macos-direct-1.0.1-30.md).
+- Local evidence: `.build/DirectMac/build-audit-30.json`,
+  `.build/direct30-build-20261005.log`,
+  `.build/direct30-notarize-20261005.log`, and
+  `.build/direct30-swift-tests-20261005.log`.
+- Signing/distribution verification is complete. Cross-app paste acceptance is
+  still pending, so this is a beta, not a verified stable auto-paste release.
+  Mac TestFlight build 29 and iOS are unchanged.
+
+## Runtime Acceptance Before Stable Release
 
 With the signed direct app installed and permission granted, verify release of
 the selected hold key in a blank TextEdit document and in the actual target app.
