@@ -338,6 +338,11 @@ platform :ios do
     )
     app = File.join(DIRECT_OUTPUT, "Mumla.app")
     UI.user_error!("The direct app was not produced.") unless File.directory?(app)
+    begin
+      MumlaDirectSigning.sign_sparkle(app: app, identity: signing_identity)
+    rescue MumlaDirectSigning::Error => error
+      UI.user_error!(error.message)
+    end
     sh("codesign", "--verify", "--deep", "--strict", "--verbose=2", app)
     entitlements, error, status = Open3.capture3("codesign", "-d", "--entitlements", ":-", app)
     UI.user_error!("Cannot read direct app entitlements: #{error}") unless status.success?

@@ -79,4 +79,14 @@ class DirectSigningTest < Minitest::Test
   def test_empty_keychain_has_no_identity
     assert_nil select
   end
+
+  def test_sparkle_signing_order_preserves_outer_seals
+    targets = MumlaDirectSigning.sparkle_signing_targets(app: "/tmp/Mumla.app")
+    assert_equal ["Downloader.xpc", "Installer.xpc", "Updater.app", "Autoupdate", "Sparkle.framework", "Mumla.app"], targets.map { |path| File.basename(path) }
+    assert targets.all? { |path| path.start_with?("/tmp/Mumla.app") }
+  end
+
+  def test_missing_sparkle_helpers_fail_before_signing
+    assert_raises(MumlaDirectSigning::Error) { MumlaDirectSigning.sign_sparkle(app: "/nonexistent/Mumla.app", identity: "invalid") }
+  end
 end

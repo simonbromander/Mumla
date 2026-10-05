@@ -53,3 +53,46 @@ Build and notarize using the existing direct lanes, then follow the publishing
 procedure below once release verification is complete. Keep the update private
 key in the local Keychain and backed up securely outside Git; losing it requires
 Sparkle's documented key rotation procedure.
+
+## Publishing
+
+Download Sparkle's pinned 2.10.0 tools to a temporary directory. Confirm the
+`generate_keys --account com.mumla.app -p` public key matches Info-Direct.plist.
+Never export the private key into this repository or a public release folder.
+
+After the direct build and notarization lanes complete:
+
+```bash
+ruby fastlane/mac_updates.rb prepare \
+  --zip .build/DirectMac/Mumla-1.0.1-34.zip \
+  --output .build/UpdateFeed34 \
+  --sparkle-bin /tmp/mumla-sparkle-2.10.0/bin \
+  --notes docs/releases/macos-direct-1.0.1-34.md \
+  --previous-feed /path/to/Mumla-Releases/appcast.xml
+```
+
+Omit `--previous-feed` only for the initial feed. Preparation verifies the
+notarized app, embedded updater, pinned feed/key, and monotonic build number.
+It produces the ZIP, checksum, and signed appcast in an empty staging folder.
+The build lane explicitly signs Sparkle's helper bundles and Autoupdate
+inside-out, then the framework and app, preserving entitlements. Xcode's copy
+phase alone left nested helpers ad-hoc signed in the first notarization attempt;
+never publish that rejected archive.
+
+Create a public GitHub prerelease in `simonbromander/Mumla-Releases` and upload
+only the ZIP and checksum. Then verify every feed download anonymously:
+
+```bash
+ruby fastlane/mac_updates.rb verify-public \
+  --feed .build/UpdateFeed34/appcast.xml \
+  --sparkle-bin /tmp/mumla-sparkle-2.10.0/bin
+```
+
+Only after that succeeds, copy the generated appcast into the public release
+repository using a byte-preserving copy, commit, and push. Do not pretty-print,
+edit, or regenerate the XML after signing. Fetch the live feed anonymously and
+verify its signature again. Keep app archives/build logs/audits in the private
+build workspace, not in public Git history.
+
+The beta channel is explicitly allowed by the direct updater. Every published
+item remains a GitHub prerelease until runtime product acceptance is complete.

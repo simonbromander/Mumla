@@ -37,4 +37,25 @@ module MumlaDirectSigning
     certificate = candidates.max_by(&:not_after)
     Digest::SHA1.hexdigest(certificate.to_der).upcase if certificate
   end
+
+  def sparkle_signing_targets(app:)
+    framework = File.join(app, "Contents", "Frameworks", "Sparkle.framework", "Versions", "B")
+    [File.join(framework, "XPCServices", "Downloader.xpc"),
+     File.join(framework, "XPCServices", "Installer.xpc"),
+     File.join(framework, "Updater.app"), File.join(framework, "Autoupdate"),
+     File.join(app, "Contents", "Frameworks", "Sparkle.framework"), app]
+  end
+
+  def sign_sparkle(app:, identity:)
+    targets = sparkle_signing_targets(app: app)
+    missing = targets.reject { |target| File.exist?(target) }
+    raise Error, "Missing pinned Sparkle signing targets: #{missing.join(", ")}" unless missing.empty?
+    # Sign inside-out: Xcode's framework copy phase can leave nested helpers ad-hoc signed.
+    targets.each do |target|
+      _, error, status = Open3.capture3("codesign", "--force", "--sign", identity,
+                                      "--timestamp", "--options", "runtime",
+                                      "--preserve-metadata=identifier,entitlements", target)
+      raise Error, "Cannot sign #{File.basename(target)}: #{error}" unless status.success?
+    end
+  end
 end
