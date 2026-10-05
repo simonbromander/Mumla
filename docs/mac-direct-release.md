@@ -48,7 +48,7 @@ with its private key on the build Mac. Keep that key local and out of Git.
 security find-identity -v -p codesigning
 ruby fastlane/tests/direct_signing_test.rb
 swift test
-fastlane ios mac_direct_build build:30
+fastlane ios mac_direct_build build:31
 fastlane ios mac_direct_notarize
 ```
 
@@ -66,10 +66,14 @@ Developer ID signature and the absence of sandboxing. The notarization lane
 requires `Accepted`, staples and validates the ticket, checks Gatekeeper, and
 repackages the stapled app as:
 
-`.build/DirectMac/Mumla-1.0.1-30.zip`
+`.build/DirectMac/Mumla-1.0.1-31.zip`
 
 Quit the TestFlight app before replacing it with the direct app. Launch the
-direct app and grant Microphone and Accessibility access in System Settings.
+direct app and grant Microphone, Input Monitoring, and Accessibility access in
+System Settings. Input Monitoring is for the global dictation key; Accessibility
+is for inspecting the destination field and confirming a paste. After switching
+between TestFlight and Developer ID copies, check the installed app's permission
+entries and quit/reopen Mumla if macOS requests it.
 Do not disable Gatekeeper or instruct testers to bypass signing checks.
 
 ## Verification Snapshot: 2026-09-30
@@ -142,3 +146,19 @@ transcript dialog after success, and restoration of rich clipboard contents.
 Then try no focused text field, revoked permission, and a secure field: no
 insertion and a persistent manual-copy pill for a completed transcript. Ensure
 the pill never steals focus and each attempt is saved in history exactly once.
+
+## Hotkey Recovery
+
+- The keyboard listener reports active, missing Input Monitoring permission,
+  or unavailable instead of silently ignoring an event-tap installation failure.
+- Settings and the menu bar offer a permission/retry action. Permission requests
+  occur only after a user action; normal startup does not explicitly request one.
+- Retry the listener when the foreground app changes or Mumla becomes active,
+  including after returning from System Settings. A healthy listener is reused;
+  a disabled or invalid listener is recovered without losing the saved key.
+- Cancelling or stopping a listener resets pending holds and double-tap state.
+  Secure input still blocks recording, and other keys cancel Ctrl shortcuts.
+- There is no idle polling timer or change to transcription/paste behavior.
+- 84 Swift tests passed, including 17 new monitor/coordinator regression tests.
+  Real key events and cross-app paste on the installed signed build still need
+  acceptance on the target Mac; simulated tests do not establish TCC access.

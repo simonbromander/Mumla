@@ -55,6 +55,8 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         statusController = StatusMenuController(coordinator: coordinator)
         hotkeyMonitor = ControlHotkeyMonitor()
         coordinator.triggerKeyChanged = { [weak hotkeyMonitor] key in hotkeyMonitor?.setTriggerKey(key) }
+        coordinator.requestHotkeyAccess = { [weak hotkeyMonitor] in hotkeyMonitor?.requestPermission() }
+        hotkeyMonitor.onStatusChanged = { [weak coordinator] status in coordinator?.updateHotkeyStatus(status) }
 
         coordinator.showPill = { [weak pillWindowController] in
             pillWindowController?.show()
@@ -97,6 +99,9 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         hotkeyMonitor.start()
 
         coordinator.bootstrap()
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(retryHotkeyMonitor(_:)), name: NSWorkspace.didActivateApplicationNotification, object: nil
+        )
         if CommandLine.arguments.contains("--show-window") {
             coordinator.openSettings()
         }
@@ -104,6 +109,15 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         hotkeyMonitor?.start()
+    }
+
+    @objc private func retryHotkeyMonitor(_ notification: Notification) {
+        hotkeyMonitor?.start()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        hotkeyMonitor?.stop()
     }
 
     #if DEBUG

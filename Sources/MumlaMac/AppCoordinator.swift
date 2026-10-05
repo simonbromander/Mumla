@@ -19,12 +19,14 @@ final class AppCoordinator: ObservableObject {
     @Published var modelDirectory: URL?
     @Published var modelInstallProgress: ModelInstallProgress = .idle
     @Published var statusText: String = "Ready"
+    @Published private(set) var hotkeyMonitorStatus: HotkeyMonitorStatus = .stopped
 
     var showPill: (() -> Void)?
     var hidePill: (() -> Void)?
     var showMainWindow: (() -> Void)?
     var quit: (() -> Void)?
     var triggerKeyChanged: ((DictationTriggerKey) -> Void)?
+    var requestHotkeyAccess: (() -> Void)?
 
     private let recorder: MicrophoneRecorder
     private var transcriber: LocalPianissimoTranscriber?
@@ -98,6 +100,23 @@ final class AppCoordinator: ObservableObject {
     func requestAccessibilityPermission() {
         AccessibilityPermission.request()
         statusText = AccessibilityPermission.isTrusted ? "Accessibility ready" : "Accessibility permission needed"
+    }
+
+    func updateHotkeyStatus(_ status: HotkeyMonitorStatus) {
+        hotkeyMonitorStatus = status
+    }
+
+    func requestHotkeyPermission() {
+        requestHotkeyAccess?()
+    }
+
+    var hotkeyStatusText: String {
+        switch hotkeyMonitorStatus {
+        case .active: settings.triggerKey.displayName + " " + mText("redo", "ready")
+        case .stopped: mText("Dikteringstangent inaktiv", "Hotkey inactive")
+        case .inputMonitoringRequired: mText("Tillåt inmatningsövervakning", "Allow Input Monitoring")
+        case .unavailable: mText("Anslut dikteringstangenten igen", "Reconnect hotkey")
+        }
     }
 
     func startQuickDictation() async {

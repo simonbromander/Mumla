@@ -69,6 +69,34 @@ final class TranscriptPillTests: XCTestCase {
     }
 
     @MainActor
+    func testHotkeyPermissionActionReachesMonitorWithoutChangingTriggerSetting() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally(); try? FileManager.default.removeItem(at: directory) }
+        let coordinator = makeCoordinator(directory: directory, pasteboard: board)
+        var requests = 0
+        coordinator.requestHotkeyAccess = { requests += 1 }
+        coordinator.requestHotkeyPermission()
+        XCTAssertEqual(requests, 1)
+        XCTAssertEqual(coordinator.settings.triggerKey, .control)
+    }
+
+    @MainActor
+    func testHotkeyFailureIsVisibleWithoutOverwritingRecordingStatus() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally(); try? FileManager.default.removeItem(at: directory) }
+        let coordinator = makeCoordinator(directory: directory, pasteboard: board)
+        coordinator.statusText = "Downloading model"
+        coordinator.updateHotkeyStatus(.inputMonitoringRequired)
+        XCTAssertEqual(coordinator.hotkeyMonitorStatus, .inputMonitoringRequired)
+        XCTAssertFalse(coordinator.hotkeyStatusText.isEmpty)
+        XCTAssertEqual(coordinator.statusText, "Downloading model")
+        coordinator.updateHotkeyStatus(.active)
+        XCTAssertTrue(coordinator.hotkeyStatusText.contains("Ctrl"))
+    }
+
+    @MainActor
     private func makeCoordinator(directory: URL, pasteboard: NSPasteboard) -> AppCoordinator {
         AppCoordinator(recorder: MicrophoneRecorder(), transcriber: nil,
                        historyStore: DictationHistoryStore(directory: directory),

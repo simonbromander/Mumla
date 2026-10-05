@@ -24,6 +24,10 @@ final class StatusMenuController {
         coordinator.$statusText
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
+        coordinator.$hotkeyMonitorStatus
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
     }
 
     private func rebuildMenu() {
@@ -32,6 +36,9 @@ final class StatusMenuController {
         let status = NSMenuItem(title: coordinator.statusText, action: nil, keyEquivalent: "")
         status.isEnabled = false
         menu.addItem(status)
+        if coordinator.hotkeyMonitorStatus != .active {
+            menu.addItem(menuItem(coordinator.hotkeyStatusText, action: #selector(requestHotkeyAccess)))
+        }
         menu.addItem(.separator())
 
         if coordinator.modelDirectory == nil {
@@ -86,6 +93,10 @@ final class StatusMenuController {
         Task { @MainActor in
             await coordinator.toggleHandsFreeDictation()
         }
+    }
+
+    @objc private func requestHotkeyAccess() {
+        coordinator.requestHotkeyPermission()
     }
 
     @objc private func downloadModel() {

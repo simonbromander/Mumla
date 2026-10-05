@@ -298,6 +298,13 @@ struct MainView: View {
                         Label(mText("Tillåt", "Allow"), systemImage: "mic").padding(12)
                     }
                 }
+                settingRow(mText("Tangentbordsåtkomst", "Keyboard access"), symbol: "keyboard") {
+                    Button { coordinator.requestHotkeyPermission() } label: {
+                        Label(coordinator.hotkeyStatusText, systemImage: coordinator.hotkeyMonitorStatus == .active ? "checkmark" : "arrow.up.right")
+                            .padding(12)
+                    }
+                    .accessibilityIdentifier("hotkey-access")
+                }
                 settingRow(mText("Hjälpmedel", "Accessibility"), symbol: "hand.point.up.left") {
                     Button { coordinator.requestAccessibilityPermission() } label: {
                         Label(AccessibilityPermission.isTrusted ? mText("Tillåtet", "Allowed") : mText("Öppna inställningar", "Open Settings"), systemImage: "arrow.up.right").padding(12)
@@ -423,7 +430,7 @@ private struct OnboardingView: View {
         switch coordinator.onboardingStep {
         case .value: mText("Privat diktering. Ljud och text stannar hos dig.", "Private dictation. Your audio and text stay with you.")
         case .microphone: mText("Ge Mumla tillgång till mikrofonen för att diktera.", "Give Mumla microphone access to dictate.")
-        case .accessibility: mText("Tillåt Hjälpmedel för att klistra in i andra appar.", "Allow Accessibility to paste into other apps.")
+        case .accessibility: mText("Tillåt inmatningsövervakning för dikteringstangenten och Hjälpmedel för att klistra in i andra appar.", "Allow Input Monitoring for the hotkey and Accessibility to paste into other apps.")
         case .practice: mText("Håll", "Hold") + " \(coordinator.settings.triggerKey.displayName). " + mText("Släpp för att skriva.", "Release to write.")
         case .done: mText("Mumla finns i menyraden. Hämta svenska för att börja.", "Mumla lives in the menu bar. Download Swedish to begin.")
         }
@@ -431,7 +438,7 @@ private struct OnboardingView: View {
     private func advance() {
         switch coordinator.onboardingStep {
         case .microphone: Task { await coordinator.requestMicrophonePermission(); coordinator.advanceOnboarding() }
-        case .accessibility: coordinator.requestAccessibilityPermission(); coordinator.advanceOnboarding()
+        case .accessibility: coordinator.requestHotkeyPermission(); coordinator.requestAccessibilityPermission(); coordinator.advanceOnboarding()
         case .practice: coordinator.showPracticePill(); coordinator.advanceOnboarding()
         case .done: coordinator.completeOnboarding()
         case .value: coordinator.advanceOnboarding()

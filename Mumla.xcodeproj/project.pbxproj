@@ -22,6 +22,7 @@
 		79981F12C18B985B1A82EE66 /* MumlaSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */; };
 		92FEFDDA53433933C2D8C0F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DE0C3F8DC853DBE2181553E6 /* Assets.xcassets */; };
 		9C06DA0EACC523C9783D5717 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = C491BBC3375F9562F9A9D873 /* MumlaAudio */; };
+		A574CF983F6E06E20756689C /* HotkeyEventSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */; };
 		ABD30B6FE86268ED77F7D69C /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0DDCBC9B5E04500DC92D19F9 /* MumlaCore */; };
 		AD90C06988792860C1D9F6FD /* PillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749B69E10CE6D1D7FC443EBA /* PillView.swift */; };
 		B20D8AB68B32ABBAD570899A /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */; };
@@ -58,6 +59,7 @@
 		5A3A2CDBEC82B9925A49C8C4 /* Mumla */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Mumla; path = .; sourceTree = SOURCE_ROOT; };
 		5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaHomeView.swift; sourceTree = "<group>"; };
+		739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyEventSource.swift; sourceTree = "<group>"; };
 		749B69E10CE6D1D7FC443EBA /* PillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillView.swift; sourceTree = "<group>"; };
 		898B56239AD94246CC0FF25C /* PillWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillWindowController.swift; sourceTree = "<group>"; };
 		8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaMacApp.swift; sourceTree = "<group>"; };
@@ -158,6 +160,7 @@
 				F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */,
 				2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */,
 				D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */,
+				739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */,
 				A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */,
 				AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */,
 				A26F840006A86E01CDD6438C /* MainView.swift */,
@@ -338,6 +341,7 @@
 				065760EDCEF33AA9175A54F5 /* ControlHotkeyMonitor.swift in Sources */,
 				B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */,
 				5383AD414A7C20B2C8D57A59 /* FocusedTextTargetInspector.swift in Sources */,
+				A574CF983F6E06E20756689C /* HotkeyEventSource.swift in Sources */,
 				4BD34DE07A2E83C28BC39532 /* LaunchAtLoginController.swift in Sources */,
 				F78A2C4346174E97A1701275 /* MacStorageDirectory.swift in Sources */,
 				BA3F945570826A391E965859 /* MainView.swift in Sources */,
@@ -389,7 +393,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 31;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Apps/macOS/Mumla/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -3,6 +3,13 @@ import ApplicationServices
 import Carbon
 import MumlaCore
 
+enum HotkeyMonitorStatus: Equatable {
+    case stopped
+    case active
+    case inputMonitoringRequired
+    case unavailable
+}
+
 @MainActor
 final class ControlHotkeyMonitor {
     var onHoldStarted: (() -> Void)?
@@ -10,46 +17,64 @@ final class ControlHotkeyMonitor {
     var onTap: (() -> Void)?
     var onDoubleTap: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onStatusChanged: ((HotkeyMonitorStatus) -> Void)?
+    private(set) var status: HotkeyMonitorStatus = .stopped
+    private let source: any HotkeyEventSource
+    private let now: () -> TimeInterval
     private var triggerKey: DictationTriggerKey = .control
     private var gesture = DictationHotkeyGesture()
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
     private var holdWorkItem: DispatchWorkItem?
 
+    init(source: any HotkeyEventSource = MacHotkeyEventSource(), now: @escaping () -> TimeInterval = { CACurrentMediaTime() }) {
+        self.source = source
+        self.now = now
+    }
+
     func setTriggerKey(_ key: DictationTriggerKey) {
+        guard triggerKey != key else { return }
         holdWorkItem?.cancel()
         dispatch(gesture.reset())
         triggerKey = key
+        start()
     }
 
     func start() {
-        guard eventTap == nil else { return }
-        let events: [CGEventType] = [.flagsChanged, .keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
-        let mask = events.reduce(CGEventMask(0)) { $0 | (1 << CGEventMask($1.rawValue)) }
-        let callback: CGEventTapCallBack = { _, type, event, userInfo in
-            guard let userInfo else { return Unmanaged.passUnretained(event) }
-            // This event tap is installed only on the main run loop.
-            MainActor.assumeIsolated {
-                Unmanaged<ControlHotkeyMonitor>.fromOpaque(userInfo).takeUnretainedValue().handle(type: type, event: event)
-            }
-            return Unmanaged.passUnretained(event)
+        if source.isRunning, source.hasPermission {
+            setStatus(.active)
+            return
         }
-        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .listenOnly,
-                                         eventsOfInterest: mask, callback: callback, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return }
-        eventTap = tap
-        runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        if let runLoopSource { CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes) }
-        CGEvent.tapEnable(tap: tap, enable: true)
+        holdWorkItem?.cancel()
+        dispatch(gesture.reset())
+        source.stop()
+        let started = source.start { [weak self] type, event in self?.handle(type: type, event: event) }
+        setStatus(started ? .active : source.hasPermission ? .unavailable : .inputMonitoringRequired)
+    }
+
+    func stop() {
+        holdWorkItem?.cancel()
+        dispatch(gesture.reset())
+        source.stop()
+        setStatus(.stopped)
+    }
+
+    func requestPermission() {
+        source.requestPermission()
+        start()
     }
 
     private func handle(type: CGEventType, event: CGEvent) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             holdWorkItem?.cancel()
             dispatch(gesture.reset())
-            if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
+            if source.resume() {
+                setStatus(.active)
+            } else {
+                source.stop()
+                setStatus(source.hasPermission ? .unavailable : .inputMonitoringRequired)
+            }
             return
         }
-        if IsSecureEventInputEnabled() {
+        if source.isSecureInput {
             holdWorkItem?.cancel()
             dispatch(gesture.reset())
             return
@@ -86,14 +111,10 @@ final class ControlHotkeyMonitor {
         }
         let modifiers: CGEventFlags = [.maskControl, .maskCommand, .maskAlternate, .maskShift, .maskSecondaryFn]
         let alone = flags.rawValue & modifiers.rawValue & ~allowed.rawValue == 0
-        let now = CACurrentMediaTime()
+        let now = now()
         if isTriggerEvent, down, !gesture.isPressed {
             dispatch(gesture.press(at: now, eligible: alone))
-            let work = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                if IsSecureEventInputEnabled() { self.dispatch(self.gesture.reset()); return }
-                self.dispatch(self.gesture.tick(at: CACurrentMediaTime()))
-            }
+            let work = DispatchWorkItem { [weak self] in self?.handleHoldThreshold() }
             holdWorkItem = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
         } else if isTriggerEvent, !down {
@@ -103,6 +124,20 @@ final class ControlHotkeyMonitor {
             holdWorkItem?.cancel()
             dispatch(gesture.interrupt())
         }
+    }
+
+    func handleHoldThreshold() {
+        guard status == .active, !source.isSecureInput else {
+            dispatch(gesture.reset())
+            return
+        }
+        dispatch(gesture.tick(at: now()))
+    }
+
+    private func setStatus(_ status: HotkeyMonitorStatus) {
+        guard self.status != status else { return }
+        self.status = status
+        onStatusChanged?(status)
     }
 
     private func dispatch(_ actions: [DictationHotkeyGesture.Action]) {
