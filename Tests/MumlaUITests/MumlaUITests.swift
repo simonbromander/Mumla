@@ -227,6 +227,14 @@ final class MumlaUITests: XCTestCase {
         app.buttons["Inställningar"].tap()
         let light = app.buttons["appearance.light"]
         XCTAssertTrue(light.waitForExistence(timeout: 3))
+        let keys = ["system", "light", "dark"].map { app.buttons["appearance.\($0)"] }
+        for key in keys {
+            XCTAssertTrue(key.isHittable)
+            XCTAssertGreaterThanOrEqual(key.frame.height, 44)
+            XCTAssertGreaterThanOrEqual(key.frame.width, 44)
+        }
+        XCTAssertLessThanOrEqual(keys[0].frame.maxX, keys[1].frame.minX)
+        XCTAssertLessThanOrEqual(keys[1].frame.maxX, keys[2].frame.minX)
         light.tap()
         XCTAssertTrue(light.isSelected)
         XCTAssertFalse(app.buttons["appearance.dark"].isSelected)
@@ -248,9 +256,42 @@ final class MumlaUITests: XCTestCase {
         capture("25-dark-settings", app: app)
         app.buttons["Klart"].tap()
         capture("26-dark-recorder", app: app)
+        app.terminate()
+        app.launch()
         app.buttons["Inställningar"].tap()
+        XCTAssertTrue(app.buttons["appearance.dark"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["appearance.dark"].isSelected)
         app.buttons["appearance.system"].tap()
         XCTAssertTrue(app.buttons["appearance.system"].isSelected)
+        XCTAssertFalse(app.buttons["appearance.dark"].isSelected)
+        app.terminate()
+        app.launch()
+        app.buttons["Inställningar"].tap()
+        XCTAssertTrue(app.buttons["appearance.system"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["appearance.system"].isSelected)
+    }
+
+    func testAppearanceKeysFitAtAccessibilityTextSize() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        app.buttons["Settings"].tap()
+        let keys = ["system", "light", "dark"].map { app.buttons["appearance.\($0)"] }
+        XCTAssertTrue(keys[0].waitForExistence(timeout: 3))
+        XCTAssertLessThanOrEqual(keys[0].frame.maxY, keys[1].frame.minY)
+        XCTAssertLessThanOrEqual(keys[1].frame.maxY, keys[2].frame.minY)
+        for (index, key) in keys.enumerated() {
+            XCTAssertTrue(key.isHittable)
+            XCTAssertGreaterThanOrEqual(key.frame.height, 44)
+            XCTAssertGreaterThanOrEqual(key.frame.minX, app.frame.minX)
+            XCTAssertLessThanOrEqual(key.frame.maxX, app.frame.maxX)
+            XCTAssertFalse(key.label.contains("..."))
+            key.tap()
+            assertLatchedKey(index, keys: keys)
+        }
+        capture("40-appearance-accessibility", app: app)
+        keys[0].tap()
     }
 
     func testNavigationAndDictionaryPersistence() throws {

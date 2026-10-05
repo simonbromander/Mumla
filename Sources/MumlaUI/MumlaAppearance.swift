@@ -7,7 +7,15 @@ import UIKit
 
 public enum MumlaAppearance: String, CaseIterable, Identifiable {
     case system, light, dark
+    public static let preferenceKey = "mumla.appearance"
     public var id: String { rawValue }
+    public var symbol: String {
+        switch self {
+        case .system: "circle.lefthalf.filled"
+        case .light: "sun.max"
+        case .dark: "moon"
+        }
+    }
     public var colorScheme: ColorScheme? {
         switch self { case .system: nil; case .light: .light; case .dark: .dark }
     }
@@ -18,27 +26,54 @@ public enum MumlaAppearance: String, CaseIterable, Identifiable {
         case .dark: mText("Mörkt", "Dark")
         }
     }
+
+    public static func stored(in defaults: UserDefaults = .standard) -> MumlaAppearance {
+        MumlaAppearance(rawValue: defaults.string(forKey: preferenceKey) ?? "") ?? .system
+    }
+
+    @MainActor public func save(to defaults: UserDefaults = .standard) {
+        defaults.set(rawValue, forKey: Self.preferenceKey)
+        applyNativeAppearance()
+    }
+
+    @MainActor public func applyNativeAppearance() {
+        #if os(macOS)
+        NSApp.appearance = self == .system ? nil : NSAppearance(named: self == .light ? .aqua : .darkAqua)
+        #endif
+    }
 }
 
 public struct MumlaAppearancePicker: View {
-    @AppStorage("mumla.appearance") private var appearance = MumlaAppearance.system.rawValue
+    @AppStorage(MumlaAppearance.preferenceKey) private var appearance = MumlaAppearance.system.rawValue
+    @Environment(\.dynamicTypeSize) private var typeSize
     private var selection: MumlaAppearance { MumlaAppearance(rawValue: appearance) ?? .system }
     public init() {}
     public var body: some View {
-        HStack(spacing: 5) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 5))
+        layout {
             ForEach(MumlaAppearance.allCases) { option in
                 Button {
-                    appearance = option.rawValue
+                    guard selection != option else { return }
+                    option.save()
                     MumlaFeedback.latch()
                 } label: {
-                    Text(option.title).font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .lineLimit(1).minimumScaleFactor(0.8)
+                    let labelLayout = typeSize.isAccessibilitySize
+                        ? AnyLayout(HStackLayout(spacing: 12)) : AnyLayout(VStackLayout(spacing: 5))
+                    labelLayout {
+                        Image(systemName: option.symbol).font(.system(size: 15, weight: .medium))
+                        Text(option.title).font(.system(.caption, design: .monospaced).weight(.medium))
+                            .lineLimit(1).minimumScaleFactor(0.8)
+                    }.padding(.top, 8)
                 }
-                .buttonStyle(MumlaStereoKeyStyle(isLatched: selection == option, height: 48))
+                .buttonStyle(MumlaStereoKeyStyle(isLatched: selection == option, height: typeSize.isAccessibilitySize ? 76 : 64))
+                .accessibilityLabel(option.title)
                 .accessibilityIdentifier("appearance.\(option.rawValue)")
                 .accessibilityAddTraits(selection == option ? .isSelected : [])
             }
         }.frame(maxWidth: 330)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(mText("Utseende", "Appearance"))
     }
 }
 
@@ -47,18 +82,13 @@ public extension View {
 }
 
 private struct MumlaAppearanceModifier: ViewModifier {
-    @AppStorage("mumla.appearance") private var rawAppearance = MumlaAppearance.system.rawValue
+    @AppStorage(MumlaAppearance.preferenceKey) private var rawAppearance = MumlaAppearance.system.rawValue
     private var appearance: MumlaAppearance { MumlaAppearance(rawValue: rawAppearance) ?? .system }
     func body(content: Content) -> some View {
         content.preferredColorScheme(appearance.colorScheme)
             .foregroundStyle(MumlaStyle.ink)
-            .onAppear { applyNativeAppearance() }
-            .onChange(of: rawAppearance) { _, _ in applyNativeAppearance() }
-    }
-    private func applyNativeAppearance() {
-        #if os(macOS)
-        NSApp.appearance = appearance == .system ? nil : NSAppearance(named: appearance == .light ? .aqua : .darkAqua)
-        #endif
+            .onAppear { appearance.applyNativeAppearance() }
+            .onChange(of: rawAppearance) { _, _ in appearance.applyNativeAppearance() }
     }
 }
 

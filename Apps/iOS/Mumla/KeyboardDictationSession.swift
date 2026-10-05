@@ -178,7 +178,7 @@ final class KeyboardDictationSession {
     private func publish() {
         snapshot.heartbeat = Date()
         snapshot.inputLevel = snapshot.phase == .recording ? capture.inputLevel : 0
-        snapshot.appearance = UserDefaults.standard.string(forKey: "mumla.appearance") ?? "system"
+        snapshot.appearance = MumlaAppearance.stored().rawValue
         snapshot.hapticsEnabled = UserDefaults.standard.object(forKey: MumlaFeedback.preferenceKey) as? Bool ?? true
         do { try store.write(snapshot) }
         catch {

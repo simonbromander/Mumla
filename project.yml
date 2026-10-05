@@ -115,7 +115,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Apps/macOS/Mumla/MumlaDirect.entitlements
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: Developer ID Application
-        CURRENT_PROJECT_VERSION: "35"
+        CURRENT_PROJECT_VERSION: "36"
         MUMLA_DISTRIBUTION: direct
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) MUMLA_DIRECT_UPDATES"
   Mumla:

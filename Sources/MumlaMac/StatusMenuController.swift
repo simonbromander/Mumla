@@ -13,6 +13,7 @@ final class StatusMenuController {
     init(coordinator: AppCoordinator, updater: MacUpdateController) {
         self.coordinator = coordinator
         self.updater = updater
+        MumlaAppearance.stored().applyNativeAppearance()
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "mic.circle.fill", accessibilityDescription: "Mumla")
             button.imagePosition = .imageOnly
@@ -36,6 +37,10 @@ final class StatusMenuController {
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
         updater.$isWaitingForIdle
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: UserDefaults.standard)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
@@ -71,6 +76,18 @@ final class StatusMenuController {
         let languageItem = NSMenuItem(title: "Language", action: nil, keyEquivalent: "")
         languageItem.submenu = languageMenu
         menu.addItem(languageItem)
+
+        let appearanceMenu = NSMenu()
+        for appearance in MumlaAppearance.allCases {
+            let item = menuItem(appearance.title, action: #selector(selectAppearance(_:)))
+            item.representedObject = appearance.rawValue
+            item.image = NSImage(systemSymbolName: appearance.symbol, accessibilityDescription: nil)
+            item.state = MumlaAppearance.stored() == appearance ? .on : .off
+            appearanceMenu.addItem(item)
+        }
+        let appearanceItem = NSMenuItem(title: mText("Utseende", "Appearance"), action: nil, keyEquivalent: "")
+        appearanceItem.submenu = appearanceMenu
+        menu.addItem(appearanceItem)
 
         let historyMenu = NSMenu()
         for record in coordinator.history.prefix(10) {
@@ -141,6 +158,13 @@ final class StatusMenuController {
             let record = coordinator.history.first(where: { $0.id == id })
         else { return }
         coordinator.pasteRecord(record)
+    }
+
+    @objc private func selectAppearance(_ sender: NSMenuItem) {
+        guard let value = sender.representedObject as? String,
+              let appearance = MumlaAppearance(rawValue: value) else { return }
+        appearance.save()
+        rebuildMenu()
     }
 
     @objc private func openMainWindow() {
