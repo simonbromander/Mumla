@@ -153,7 +153,6 @@ platform :ios do
     ].shelljoin
     settings = [
       "DEVELOPMENT_TEAM=#{TEAM_ID}",
-      "PRODUCT_BUNDLE_IDENTIFIER=#{BUNDLE_ID}",
       "MARKETING_VERSION=#{VERSION}",
       "CURRENT_PROJECT_VERSION=#{next_build}",
       "CODE_SIGN_STYLE=Automatic"
