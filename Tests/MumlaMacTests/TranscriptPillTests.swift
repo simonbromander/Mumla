@@ -6,6 +6,42 @@ import XCTest
 
 final class TranscriptPillTests: XCTestCase {
     @MainActor
+    func testSettingsActionRequestsSettingsInsteadOfOnlyOpeningWindow() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally(); try? FileManager.default.removeItem(at: directory) }
+        let coordinator = makeCoordinator(directory: directory, pasteboard: board)
+        var opened = 0
+        coordinator.showMainWindow = { opened += 1 }
+        coordinator.openMainWindow()
+        XCTAssertNil(coordinator.settingsOpenRequest)
+        coordinator.isOnboardingVisible = true
+        coordinator.openSettings()
+        let request = coordinator.settingsOpenRequest
+        XCTAssertNotNil(request)
+        XCTAssertFalse(coordinator.isOnboardingVisible)
+        coordinator.openSettings()
+        XCTAssertNotEqual(request, coordinator.settingsOpenRequest)
+        XCTAssertEqual(opened, 3)
+    }
+
+    @MainActor
+    func testHotkeyDiagnosticsExcludeTranscriptAndDictionaryText() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally(); try? FileManager.default.removeItem(at: directory) }
+        let coordinator = makeCoordinator(directory: directory, pasteboard: board)
+        coordinator.history = [DictationRecord(text: "private transcript", language: .swedish)]
+        coordinator.hotkeyGestureStage = .holdStarted
+        coordinator.copyHotkeyDiagnostics()
+        let copied = board.string(forType: .string) ?? ""
+        XCTAssertTrue(copied.contains("Gesture: holdStarted"))
+        XCTAssertTrue(copied.contains("Input Monitoring:"))
+        XCTAssertFalse(copied.contains("private transcript"))
+        XCTAssertFalse(copied.contains(directory.path))
+    }
+
+    @MainActor
     func testSuccessfulInsertionHidesPillWithoutPresentingCopyDialog() {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let board = NSPasteboard.withUniqueName()

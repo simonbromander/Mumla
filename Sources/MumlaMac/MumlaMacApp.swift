@@ -59,6 +59,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         coordinator.triggerKeyChanged = { [weak hotkeyMonitor] key in hotkeyMonitor?.setTriggerKey(key) }
         coordinator.requestHotkeyAccess = { [weak hotkeyMonitor] in hotkeyMonitor?.requestPermission() }
         hotkeyMonitor.onStatusChanged = { [weak coordinator] status in coordinator?.updateHotkeyStatus(status) }
+        hotkeyMonitor.onGestureStageChanged = { [weak coordinator] stage in coordinator?.hotkeyGestureStage = stage }
 
         coordinator.showPill = { [weak pillWindowController] in
             pillWindowController?.show()

@@ -65,6 +65,8 @@ struct MainView: View {
         .preferredColorScheme(.dark)
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .sheet(isPresented: $showAbout) { MumlaAboutView().frame(width: 580, height: 520) }
+        .onChange(of: coordinator.settingsOpenRequest) { _, _ in selection = .settings }
+        .onAppear { if coordinator.settingsOpenRequest != nil { selection = .settings } }
         .sheet(isPresented: $coordinator.isOnboardingVisible) { OnboardingView(coordinator: coordinator) }
         .sheet(item: $selectedRecord) { record in
             VStack(alignment: .leading, spacing: 20) {
@@ -301,11 +303,18 @@ struct MainView: View {
                     }
                 }
                 settingRow(mText("Tangentbordsåtkomst", "Keyboard access"), symbol: "keyboard") {
-                    Button { coordinator.requestHotkeyPermission() } label: {
-                        Label(coordinator.hotkeyStatusText, systemImage: coordinator.hotkeyMonitorStatus == .active ? "checkmark" : "arrow.up.right")
-                            .padding(12)
+                    HStack(spacing: 12) {
+                        VStack(alignment: .trailing, spacing: 6) {
+                            Button { coordinator.requestHotkeyPermission() } label: {
+                                Label(coordinator.hotkeyStatusText, systemImage: coordinator.hotkeyMonitorStatus == .active ? "checkmark" : "arrow.up.right")
+                                    .padding(12)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .accessibilityIdentifier("hotkey-access")
+                            Text(coordinator.hotkeyDiagnosticText).font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        }.frame(maxWidth: 240)
+                        MumlaIconButton("doc.on.doc", label: mText("Kopiera tangentdiagnostik", "Copy hotkey diagnostics")) { coordinator.copyHotkeyDiagnostics() }
                     }
-                    .accessibilityIdentifier("hotkey-access")
                 }
                 settingRow(mText("Hjälpmedel", "Accessibility"), symbol: "hand.point.up.left") {
                     Button { coordinator.requestAccessibilityPermission() } label: {

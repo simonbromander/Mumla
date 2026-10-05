@@ -46,6 +46,11 @@ public struct DictationHotkeyGesture: Sendable {
         return [.startHold]
     }
 
+    public func remainingHoldDelay(at time: TimeInterval) -> TimeInterval? {
+        guard isPressed, !cancelled, !holding, let pressedAt else { return nil }
+        return max(0, 0.25 - (time - pressedAt))
+    }
+
     public mutating func release(at time: TimeInterval) -> [Action] {
         guard isPressed else { return [] }
         isPressed = false

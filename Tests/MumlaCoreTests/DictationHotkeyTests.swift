@@ -2,6 +2,18 @@ import XCTest
 @testable import MumlaCore
 
 final class DictationHotkeyTests: XCTestCase {
+    func testRemainingDelayExistsOnlyForAnEligiblePendingHold() throws {
+        var gesture = DictationHotkeyGesture()
+        XCTAssertNil(gesture.remainingHoldDelay(at: 0))
+        _ = gesture.press(at: 0, eligible: true)
+        XCTAssertEqual(try XCTUnwrap(gesture.remainingHoldDelay(at: 0.249)), 0.001, accuracy: 0.00001)
+        _ = gesture.tick(at: 0.25)
+        XCTAssertNil(gesture.remainingHoldDelay(at: 0.25))
+        _ = gesture.reset()
+        _ = gesture.press(at: 1, eligible: false)
+        XCTAssertNil(gesture.remainingHoldDelay(at: 1))
+    }
+
     func testHoldStartsAtThresholdAndEndsExactlyOnce() {
         var gesture = DictationHotkeyGesture()
         XCTAssertEqual(gesture.press(at: 0, eligible: true), [])

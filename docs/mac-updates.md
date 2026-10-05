@@ -64,10 +64,10 @@ After the direct build and notarization lanes complete:
 
 ```bash
 ruby fastlane/mac_updates.rb prepare \
-  --zip .build/DirectMac/Mumla-1.0.1-34.zip \
-  --output .build/UpdateFeed34 \
+  --zip .build/DirectMac/Mumla-1.0.1-35.zip \
+  --output .build/UpdateFeed35 \
   --sparkle-bin /tmp/mumla-sparkle-2.10.0/bin \
-  --notes docs/releases/macos-direct-1.0.1-34.md \
+  --notes docs/releases/macos-direct-1.0.1-35.md \
   --previous-feed /path/to/Mumla-Releases/appcast.xml
 ```
 
@@ -84,7 +84,7 @@ only the ZIP and checksum. Then verify every feed download anonymously:
 
 ```bash
 ruby fastlane/mac_updates.rb verify-public \
-  --feed .build/UpdateFeed34/appcast.xml \
+  --feed .build/UpdateFeed35/appcast.xml \
   --sparkle-bin /tmp/mumla-sparkle-2.10.0/bin
 ```
 

@@ -90,6 +90,7 @@ final class StatusMenuController {
 
         menu.addItem(.separator())
         menu.addItem(menuItem("Open Mumla", action: #selector(openMainWindow)))
+        menu.addItem(menuItem(mText("Inställningar...", "Settings..."), action: #selector(openSettings)))
         if updater.isAvailable {
             let item = menuItem(mText("Sök uppdateringar...", "Check for Updates..."), action: #selector(checkForUpdates))
             item.isEnabled = updater.canCheckForUpdates
@@ -143,6 +144,10 @@ final class StatusMenuController {
     }
 
     @objc private func openMainWindow() {
+        coordinator.openMainWindow()
+    }
+
+    @objc private func openSettings() {
         coordinator.openSettings()
     }
 

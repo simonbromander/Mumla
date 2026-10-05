@@ -288,6 +288,65 @@ final class HotkeyMonitorTests: XCTestCase {
         assertNativeHoldTimer(mode: .default)
     }
 
+    func testLocalHoldWorksWithoutClaimingGlobalPermission() {
+        let source = FakeHotkeyEventSource()
+        source.hasPermission = false
+        source.localStartSucceeds = true
+        var time: TimeInterval = 0
+        let monitor = ControlHotkeyMonitor(source: source, now: { time })
+        var starts = 0
+        var endings = 0
+        monitor.onHoldStarted = { starts += 1 }
+        monitor.onHoldEnded = { endings += 1 }
+        monitor.start()
+        XCTAssertEqual(monitor.status, .inputMonitoringRequired)
+        XCTAssertFalse(source.isRunning)
+        XCTAssertTrue(source.isLocalRunning)
+        source.send(.flagsChanged, keyCode: 59, flags: .maskControl)
+        time = 0.25
+        monitor.handleHoldThreshold()
+        source.send(.flagsChanged, keyCode: 59)
+        XCTAssertEqual(starts, 1)
+        XCTAssertEqual(endings, 1)
+        XCTAssertEqual(monitor.gestureStage, .released)
+        monitor.stop()
+        XCTAssertFalse(source.isLocalRunning)
+    }
+
+    func testEarlyTimerIsRescheduledInsteadOfDroppingHold() {
+        let source = FakeHotkeyEventSource()
+        var time: TimeInterval = 0
+        let monitor = ControlHotkeyMonitor(source: source, now: { time })
+        defer { monitor.stop() }
+        var starts = 0
+        monitor.onHoldStarted = { starts += 1 }
+        monitor.start()
+        source.send(.flagsChanged, keyCode: 59, flags: .maskControl)
+        time = 0.249
+        monitor.handleHoldThreshold()
+        XCTAssertEqual(starts, 0)
+        time = 0.251
+        let deadline = Date().addingTimeInterval(0.2)
+        while starts == 0, Date() < deadline { _ = RunLoop.main.run(mode: .default, before: deadline) }
+        XCTAssertEqual(starts, 1)
+    }
+
+    func testSecureInputBlocksLocalHotkeyToo() {
+        let source = FakeHotkeyEventSource()
+        source.hasPermission = false
+        source.localStartSucceeds = true
+        source.isSecureInput = true
+        let monitor = ControlHotkeyMonitor(source: source)
+        defer { monitor.stop() }
+        var starts = 0
+        monitor.onHoldStarted = { starts += 1 }
+        monitor.start()
+        source.send(.flagsChanged, keyCode: 59, flags: .maskControl)
+        monitor.handleHoldThreshold()
+        XCTAssertEqual(starts, 0)
+        XCTAssertEqual(monitor.gestureStage, .secureInputBlocked)
+    }
+
     func testHoldTimerAlsoFiresInMenuTrackingMode() {
         CFRunLoopAddCommonMode(CFRunLoopGetMain(), CFRunLoopMode(rawValue: RunLoop.Mode.eventTracking.rawValue as CFString))
         assertNativeHoldTimer(mode: .eventTracking)
@@ -315,11 +374,13 @@ final class HotkeyMonitorTests: XCTestCase {
 private final class FakeHotkeyEventSource: HotkeyEventSource {
     var hasPermission = true
     var isRunning = false
+    var isLocalRunning = false
     var isSecureInput = false
     var startSucceeds = true
     var resumeSucceeds = true
     var grantOnRequest = false
     var canStartWithoutPermission = false
+    var localStartSucceeds = false
     var starts = 0
     var resumes = 0
     var permissionRequests = 0
@@ -338,7 +399,13 @@ private final class FakeHotkeyEventSource: HotkeyEventSource {
         return isRunning
     }
 
-    func stop() { isRunning = false; handler = nil }
+    func startLocal(handler: @escaping (CGEventType, CGEvent) -> Void) -> Bool {
+        isLocalRunning = localStartSucceeds
+        if isLocalRunning { self.handler = handler }
+        return isLocalRunning
+    }
+
+    func stop() { isRunning = false; isLocalRunning = false; handler = nil }
     func requestPermission() {
         permissionRequests += 1
         if grantOnRequest { hasPermission = true }

@@ -1,5 +1,8 @@
 # Mumla Mac Beta 1.0.1 (34)
 
+Preparation only: interrupted before a distributable build was produced. This
+version was not published; use build 35 for the follow-up.
+
 - Check for Updates is available in Mumla's menu and Settings.
 - Updates use a signed HTTPS feed and signature-checked, notarized downloads.
 - No background update checks, analytics, or silent installation.

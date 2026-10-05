@@ -1,4 +1,6 @@
 import AppKit
+import AVFoundation
+import Carbon
 import Foundation
 import MumlaAudio
 import MumlaCore
@@ -20,6 +22,8 @@ final class AppCoordinator: ObservableObject {
     @Published var modelInstallProgress: ModelInstallProgress = .idle
     @Published var statusText: String = "Ready"
     @Published private(set) var hotkeyMonitorStatus: HotkeyMonitorStatus = .stopped
+    @Published var hotkeyGestureStage: HotkeyGestureStage = .waiting
+    @Published private(set) var settingsOpenRequest: UUID?
     @Published private(set) var isBusyForAppUpdate = false
     private(set) var isInstallingAppUpdate = false
 
@@ -129,6 +133,44 @@ final class AppCoordinator: ObservableObject {
         case .inputMonitoringRequired: mText("Tillåt inmatningsövervakning", "Allow Input Monitoring")
         case .unavailable: mText("Anslut dikteringstangenten igen", "Reconnect hotkey")
         }
+    }
+
+    var hotkeyDiagnosticText: String {
+        switch hotkeyGestureStage {
+        case .waiting: mText("Ingen tangent mottagen", "No trigger received")
+        case .pressed: mText("Tangent nedtryckt", "Trigger pressed")
+        case .holdStarted: mText("Hålltryck mottaget", "Hold received")
+        case .released: mText("Tangent släppt", "Trigger released")
+        case .handsFree: mText("Dubbeltryck mottaget", "Double-tap received")
+        case .cancelled: mText("Kortkommando avbröt", "Shortcut cancelled")
+        case .secureInputBlocked: mText("Säker inmatning blockerar", "Secure Input blocks hotkey")
+        }
+    }
+
+    func copyHotkeyDiagnostics() {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let microphone = switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized: "authorized"
+        case .denied: "denied"
+        case .restricted: "restricted"
+        case .notDetermined: "not requested"
+        @unknown default: "unknown"
+        }
+        let diagnostic = [
+            "Mumla \(info["CFBundleShortVersionString"] ?? "dev") (\(info["CFBundleVersion"] ?? "dev"))",
+            "Distribution: \(info["MumlaDistribution"] ?? "dev")",
+            "Trigger: \(settings.triggerKey.rawValue)",
+            "Input Monitoring: \(CGPreflightListenEventAccess())",
+            "Accessibility: \(AccessibilityPermission.isTrusted)",
+            "Secure Input: \(IsSecureEventInputEnabled())",
+            "Microphone: \(microphone)",
+            "Listener: \(hotkeyMonitorStatus)",
+            "Gesture: \(hotkeyGestureStage.rawValue)",
+            "Model installed: \(modelDirectory != nil)",
+            "Working: \(isBusyForAppUpdate)"
+        ].joined(separator: "\n")
+        pasteboard.clearContents()
+        _ = pasteboard.setString(diagnostic, forType: .string)
     }
 
     func startQuickDictation() async {
@@ -272,6 +314,12 @@ final class AppCoordinator: ObservableObject {
     }
 
     func openSettings() {
+        settingsOpenRequest = UUID()
+        isOnboardingVisible = false
+        showMainWindow?()
+    }
+
+    func openMainWindow() {
         showMainWindow?()
     }
 

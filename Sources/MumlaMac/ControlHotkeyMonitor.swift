@@ -10,6 +10,10 @@ enum HotkeyMonitorStatus: Equatable {
     case unavailable
 }
 
+enum HotkeyGestureStage: String {
+    case waiting, pressed, holdStarted, released, handsFree, cancelled, secureInputBlocked
+}
+
 @MainActor
 final class ControlHotkeyMonitor {
     var onHoldStarted: (() -> Void)?
@@ -18,6 +22,8 @@ final class ControlHotkeyMonitor {
     var onDoubleTap: (() -> Void)?
     var onCancel: (() -> Void)?
     var onStatusChanged: ((HotkeyMonitorStatus) -> Void)?
+    var onGestureStageChanged: ((HotkeyGestureStage) -> Void)?
+    private(set) var gestureStage: HotkeyGestureStage = .waiting
     private(set) var status: HotkeyMonitorStatus = .stopped
     private let source: any HotkeyEventSource
     private let now: () -> TimeInterval
@@ -47,10 +53,12 @@ final class ControlHotkeyMonitor {
         dispatch(gesture.reset())
         source.stop()
         guard source.hasPermission else {
+            _ = source.startLocal { [weak self] type, event in self?.handle(type: type, event: event) }
             setStatus(.inputMonitoringRequired)
             return
         }
         let started = source.start { [weak self] type, event in self?.handle(type: type, event: event) }
+        if !started { _ = source.startLocal { [weak self] type, event in self?.handle(type: type, event: event) } }
         setStatus(started ? .active : source.hasPermission ? .unavailable : .inputMonitoringRequired)
     }
 
@@ -79,6 +87,7 @@ final class ControlHotkeyMonitor {
             return
         }
         if source.isSecureInput {
+            setGestureStage(.secureInputBlocked)
             holdTimer?.invalidate()
             dispatch(gesture.reset())
             return
@@ -117,13 +126,11 @@ final class ControlHotkeyMonitor {
         let alone = flags.rawValue & modifiers.rawValue & ~allowed.rawValue == 0
         let now = now()
         if isTriggerEvent, down, !gesture.isPressed {
+            setGestureStage(.pressed)
             dispatch(gesture.press(at: now, eligible: alone))
-            let timer = Timer(timeInterval: 0.25, repeats: false) { [weak self] _ in
-                MainActor.assumeIsolated { self?.handleHoldThreshold() }
-            }
-            holdTimer = timer
-            RunLoop.main.add(timer, forMode: .common)
+            if let delay = gesture.remainingHoldDelay(at: now) { scheduleHoldTimer(delay: delay) }
         } else if isTriggerEvent, !down {
+            setGestureStage(.released)
             holdTimer?.invalidate()
             dispatch(gesture.release(at: now))
         } else if !alone {
@@ -135,11 +142,30 @@ final class ControlHotkeyMonitor {
     func handleHoldThreshold() {
         holdTimer?.invalidate()
         holdTimer = nil
-        guard status == .active, !source.isSecureInput else {
+        guard source.isRunning || source.isLocalRunning, !source.isSecureInput else {
+            if source.isSecureInput { setGestureStage(.secureInputBlocked) }
             dispatch(gesture.reset())
             return
         }
-        dispatch(gesture.tick(at: now()))
+        let time = now()
+        dispatch(gesture.tick(at: time))
+        // Timer wall-clock scheduling and the monotonic gesture clock can differ slightly.
+        if let delay = gesture.remainingHoldDelay(at: time) { scheduleHoldTimer(delay: max(0.001, delay)) }
+    }
+
+    private func scheduleHoldTimer(delay: TimeInterval) {
+        holdTimer?.invalidate()
+        let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.handleHoldThreshold() }
+        }
+        holdTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func setGestureStage(_ stage: HotkeyGestureStage) {
+        guard gestureStage != stage else { return }
+        gestureStage = stage
+        onGestureStageChanged?(stage)
     }
 
     private func setStatus(_ status: HotkeyMonitorStatus) {
@@ -151,11 +177,11 @@ final class ControlHotkeyMonitor {
     private func dispatch(_ actions: [DictationHotkeyGesture.Action]) {
         for action in actions {
             switch action {
-            case .startHold: onHoldStarted?()
+            case .startHold: setGestureStage(.holdStarted); onHoldStarted?()
             case .endHold: onHoldEnded?()
             case .tap: onTap?()
-            case .doubleTap: onDoubleTap?()
-            case .cancel: onCancel?()
+            case .doubleTap: setGestureStage(.handsFree); onDoubleTap?()
+            case .cancel: setGestureStage(.cancelled); onCancel?()
             }
         }
     }

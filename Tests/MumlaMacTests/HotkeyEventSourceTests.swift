@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import XCTest
 @testable import MumlaMac
@@ -23,6 +24,41 @@ final class HotkeyEventSourceTests: XCTestCase {
         var tap = validTap()
         tap.eventsOfInterest = 1 << CGEventType.leftMouseDown.rawValue
         XCTAssertFalse(MacHotkeyEventSource.isGlobalListener(tap, processID: 123))
+    }
+
+    func testLocalMonitorInstallsAndStopsWithoutGlobalAccess() {
+        _ = NSApplication.shared
+        let source = MacHotkeyEventSource()
+        XCTAssertTrue(source.startLocal { _, _ in })
+        XCTAssertTrue(source.isLocalRunning)
+        XCTAssertFalse(source.isRunning)
+        source.stop()
+        XCTAssertFalse(source.isLocalRunning)
+    }
+
+    func testSameEventFromAppKitAndGlobalTapIsDeliveredOnce() throws {
+        let cgEvent = try XCTUnwrap(CGEvent(keyboardEventSource: nil, virtualKey: 59, keyDown: true))
+        cgEvent.type = .flagsChanged
+        cgEvent.flags = .maskControl
+        cgEvent.timestamp = 1_000_000_000
+        let local = try XCTUnwrap(NSEvent(cgEvent: cgEvent)?.cgEvent)
+        var deduplicator = HotkeyEventDeduplicator()
+        XCTAssertTrue(deduplicator.shouldDeliver(.flagsChanged, event: cgEvent))
+        XCTAssertFalse(deduplicator.shouldDeliver(.flagsChanged, event: local))
+    }
+
+    func testDuplicateSuppressionDoesNotDropLaterKeyPresses() throws {
+        var deduplicator = HotkeyEventDeduplicator()
+        let event = try XCTUnwrap(CGEvent(keyboardEventSource: nil, virtualKey: 59, keyDown: true))
+        event.type = .flagsChanged
+        event.flags = .maskControl
+        event.timestamp = 1_000_000_000
+        let timestamp = event.timestamp
+        XCTAssertTrue(deduplicator.shouldDeliver(.flagsChanged, event: event))
+        event.timestamp = timestamp + 100_000_000
+        XCTAssertTrue(deduplicator.shouldDeliver(.flagsChanged, event: event))
+        event.flags = []
+        XCTAssertTrue(deduplicator.shouldDeliver(.flagsChanged, event: event))
     }
 
     func testMissingKeyboardOrCancellationEventsAreRejected() {
