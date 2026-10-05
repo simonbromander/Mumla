@@ -162,3 +162,24 @@ the pill never steals focus and each attempt is saved in history exactly once.
 - 84 Swift tests passed, including 17 new monitor/coordinator regression tests.
   Real key events and cross-app paste on the installed signed build still need
   acceptance on the target Mac; simulated tests do not establish TCC access.
+
+## Hotkey Recovery Beta: 2026-10-05
+
+- Universal `1.0.1 (31)` was built from
+  `5f3b31e5bfc390c05c7e6e379b442c3b9f201b48`; transcription and insertion behavior
+  is unchanged. Input Monitoring is now an explicit permission/recovery path.
+- 84 Swift tests and 10 signing tests passed. The compact Settings layout was
+  rendered and visually inspected with the existing tactile design.
+- Apple notarization `47a95225-a3eb-4c20-9098-526f53a35279` was accepted. The ticket
+  was stapled and validated; the repacked ZIP was freshly extracted and checked
+  for signature, ticket, Gatekeeper, ZIP integrity, and build identity.
+- ZIP size: 22,552,826 bytes. SHA-256:
+  `4b0b6e0f62ebb2d7e22d6bed5b0950bc659d0ff0c61a50f05f4bc2513fa98e91`.
+- Private GitHub prerelease tag: `macos-1.0.1-31`, with only the notarized ZIP and
+  its checksum. [Installation and testing notes](releases/macos-direct-1.0.1-31.md).
+- Local evidence: `.build/DirectMac/build-audit-31.json`,
+  `.build/direct31-build.log`, `.build/direct31-notarize.log`,
+  `.build/hotkey-fix-focused-tests.log`, and `.build/hotkey-fix-all-tests.log`.
+- Signing and packaging passed; live hotkey/TCC and paste acceptance on the
+  installed target Mac remain pending. Mac TestFlight build 29 and iOS are
+  unchanged; this does not claim sandboxed cross-app paste support.

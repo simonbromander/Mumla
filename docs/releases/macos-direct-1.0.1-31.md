@@ -38,3 +38,20 @@ TestFlight and direct variants simultaneously. Do not disable Gatekeeper.
 84 Swift tests and 10 signing tests passed. Live hotkey and auto-paste acceptance
 on the installed target Mac remains pending; passing simulated tests is not
 proof that its macOS permissions are configured.
+
+## Release Checks
+
+- Developer ID Application signature, hardened runtime, and secure timestamp.
+  Only microphone access is entitled; there is no App Sandbox or debug access.
+- Apple notarization `47a95225-a3eb-4c20-9098-526f53a35279` was accepted.
+  The ticket was stapled, validated, and accepted by Gatekeeper.
+- The final ZIP was extracted fresh and independently checked for signature,
+  stapled ticket, Gatekeeper acceptance, ZIP integrity, and bundle/build identity.
+- App source commit: `5f3b31e5bfc390c05c7e6e379b442c3b9f201b48`.
+- ZIP size: 22,552,826 bytes.
+
+SHA-256:
+
+```text
+4b0b6e0f62ebb2d7e22d6bed5b0950bc659d0ff0c61a50f05f4bc2513fa98e91
+```
