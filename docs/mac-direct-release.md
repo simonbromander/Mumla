@@ -201,3 +201,22 @@ the pill never steals focus and each attempt is saved in history exactly once.
   test host. These checks still do not prove hardware input on the target Mac.
 - No idle polling, microphone/security bypass, or text-insertion changes were
   added. [Installation and menu-closed acceptance](releases/macos-direct-1.0.1-32.md).
+
+## Background Hotkey Beta: 2026-10-05
+
+- Universal `1.0.1 (32)` was built from
+  `ef74bc814cca2a8c0ce71c2fe240b08df9c80476` and signed with the existing
+  Developer ID identity. App identity and microphone-only entitlements remain
+  unchanged; Mac TestFlight and iOS were not uploaded or modified.
+- Apple notarization `2d084a26-ed50-41ce-89ff-8bfea9773356` accepted; ticket
+  stapled/validated and Gatekeeper passed. A fresh ZIP extraction was independently
+  checked for signature, ticket, integrity, and version/bundle identity.
+- ZIP size: 22,559,864 bytes. SHA-256:
+  `0f70f56dd63f18080174bee09a0ae66ee2842f2793d0ccf146091510eca9547e`.
+- Private GitHub prerelease tag: `macos-1.0.1-32`, with the notarized ZIP and
+  checksum only. The installed target Mac still needs the menu-closed check;
+  local tests and successful distribution are not proof of hardware input.
+- Local evidence: `.build/DirectMac/build-audit-32.json`,
+  `.build/direct32-build.log`, `.build/direct32-notarize.log`,
+  `.build/hotkey-background-focused-tests.log`, and
+  `.build/hotkey-background-all-tests.log`.

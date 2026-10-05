@@ -44,3 +44,19 @@ cross-app paste acceptance still need the menu-closed check above.
 
 94 Swift tests and 10 signing-selection tests passed. The live-system denied
 permission test passed on this build host without requesting any new access.
+
+## Release Checks
+
+- Universal Developer ID Application build, hardened runtime, secure timestamp,
+  and microphone-only entitlements; no App Sandbox or debug access.
+- Apple notarization `2d084a26-ed50-41ce-89ff-8bfea9773356` accepted. Its ticket
+  was stapled and validated; Gatekeeper accepted the fresh extracted ZIP.
+- ZIP signature, ticket, integrity, bundle/build identity, and checksum verified.
+- App source: `ef74bc814cca2a8c0ce71c2fe240b08df9c80476`.
+- ZIP size: 22,559,864 bytes.
+
+SHA-256:
+
+```text
+0f70f56dd63f18080174bee09a0ae66ee2842f2793d0ccf146091510eca9547e
+```
