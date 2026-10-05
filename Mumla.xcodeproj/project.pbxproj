@@ -7,33 +7,57 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02669D6FEE2591498532D9E5 /* ControlHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */; };
 		065760EDCEF33AA9175A54F5 /* ControlHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */; };
 		0B9CC038F26F324291172FFF /* PillWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898B56239AD94246CC0FF25C /* PillWindowController.swift */; };
+		19D868E6B2A7ACA32F0BB865 /* MumlaMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */; };
 		25AED98B3018961C52085E75 /* MumlaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1310E3572482FC03B0D19FEA /* MumlaUITests.swift */; };
+		2DD4FB04F443B74040B4CF10 /* MacStorageDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */; };
+		30DB43CEA9D36A0FA8AF366A /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */; };
+		391610879AA51AC52FF2AFA0 /* AppUpdateInstallGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */; };
+		3E933F596B69DA7F5E9AED40 /* PillWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898B56239AD94246CC0FF25C /* PillWindowController.swift */; };
 		3EEDD778CC07125E773AEF45 /* MumlaUI in Frameworks */ = {isa = PBXBuildFile; productRef = C6DED7A42B8D56339AB76A38 /* MumlaUI */; };
 		47646516A2C545F39F0D2A67 /* CorrectableTranscript.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE353AB1AAC2AB5A392B97A0 /* CorrectableTranscript.swift */; };
 		4BD34DE07A2E83C28BC39532 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */; };
 		4C360FB45B6D0C7DBACB2491 /* ClipboardTextInserter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */; };
 		4E2291D64BBE014A4FF6BE7D /* MumlaHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */; };
+		4EBDD6C2EDE4DD83B5E10F48 /* MacUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04055FB8BA15C8D1036D8CD3 /* MacUpdateController.swift */; };
 		5383AD414A7C20B2C8D57A59 /* FocusedTextTargetInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */; };
+		53B809D47C29BFD1DFDB420E /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */; };
 		57626479B27E8D104DD07047 /* MumlaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 5642B22DF990E1C9A6F8EE1A /* MumlaUI */; };
 		57D2461181FFD8C44BBB9162 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9B5D76BF5AEDB09D049D0E2 /* MainWindowController.swift */; };
+		5D99978EB75E2BDF1F9CD88E /* AppUpdateInstallGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */; };
+		5F0FAEAF7752016AE5C97F67 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 519A2842446BC1359D62140E /* Sparkle */; };
+		6381149654C0DF316C1ADCC8 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */; };
 		748E13453C97705C236EE45A /* DictationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29B34DB8773C80755E4CDC9 /* DictationSession.swift */; };
 		79981F12C18B985B1A82EE66 /* MumlaSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */; };
+		7E8D425EA6F7DB8E1BD1A830 /* FocusedTextTargetInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */; };
+		81F1DC32ADD15685188CDD18 /* ClipboardTextInserter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */; };
+		8463FA770CBD257B18E65DA4 /* HotkeyEventSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */; };
 		92FEFDDA53433933C2D8C0F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DE0C3F8DC853DBE2181553E6 /* Assets.xcassets */; };
+		9735A3D7D4FD626EAB89372E /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9B5D76BF5AEDB09D049D0E2 /* MainWindowController.swift */; };
 		9C06DA0EACC523C9783D5717 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = C491BBC3375F9562F9A9D873 /* MumlaAudio */; };
 		A574CF983F6E06E20756689C /* HotkeyEventSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */; };
+		A774592AA706D3097154EC0B /* MacUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04055FB8BA15C8D1036D8CD3 /* MacUpdateController.swift */; };
 		ABD30B6FE86268ED77F7D69C /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0DDCBC9B5E04500DC92D19F9 /* MumlaCore */; };
 		AD90C06988792860C1D9F6FD /* PillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749B69E10CE6D1D7FC443EBA /* PillView.swift */; };
 		B20D8AB68B32ABBAD570899A /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */; };
 		B300AA5D46F982F27219F3C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92571BD96423422D811E989B /* Assets.xcassets */; };
+		B35A13B0268D4F610D5B8C38 /* PillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749B69E10CE6D1D7FC443EBA /* PillView.swift */; };
 		B3C2CE5843FB1780074B06D0 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */; };
+		B5201BB10944B9325AFAA8FC /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
 		B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */; };
 		BA3F945570826A391E965859 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
 		BC59DCA6E81E340BEFFC281B /* MumlaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83E6911303AC4BC9E5177E8 /* MumlaApp.swift */; };
+		BC5E686832CC6496E3F1DCC2 /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0AEFF1145452A94A52DBBB40 /* MumlaCore */; };
+		BE32EB9AFC91A28357364AD6 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */; };
 		C269080771F75259FBDF0D4A /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = F2609A56CC257B5C0FCF5E47 /* MumlaCore */; };
+		C2BE52AF10B2327351D27901 /* FocusedFieldEditObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */; };
+		D252C9BE4F6BDE0A919FFE30 /* MumlaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 946D9658BC9A10346B877E47 /* MumlaUI */; };
 		D3354B508BC8C7CD6753E616 /* MumlaMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */; };
 		D6BA2CFD675261088FA2F5C2 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = DCCF805E83C2E642E16A02D7 /* MumlaAudio */; };
+		E1A659AA19BCEB3C4566EE59 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 021BC8B02CA8F42D521D39E4 /* MumlaAudio */; };
+		F6BB33EB8DA3043C0153E813 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92571BD96423422D811E989B /* Assets.xcassets */; };
 		F78A2C4346174E97A1701275 /* MacStorageDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */; };
 		FCB324B1695DC0C9876A6350 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */; };
 /* End PBXBuildFile section */
@@ -50,11 +74,14 @@
 
 /* Begin PBXFileReference section */
 		030F8A6D1C90CD95ABAE4536 /* Mumla.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mumla.entitlements; sourceTree = "<group>"; };
+		04055FB8BA15C8D1036D8CD3 /* MacUpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacUpdateController.swift; sourceTree = "<group>"; };
 		0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		0D7DC48BF893D41E14900954 /* Mumla.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mumla.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1310E3572482FC03B0D19FEA /* MumlaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaUITests.swift; sourceTree = "<group>"; };
 		2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedFieldEditObserver.swift; sourceTree = "<group>"; };
+		44E58014013CC8E21640D766 /* MumlaMacDirect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaMacDirect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaSheets.swift; sourceTree = "<group>"; };
+		4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateInstallGate.swift; sourceTree = "<group>"; };
 		4F7F84A3491DB7F273F94E53 /* MumlaMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A3A2CDBEC82B9925A49C8C4 /* Mumla */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Mumla; path = .; sourceTree = SOURCE_ROOT; };
 		5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -98,6 +125,17 @@
 				ABD30B6FE86268ED77F7D69C /* MumlaCore in Frameworks */,
 				9C06DA0EACC523C9783D5717 /* MumlaAudio in Frameworks */,
 				3EEDD778CC07125E773AEF45 /* MumlaUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D90CF15B580230519C49F22B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BC5E686832CC6496E3F1DCC2 /* MumlaCore in Frameworks */,
+				E1A659AA19BCEB3C4566EE59 /* MumlaAudio in Frameworks */,
+				D252C9BE4F6BDE0A919FFE30 /* MumlaUI in Frameworks */,
+				5F0FAEAF7752016AE5C97F67 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -146,6 +184,7 @@
 			children = (
 				0D7DC48BF893D41E14900954 /* Mumla.app */,
 				4F7F84A3491DB7F273F94E53 /* MumlaMac.app */,
+				44E58014013CC8E21640D766 /* MumlaMacDirect.app */,
 				E8C8EAC8BCA99267DCFC8585 /* MumlaUITests.xctest */,
 			);
 			name = Products;
@@ -156,6 +195,7 @@
 			children = (
 				D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */,
 				0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */,
+				4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */,
 				9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */,
 				F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */,
 				2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */,
@@ -163,6 +203,7 @@
 				739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */,
 				A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */,
 				AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */,
+				04055FB8BA15C8D1036D8CD3 /* MacUpdateController.swift */,
 				A26F840006A86E01CDD6438C /* MainView.swift */,
 				F9B5D76BF5AEDB09D049D0E2 /* MainWindowController.swift */,
 				8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */,
@@ -264,6 +305,29 @@
 			productReference = 0D7DC48BF893D41E14900954 /* Mumla.app */;
 			productType = "com.apple.product-type.application";
 		};
+		CFCEC58692639870835ABD2F /* MumlaMacDirect */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCBF879E873D26C11ACAEC46 /* Build configuration list for PBXNativeTarget "MumlaMacDirect" */;
+			buildPhases = (
+				BAD38126B8C51427A74BE771 /* Sources */,
+				D606DE148002012E3B72A47F /* Resources */,
+				D90CF15B580230519C49F22B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MumlaMacDirect;
+			packageProductDependencies = (
+				0AEFF1145452A94A52DBBB40 /* MumlaCore */,
+				021BC8B02CA8F42D521D39E4 /* MumlaAudio */,
+				946D9658BC9A10346B877E47 /* MumlaUI */,
+				519A2842446BC1359D62140E /* Sparkle */,
+			);
+			productName = MumlaMacDirect;
+			productReference = 44E58014013CC8E21640D766 /* MumlaMacDirect.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -280,10 +344,15 @@
 					};
 					45A5202F9C883FE1B67273FE = {
 						DevelopmentTeam = PF2PWR4YG4;
+						ProvisioningStyle = Automatic;
 					};
 					C8A7C6C1CFBEB957E9A70E84 = {
 						DevelopmentTeam = PF2PWR4YG4;
 						ProvisioningStyle = Automatic;
+					};
+					CFCEC58692639870835ABD2F = {
+						DevelopmentTeam = PF2PWR4YG4;
+						ProvisioningStyle = Manual;
 					};
 				};
 			};
@@ -297,6 +366,7 @@
 			mainGroup = 19420A6CEF8F15B4641F4DA6;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				BEDC72CA9ADAB396B03A20C8 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				8B932B82DC184EEFAE8445ED /* XCLocalSwiftPackageReference "." */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -306,6 +376,7 @@
 			targets = (
 				C8A7C6C1CFBEB957E9A70E84 /* Mumla */,
 				45A5202F9C883FE1B67273FE /* MumlaMac */,
+				CFCEC58692639870835ABD2F /* MumlaMacDirect */,
 				437EA56A822C97529DC23F62 /* MumlaUITests */,
 			);
 		};
@@ -317,6 +388,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				B300AA5D46F982F27219F3C2 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D606DE148002012E3B72A47F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6BB33EB8DA3043C0153E813 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -337,6 +416,7 @@
 			files = (
 				B20D8AB68B32ABBAD570899A /* AccessibilityPermission.swift in Sources */,
 				B3C2CE5843FB1780074B06D0 /* AppCoordinator.swift in Sources */,
+				391610879AA51AC52FF2AFA0 /* AppUpdateInstallGate.swift in Sources */,
 				4C360FB45B6D0C7DBACB2491 /* ClipboardTextInserter.swift in Sources */,
 				065760EDCEF33AA9175A54F5 /* ControlHotkeyMonitor.swift in Sources */,
 				B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */,
@@ -344,6 +424,7 @@
 				A574CF983F6E06E20756689C /* HotkeyEventSource.swift in Sources */,
 				4BD34DE07A2E83C28BC39532 /* LaunchAtLoginController.swift in Sources */,
 				F78A2C4346174E97A1701275 /* MacStorageDirectory.swift in Sources */,
+				A774592AA706D3097154EC0B /* MacUpdateController.swift in Sources */,
 				BA3F945570826A391E965859 /* MainView.swift in Sources */,
 				57D2461181FFD8C44BBB9162 /* MainWindowController.swift in Sources */,
 				D3354B508BC8C7CD6753E616 /* MumlaMacApp.swift in Sources */,
@@ -373,6 +454,30 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BAD38126B8C51427A74BE771 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				53B809D47C29BFD1DFDB420E /* AccessibilityPermission.swift in Sources */,
+				BE32EB9AFC91A28357364AD6 /* AppCoordinator.swift in Sources */,
+				5D99978EB75E2BDF1F9CD88E /* AppUpdateInstallGate.swift in Sources */,
+				81F1DC32ADD15685188CDD18 /* ClipboardTextInserter.swift in Sources */,
+				02669D6FEE2591498532D9E5 /* ControlHotkeyMonitor.swift in Sources */,
+				C2BE52AF10B2327351D27901 /* FocusedFieldEditObserver.swift in Sources */,
+				7E8D425EA6F7DB8E1BD1A830 /* FocusedTextTargetInspector.swift in Sources */,
+				8463FA770CBD257B18E65DA4 /* HotkeyEventSource.swift in Sources */,
+				6381149654C0DF316C1ADCC8 /* LaunchAtLoginController.swift in Sources */,
+				2DD4FB04F443B74040B4CF10 /* MacStorageDirectory.swift in Sources */,
+				4EBDD6C2EDE4DD83B5E10F48 /* MacUpdateController.swift in Sources */,
+				B5201BB10944B9325AFAA8FC /* MainView.swift in Sources */,
+				9735A3D7D4FD626EAB89372E /* MainWindowController.swift in Sources */,
+				19D868E6B2A7ACA32F0BB865 /* MumlaMacApp.swift in Sources */,
+				B35A13B0268D4F610D5B8C38 /* PillView.swift in Sources */,
+				3E933F596B69DA7F5E9AED40 /* PillWindowController.swift in Sources */,
+				30DB43CEA9D36A0FA8AF366A /* StatusMenuController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -389,13 +494,35 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Apps/macOS/Mumla/Mumla.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 29;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Apps/macOS/Mumla/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MUMLA_DISTRIBUTION = "app-store";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
+				PRODUCT_NAME = Mumla;
+				SDKROOT = macosx;
+			};
+			name = Direct;
+		};
+		4FABA43C317C845A013882F7 /* Direct */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Apps/macOS/Mumla/MumlaDirect.entitlements;
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 33;
 				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = Apps/macOS/Mumla/Info.plist;
+				INFOPLIST_FILE = "Apps/macOS/Mumla/Info-Direct.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -405,8 +532,34 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
 				PRODUCT_NAME = Mumla;
 				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MUMLA_DIRECT_UPDATES";
 			};
 			name = Direct;
+		};
+		59CA09B71C37FDB51B566ADE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Apps/macOS/Mumla/MumlaDirect.entitlements;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 33;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "Apps/macOS/Mumla/Info-Direct.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MUMLA_DISTRIBUTION = direct;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
+				PRODUCT_NAME = Mumla;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MUMLA_DIRECT_UPDATES";
+			};
+			name = Debug;
 		};
 		5E36377025CBDB0632C96B3C /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -738,6 +891,31 @@
 			};
 			name = Release;
 		};
+		E3AACF7512D281AE934572DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Apps/macOS/Mumla/MumlaDirect.entitlements;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 33;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "Apps/macOS/Mumla/Info-Direct.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MUMLA_DISTRIBUTION = direct;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app;
+				PRODUCT_NAME = Mumla;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MUMLA_DIRECT_UPDATES";
+			};
+			name = Release;
+		};
 		FD119ACAF2F8B0B87045CF73 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -799,6 +977,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		BCBF879E873D26C11ACAEC46 /* Build configuration list for PBXNativeTarget "MumlaMacDirect" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				59CA09B71C37FDB51B566ADE /* Debug */,
+				4FABA43C317C845A013882F7 /* Direct */,
+				E3AACF7512D281AE934572DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -808,12 +996,40 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		BEDC72CA9ADAB396B03A20C8 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		021BC8B02CA8F42D521D39E4 /* MumlaAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaAudio;
+		};
+		0AEFF1145452A94A52DBBB40 /* MumlaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaCore;
+		};
 		0DDCBC9B5E04500DC92D19F9 /* MumlaCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MumlaCore;
 		};
+		519A2842446BC1359D62140E /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BEDC72CA9ADAB396B03A20C8 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		5642B22DF990E1C9A6F8EE1A /* MumlaUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MumlaUI;
+		};
+		946D9658BC9A10346B877E47 /* MumlaUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MumlaUI;
 		};

@@ -13,6 +13,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     private var mainWindowController: MainWindowController!
     private var pillWindowController: PillWindowController!
     private var hotkeyMonitor: ControlHotkeyMonitor!
+    private var updater: MacUpdateController!
 
     static func main() {
         let app = NSApplication.shared
@@ -51,8 +52,9 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             modelDirectory: modelDirectory
         )
         pillWindowController = PillWindowController(coordinator: coordinator)
-        mainWindowController = MainWindowController(coordinator: coordinator)
-        statusController = StatusMenuController(coordinator: coordinator)
+        updater = MacUpdateController(coordinator: coordinator)
+        mainWindowController = MainWindowController(coordinator: coordinator, updater: updater)
+        statusController = StatusMenuController(coordinator: coordinator, updater: updater)
         hotkeyMonitor = ControlHotkeyMonitor()
         coordinator.triggerKeyChanged = { [weak hotkeyMonitor] key in hotkeyMonitor?.setTriggerKey(key) }
         coordinator.requestHotkeyAccess = { [weak hotkeyMonitor] in hotkeyMonitor?.requestPermission() }
@@ -118,6 +120,11 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         hotkeyMonitor?.stop()
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard coordinator?.isBusyForAppUpdate != true else { return .terminateCancel }
+        return .terminateNow
     }
 
     #if DEBUG

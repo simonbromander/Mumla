@@ -313,7 +313,7 @@ platform :ios do
     end
     FileUtils.mkdir_p(DIRECT_OUTPUT)
     sh("xcodegen", "generate", "--spec", File.join(ROOT, "project.yml"))
-    build_number = Integer(options[:build] || 32)
+    build_number = Integer(options[:build] || 33)
     UI.user_error!("Build number must be positive.") unless build_number.positive?
     build_app(
       project: PROJECT,

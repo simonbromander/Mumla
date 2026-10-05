@@ -5,8 +5,8 @@ import SwiftUI
 final class MainWindowController {
     private let window: NSWindow
 
-    init(coordinator: AppCoordinator) {
-        let contentView = MainView(coordinator: coordinator)
+    init(coordinator: AppCoordinator, updater: MacUpdateController) {
+        let contentView = MainView(coordinator: coordinator, updater: updater)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],

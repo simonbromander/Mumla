@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "45A5202F9C883FE1B67273FE"
-               BuildableName = "MumlaMac.app"
-               BlueprintName = "MumlaMac"
+               BlueprintIdentifier = "CFCEC58692639870835ABD2F"
+               BuildableName = "MumlaMacDirect.app"
+               BlueprintName = "MumlaMacDirect"
                ReferencedContainer = "container:Mumla.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -32,9 +32,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "45A5202F9C883FE1B67273FE"
-            BuildableName = "MumlaMac.app"
-            BlueprintName = "MumlaMac"
+            BlueprintIdentifier = "CFCEC58692639870835ABD2F"
+            BuildableName = "MumlaMacDirect.app"
+            BlueprintName = "MumlaMacDirect"
             ReferencedContainer = "container:Mumla.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -55,9 +55,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "45A5202F9C883FE1B67273FE"
-            BuildableName = "MumlaMac.app"
-            BlueprintName = "MumlaMac"
+            BlueprintIdentifier = "CFCEC58692639870835ABD2F"
+            BuildableName = "MumlaMacDirect.app"
+            BlueprintName = "MumlaMacDirect"
             ReferencedContainer = "container:Mumla.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -74,9 +74,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "45A5202F9C883FE1B67273FE"
-            BuildableName = "MumlaMac.app"
-            BlueprintName = "MumlaMac"
+            BlueprintIdentifier = "CFCEC58692639870835ABD2F"
+            BuildableName = "MumlaMacDirect.app"
+            BlueprintName = "MumlaMacDirect"
             ReferencedContainer = "container:Mumla.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

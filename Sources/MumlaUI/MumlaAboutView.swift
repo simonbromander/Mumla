@@ -30,6 +30,11 @@ public struct MumlaAboutView: View {
                     credit("FluidAudio", owner: "Fluid Inference", license: "Apache 2.0",
                            detail: mText("Swift-biblioteket som kör CoreML-modellen lokalt på Apple-enheter.", "The Swift library that runs the CoreML model locally on Apple devices."),
                            source: "https://github.com/FluidInference/FluidAudio", licenseURL: "https://www.apache.org/licenses/LICENSE-2.0")
+                    if Bundle.main.object(forInfoDictionaryKey: "MumlaDistribution") as? String == "direct" {
+                        credit("Sparkle", owner: "Sparkle Project", license: "MIT / BSD",
+                               detail: mText("Kontrollerar och installerar signerade Mac-uppdateringar när du ber om det. Ingen systemprofilering.", "Checks and installs signed Mac updates when requested. No system profiling."),
+                               source: "https://sparkle-project.org", licenseURL: "https://github.com/sparkle-project/Sparkle/blob/2.10.0/LICENSE")
+                    }
                     Text(mText("LICENSER OCH NOTISER", "LICENSES AND NOTICES"))
                         .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary).accessibilityAddTraits(.isHeader)
                     ForEach(LicenseNotice.all) { item in
@@ -103,7 +108,7 @@ private struct LicenseNotice: Identifiable {
               let text = try? String(contentsOf: url, encoding: .utf8) else { return mText("Notisen kunde inte läsas.", "The notice could not be read.") }
         return text
     }
-    static let all = [
+    static var all: [LicenseNotice] { [
         LicenseNotice(title: "Pianissimo / CoreML", file: "Pianissimo-attribution", ext: "txt"),
         LicenseNotice(title: "FluidAudio / Apache 2.0", file: "FluidAudio-LICENSE", ext: "txt"),
         LicenseNotice(title: "fastcluster", file: "fastcluster-LICENSE", ext: "md"),
@@ -111,5 +116,6 @@ private struct LicenseNotice: Identifiable {
         LicenseNotice(title: "VBx", file: "vbx-LICENSE", ext: "md"),
         LicenseNotice(title: "Japanese G2P", file: "JapaneseG2P-LICENSE", ext: "md"),
         LicenseNotice(title: "Kokoro G2P", file: "KokoroAneSpanishFrenchG2P-LICENSE", ext: "md")
-    ]
+    ] + (Bundle.main.object(forInfoDictionaryKey: "MumlaDistribution") as? String == "direct"
+         ? [LicenseNotice(title: "Sparkle / MIT / BSD", file: "Sparkle-LICENSE", ext: "txt")] : []) }
 }

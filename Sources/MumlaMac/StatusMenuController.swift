@@ -1,15 +1,18 @@
 import AppKit
 import Combine
 import MumlaCore
+import MumlaUI
 
 @MainActor
 final class StatusMenuController {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let coordinator: AppCoordinator
+    private let updater: MacUpdateController
     private var cancellables: Set<AnyCancellable> = []
 
-    init(coordinator: AppCoordinator) {
+    init(coordinator: AppCoordinator, updater: MacUpdateController) {
         self.coordinator = coordinator
+        self.updater = updater
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "mic.circle.fill", accessibilityDescription: "Mumla")
             button.imagePosition = .imageOnly
@@ -25,6 +28,14 @@ final class StatusMenuController {
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
         coordinator.$hotkeyMonitorStatus
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
+        updater.$canCheckForUpdates
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
+        updater.$isWaitingForIdle
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
@@ -79,7 +90,14 @@ final class StatusMenuController {
 
         menu.addItem(.separator())
         menu.addItem(menuItem("Open Mumla", action: #selector(openMainWindow)))
+        if updater.isAvailable {
+            let item = menuItem(mText("Sök uppdateringar...", "Check for Updates..."), action: #selector(checkForUpdates))
+            item.isEnabled = updater.canCheckForUpdates
+            item.toolTip = updater.isWaitingForIdle ? mText("Väntar på att dikteringen avslutas", "Waiting for dictation to finish") : nil
+            menu.addItem(item)
+        }
         menu.addItem(menuItem("Quit", action: #selector(quit)))
+        menu.autoenablesItems = false
         statusItem.menu = menu
     }
 
@@ -130,6 +148,10 @@ final class StatusMenuController {
 
     @objc private func quit() {
         coordinator.quit?()
+    }
+
+    @objc private func checkForUpdates() {
+        updater.checkForUpdates()
     }
 }
 

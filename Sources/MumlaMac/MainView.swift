@@ -6,6 +6,7 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var coordinator: AppCoordinator
+    @ObservedObject var updater: MacUpdateController
     @State private var selection = MainSection.dictate
     @State private var pressedSection: MainSection?
     @State private var query = ""
@@ -15,8 +16,9 @@ struct MainView: View {
     @State private var copied = false
     @State private var showAbout = false
 
-    init(coordinator: AppCoordinator, initialSection: String = "dictate") {
+    init(coordinator: AppCoordinator, updater: MacUpdateController = MacUpdateController(), initialSection: String = "dictate") {
         self.coordinator = coordinator
+        self.updater = updater
         _selection = State(initialValue: MainSection(rawValue: initialSection) ?? .dictate)
     }
 
@@ -327,6 +329,15 @@ struct MainView: View {
                 if coordinator.isInstallingModel { MumlaDownloadGauge(fraction: coordinator.modelInstallProgress.fraction).padding(.top, 16) }
                 settingRow(mText("Om Mumla", "About Mumla"), symbol: "info.circle") {
                     Button { showAbout = true } label: { Label(mText("Modeller och licenser", "Models and licenses"), systemImage: "doc.text").padding(12) }
+                }
+                if updater.isAvailable {
+                    settingRow(mText("Uppdateringar", "Updates"), symbol: "arrow.triangle.2.circlepath") {
+                        Button { updater.checkForUpdates() } label: {
+                            Label(updater.isWaitingForIdle ? mText("Väntar på diktering", "Waiting for dictation") : mText("Sök uppdateringar", "Check for Updates"), systemImage: "arrow.triangle.2.circlepath").padding(12)
+                        }
+                        .disabled(!updater.canCheckForUpdates)
+                        .accessibilityIdentifier("app.check-for-updates")
+                    }
                 }
                 Text(coordinator.statusText).font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 24)
             }.buttonStyle(MumlaKeyStyle())

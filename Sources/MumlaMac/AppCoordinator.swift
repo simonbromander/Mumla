@@ -20,6 +20,8 @@ final class AppCoordinator: ObservableObject {
     @Published var modelInstallProgress: ModelInstallProgress = .idle
     @Published var statusText: String = "Ready"
     @Published private(set) var hotkeyMonitorStatus: HotkeyMonitorStatus = .stopped
+    @Published private(set) var isBusyForAppUpdate = false
+    private(set) var isInstallingAppUpdate = false
 
     var showPill: (() -> Void)?
     var hidePill: (() -> Void)?
@@ -39,12 +41,13 @@ final class AppCoordinator: ObservableObject {
     private let correctionLearner = CorrectionLearner()
     private let editObserver = FocusedFieldEditObserver()
 
-    private var activeMode: RecordingMode?
+    private var activeMode: RecordingMode? { didSet { refreshUpdateActivity() } }
     private var recordingStartedAt: Date?
     private var elapsedTimer: Timer?
-    private var modelInstallTask: Task<Void, Never>?
+    private var modelInstallTask: Task<Void, Never>? { didSet { refreshUpdateActivity() } }
     private var hidePillTask: Task<Void, Never>?
-    private var pendingStartID: UUID?
+    private var pendingStartID: UUID? { didSet { refreshUpdateActivity() } }
+    private var inFlightOperations = 0 { didSet { refreshUpdateActivity() } }
     private var insertionTarget: FocusedTextTargetSnapshot?
 
     init(
@@ -86,6 +89,15 @@ final class AppCoordinator: ObservableObject {
 
     var isInstallingModel: Bool {
         modelInstallTask != nil
+    }
+
+    func setAppUpdateInstallationInProgress(_ inProgress: Bool) {
+        isInstallingAppUpdate = inProgress
+    }
+
+    private func refreshUpdateActivity() {
+        let busy = activeMode != nil || pendingStartID != nil || inFlightOperations > 0 || modelInstallTask != nil
+        if isBusyForAppUpdate != busy { isBusyForAppUpdate = busy }
     }
 
     var isLaunchAtLoginRequested: Bool {
@@ -139,6 +151,8 @@ final class AppCoordinator: ObservableObject {
 
     func finishDictation() async {
         guard activeMode != nil else { pendingStartID = nil; return }
+        inFlightOperations += 1
+        defer { inFlightOperations -= 1 }
         hidePillTask?.cancel()
         elapsedTimer?.invalidate()
         elapsedTimer = nil
@@ -209,13 +223,17 @@ final class AppCoordinator: ObservableObject {
     }
 
     func pasteRecord(_ record: DictationRecord) {
-        guard activeMode == nil, pendingStartID == nil, pillState != .transcribing else { return }
+        guard !isInstallingAppUpdate, activeMode == nil, pendingStartID == nil, inFlightOperations == 0, pillState != .transcribing else { return }
         editObserver.cancel()
         let target = FocusedTextTargetInspector.captureEditableTarget()
         hidePillTask?.cancel()
         pillState = .transcribing
         showPill?()
-        Task { presentInsertion(await inserter.insert(record.text, target: target), record: record) }
+        inFlightOperations += 1
+        Task {
+            defer { inFlightOperations -= 1 }
+            presentInsertion(await inserter.insert(record.text, target: target), record: record)
+        }
     }
 
     func copyPillTranscript() {
@@ -339,7 +357,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     func installModel() {
-        guard modelInstallTask == nil else { return }
+        guard !isInstallingAppUpdate, modelInstallTask == nil else { return }
 
         modelInstallTask = Task { [weak self] in
             guard let self else { return }
@@ -478,7 +496,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     private func startDictation(mode: RecordingMode) async {
-        guard activeMode == nil, pendingStartID == nil, pillState != .transcribing else { return }
+        guard !isInstallingAppUpdate, activeMode == nil, pendingStartID == nil, inFlightOperations == 0, pillState != .transcribing else { return }
         hidePillTask?.cancel()
         editObserver.cancel()
 

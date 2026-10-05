@@ -17,7 +17,8 @@ let package = Package(
         .executable(name: "mumla-model-probe", targets: ["MumlaModelProbe"])
     ],
     dependencies: [
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.17.3")
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.17.3"),
+        .package(url: "https://github.com/sparkle-project/Sparkle.git", exact: "2.10.0")
     ],
     targets: [
         .target(name: "MumlaCore"),
@@ -34,8 +35,10 @@ let package = Package(
             dependencies: [
                 "MumlaCore",
                 "MumlaAudio",
-                "MumlaUI"
-            ]
+                "MumlaUI",
+                .product(name: "Sparkle", package: "Sparkle", condition: .when(platforms: [.macOS]))
+            ],
+            swiftSettings: [.define("MUMLA_DIRECT_UPDATES", .when(platforms: [.macOS]))]
         ),
         .executableTarget(
             name: "MumlaPhase0CLI",
