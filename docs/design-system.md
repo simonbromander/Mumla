@@ -75,6 +75,12 @@ performance. These remain a hardware acceptance check.
 
 ## Icon
 
-The generated recorder icon uses the same graphite, sage, and red materials.
-Originals and the generation prompt are retained in `Design/AppIcon`. iOS has
-an opaque square source; macOS has a rounded source with transparent margins.
+The current recorder icon uses an off-white instrument face, five recessed
+charcoal waveform slots, and one orange mechanical recording key. It follows
+the newer light-mode housing and orange mode keys, with less visual weight than
+the original graphite/LCD icon. There is no text or tiny decorative control.
+Originals and full generation prompts are retained in `Design/AppIcon`;
+`rams-prompt.md` describes the current masters. iOS has an opaque square source;
+macOS has a rounded source with transparent margins. Export every catalog size
+with `bash scripts/export_app_icons.sh`. Earlier icon sources are retained only
+as design history, not current app assets.
