@@ -48,7 +48,7 @@ with its private key on the build Mac. Keep that key local and out of Git.
 security find-identity -v -p codesigning
 ruby fastlane/tests/direct_signing_test.rb
 swift test
-fastlane ios mac_direct_build build:31
+fastlane ios mac_direct_build build:32
 fastlane ios mac_direct_notarize
 ```
 
@@ -66,7 +66,7 @@ Developer ID signature and the absence of sandboxing. The notarization lane
 requires `Accepted`, staples and validates the ticket, checks Gatekeeper, and
 repackages the stapled app as:
 
-`.build/DirectMac/Mumla-1.0.1-31.zip`
+`.build/DirectMac/Mumla-1.0.1-32.zip`
 
 Quit the TestFlight app before replacing it with the direct app. Launch the
 direct app and grant Microphone, Input Monitoring, and Accessibility access in
@@ -183,3 +183,21 @@ the pill never steals focus and each attempt is saved in history exactly once.
 - Signing and packaging passed; live hotkey/TCC and paste acceptance on the
   installed target Mac remain pending. Mac TestFlight build 29 and iOS are
   unchanged; this does not claim sandboxed cross-app paste support.
+
+## Background Hotkey Follow-Up
+
+- Build 31 could count Accessibility trust as keyboard-listening permission
+  and mark a successfully created port as ready without checking its actual
+  global event mask. A port may still be valid after disallowed keyboard events
+  are removed. [Apple's event-tap documentation](<https://developer.apple.com/documentation/coregraphics/cgevent/tapcreate(tap:place:options:eventsofinterest:callback:userinfo:)>).
+- Build 32 requires `CGPreflightListenEventAccess()` explicitly, validates the
+  exact newly installed tap ID and every requested event, and rejects app-local
+  or partially permitted listeners. Manual retry forces a fresh installation.
+- The one-shot hold timer is registered in the main run loop's common modes;
+  the app delegate/listener lifetime is explicitly kept across `NSApplication.run`.
+- All 94 Swift tests and 10 signing tests passed. Tests include native timer
+  execution with the app inactive in default mode, menu tracking, partial/local
+  mask rejection, and refusal to install a partial tap on this permission-denied
+  test host. These checks still do not prove hardware input on the target Mac.
+- No idle polling, microphone/security bypass, or text-insertion changes were
+  added. [Installation and menu-closed acceptance](releases/macos-direct-1.0.1-32.md).

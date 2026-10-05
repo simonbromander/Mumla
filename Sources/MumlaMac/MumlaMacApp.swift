@@ -19,7 +19,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         let delegate = MumlaMacApp()
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
-        app.run()
+        withExtendedLifetime(delegate) { app.run() }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

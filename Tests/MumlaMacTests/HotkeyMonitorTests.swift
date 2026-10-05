@@ -1,3 +1,4 @@
+import AppKit
 import ApplicationServices
 import Carbon
 import MumlaCore
@@ -27,7 +28,7 @@ final class HotkeyMonitorTests: XCTestCase {
         monitor.start()
         monitor.requestPermission()
         XCTAssertEqual(source.permissionRequests, 1)
-        XCTAssertEqual(source.starts, 2)
+        XCTAssertEqual(source.starts, 1)
         XCTAssertTrue(source.isRunning)
         XCTAssertEqual(monitor.status, .active)
         monitor.stop()
@@ -40,7 +41,7 @@ final class HotkeyMonitorTests: XCTestCase {
         monitor.start()
         source.hasPermission = true
         monitor.start()
-        XCTAssertEqual(source.starts, 2)
+        XCTAssertEqual(source.starts, 1)
         XCTAssertEqual(monitor.status, .active)
         monitor.stop()
     }
@@ -259,6 +260,55 @@ final class HotkeyMonitorTests: XCTestCase {
         XCTAssertFalse(source.isRunning)
         XCTAssertEqual(monitor.status, .stopped)
     }
+
+    func testLocalOnlySourceCannotReportGlobalReadinessWithoutInputMonitoring() {
+        let source = FakeHotkeyEventSource()
+        source.hasPermission = false
+        source.canStartWithoutPermission = true
+        let monitor = ControlHotkeyMonitor(source: source)
+        monitor.start()
+        XCTAssertEqual(source.starts, 0)
+        XCTAssertFalse(source.isRunning)
+        XCTAssertEqual(monitor.status, .inputMonitoringRequired)
+        monitor.stop()
+    }
+
+    func testManualRetryReplacesAnApparentlyHealthyButStaleListener() {
+        let source = FakeHotkeyEventSource()
+        let monitor = ControlHotkeyMonitor(source: source)
+        monitor.start()
+        monitor.requestPermission()
+        XCTAssertEqual(source.starts, 2)
+        XCTAssertEqual(monitor.status, .active)
+        monitor.stop()
+    }
+
+    func testHoldTimerFiresInDefaultModeWithNoMenuOpenAndAppInactive() {
+        XCTAssertFalse(NSApplication.shared.isActive)
+        assertNativeHoldTimer(mode: .default)
+    }
+
+    func testHoldTimerAlsoFiresInMenuTrackingMode() {
+        CFRunLoopAddCommonMode(CFRunLoopGetMain(), CFRunLoopMode(rawValue: RunLoop.Mode.eventTracking.rawValue as CFString))
+        assertNativeHoldTimer(mode: .eventTracking)
+    }
+
+    private func assertNativeHoldTimer(mode: RunLoop.Mode, file: StaticString = #filePath, line: UInt = #line) {
+        let source = FakeHotkeyEventSource()
+        let monitor = ControlHotkeyMonitor(source: source)
+        defer { monitor.stop() }
+        var starts = 0
+        var endings = 0
+        monitor.onHoldStarted = { starts += 1 }
+        monitor.onHoldEnded = { endings += 1 }
+        monitor.start()
+        source.send(.flagsChanged, keyCode: 59, flags: .maskControl)
+        let deadline = Date().addingTimeInterval(0.75)
+        while starts == 0, Date() < deadline { _ = RunLoop.main.run(mode: mode, before: deadline) }
+        XCTAssertEqual(starts, 1, file: file, line: line)
+        source.send(.flagsChanged, keyCode: 59)
+        XCTAssertEqual(endings, 1, file: file, line: line)
+    }
 }
 
 @MainActor
@@ -269,6 +319,7 @@ private final class FakeHotkeyEventSource: HotkeyEventSource {
     var startSucceeds = true
     var resumeSucceeds = true
     var grantOnRequest = false
+    var canStartWithoutPermission = false
     var starts = 0
     var resumes = 0
     var permissionRequests = 0
@@ -276,7 +327,7 @@ private final class FakeHotkeyEventSource: HotkeyEventSource {
 
     func start(handler: @escaping (CGEventType, CGEvent) -> Void) -> Bool {
         starts += 1
-        isRunning = hasPermission && startSucceeds
+        isRunning = (hasPermission || canStartWithoutPermission) && startSucceeds
         self.handler = isRunning ? handler : nil
         return isRunning
     }

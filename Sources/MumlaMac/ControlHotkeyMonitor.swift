@@ -23,7 +23,7 @@ final class ControlHotkeyMonitor {
     private let now: () -> TimeInterval
     private var triggerKey: DictationTriggerKey = .control
     private var gesture = DictationHotkeyGesture()
-    private var holdWorkItem: DispatchWorkItem?
+    private var holdTimer: Timer?
 
     init(source: any HotkeyEventSource = MacHotkeyEventSource(), now: @escaping () -> TimeInterval = { CACurrentMediaTime() }) {
         self.source = source
@@ -32,26 +32,30 @@ final class ControlHotkeyMonitor {
 
     func setTriggerKey(_ key: DictationTriggerKey) {
         guard triggerKey != key else { return }
-        holdWorkItem?.cancel()
+        holdTimer?.invalidate()
         dispatch(gesture.reset())
         triggerKey = key
         start()
     }
 
-    func start() {
-        if source.isRunning, source.hasPermission {
+    func start(forceRestart: Bool = false) {
+        if !forceRestart, source.isRunning, source.hasPermission {
             setStatus(.active)
             return
         }
-        holdWorkItem?.cancel()
+        holdTimer?.invalidate()
         dispatch(gesture.reset())
         source.stop()
+        guard source.hasPermission else {
+            setStatus(.inputMonitoringRequired)
+            return
+        }
         let started = source.start { [weak self] type, event in self?.handle(type: type, event: event) }
         setStatus(started ? .active : source.hasPermission ? .unavailable : .inputMonitoringRequired)
     }
 
     func stop() {
-        holdWorkItem?.cancel()
+        holdTimer?.invalidate()
         dispatch(gesture.reset())
         source.stop()
         setStatus(.stopped)
@@ -59,12 +63,12 @@ final class ControlHotkeyMonitor {
 
     func requestPermission() {
         source.requestPermission()
-        start()
+        start(forceRestart: true)
     }
 
     private func handle(type: CGEventType, event: CGEvent) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            holdWorkItem?.cancel()
+            holdTimer?.invalidate()
             dispatch(gesture.reset())
             if source.resume() {
                 setStatus(.active)
@@ -75,18 +79,18 @@ final class ControlHotkeyMonitor {
             return
         }
         if source.isSecureInput {
-            holdWorkItem?.cancel()
+            holdTimer?.invalidate()
             dispatch(gesture.reset())
             return
         }
         if type == .keyDown, event.getIntegerValueField(.keyboardEventKeycode) == 53 {
-            holdWorkItem?.cancel()
+            holdTimer?.invalidate()
             _ = gesture.reset()
             onCancel?()
             return
         }
         guard type == .flagsChanged else {
-            holdWorkItem?.cancel()
+            holdTimer?.invalidate()
             dispatch(gesture.interrupt())
             return
         }
@@ -114,19 +118,23 @@ final class ControlHotkeyMonitor {
         let now = now()
         if isTriggerEvent, down, !gesture.isPressed {
             dispatch(gesture.press(at: now, eligible: alone))
-            let work = DispatchWorkItem { [weak self] in self?.handleHoldThreshold() }
-            holdWorkItem = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
+            let timer = Timer(timeInterval: 0.25, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated { self?.handleHoldThreshold() }
+            }
+            holdTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
         } else if isTriggerEvent, !down {
-            holdWorkItem?.cancel()
+            holdTimer?.invalidate()
             dispatch(gesture.release(at: now))
         } else if !alone {
-            holdWorkItem?.cancel()
+            holdTimer?.invalidate()
             dispatch(gesture.interrupt())
         }
     }
 
     func handleHoldThreshold() {
+        holdTimer?.invalidate()
+        holdTimer = nil
         guard status == .active, !source.isSecureInput else {
             dispatch(gesture.reset())
             return
