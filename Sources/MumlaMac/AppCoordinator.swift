@@ -159,6 +159,7 @@ final class AppCoordinator: ObservableObject {
         let diagnostic = [
             "Mumla \(info["CFBundleShortVersionString"] ?? "dev") (\(info["CFBundleVersion"] ?? "dev"))",
             "Distribution: \(info["MumlaDistribution"] ?? "dev")",
+            "Bundle: \(Bundle.main.bundleIdentifier ?? "unbundled")",
             "Trigger: \(settings.triggerKey.rawValue)",
             "Input Monitoring: \(CGPreflightListenEventAccess())",
             "Accessibility: \(AccessibilityPermission.isTrusted)",

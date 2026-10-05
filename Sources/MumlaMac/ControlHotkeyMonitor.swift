@@ -30,6 +30,7 @@ final class ControlHotkeyMonitor {
     private var triggerKey: DictationTriggerKey = .control
     private var gesture = DictationHotkeyGesture()
     private var holdTimer: Timer?
+    private var healthTimer: Timer?
 
     init(source: any HotkeyEventSource = MacHotkeyEventSource(), now: @escaping () -> TimeInterval = { CACurrentMediaTime() }) {
         self.source = source
@@ -45,8 +46,13 @@ final class ControlHotkeyMonitor {
     }
 
     func start(forceRestart: Bool = false) {
+        scheduleHealthCheckIfNeeded()
         if !forceRestart, source.isRunning, source.hasPermission {
             setStatus(.active)
+            return
+        }
+        if !forceRestart, !source.hasPermission, !source.isRunning, source.isLocalRunning {
+            setStatus(.inputMonitoringRequired)
             return
         }
         holdTimer?.invalidate()
@@ -63,6 +69,8 @@ final class ControlHotkeyMonitor {
     }
 
     func stop() {
+        healthTimer?.invalidate()
+        healthTimer = nil
         holdTimer?.invalidate()
         dispatch(gesture.reset())
         source.stop()
@@ -82,6 +90,7 @@ final class ControlHotkeyMonitor {
                 setStatus(.active)
             } else {
                 source.stop()
+                _ = source.startLocal { [weak self] type, event in self?.handle(type: type, event: event) }
                 setStatus(source.hasPermission ? .unavailable : .inputMonitoringRequired)
             }
             return
@@ -159,6 +168,26 @@ final class ControlHotkeyMonitor {
             MainActor.assumeIsolated { self?.handleHoldThreshold() }
         }
         holdTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    func checkHealth() {
+        guard status != .stopped else { return }
+        let hasPermission = source.hasPermission
+        if hasPermission, source.isRunning { return }
+        // Don't interrupt a working in-app hold to retry a failed global listener.
+        if hasPermission, status == .unavailable, gesture.isPressed,
+           source.isLocalRunning, NSApplication.shared.isActive { return }
+        start()
+    }
+
+    private func scheduleHealthCheckIfNeeded() {
+        guard healthTimer == nil else { return }
+        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.checkHealth() }
+        }
+        timer.tolerance = 1
+        healthTimer = timer
         RunLoop.main.add(timer, forMode: .common)
     }
 

@@ -14,6 +14,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     private var pillWindowController: PillWindowController!
     private var hotkeyMonitor: ControlHotkeyMonitor!
     private var updater: MacUpdateController!
+    private var hotkeyIsSuspended = false
 
     static func main() {
         let app = NSApplication.shared
@@ -105,17 +106,40 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(retryHotkeyMonitor(_:)), name: NSWorkspace.didActivateApplicationNotification, object: nil
         )
+        for name in [NSWorkspace.didWakeNotification, NSWorkspace.sessionDidBecomeActiveNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(
+                self, selector: #selector(resumeHotkeyMonitor(_:)), name: name, object: nil
+            )
+        }
+        for name in [NSWorkspace.willSleepNotification, NSWorkspace.sessionDidResignActiveNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(
+                self, selector: #selector(suspendHotkeyMonitor(_:)), name: name, object: nil
+            )
+        }
         if CommandLine.arguments.contains("--show-window") {
             coordinator.openSettings()
         }
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
+        guard !hotkeyIsSuspended else { return }
         hotkeyMonitor?.start()
     }
 
     @objc private func retryHotkeyMonitor(_ notification: Notification) {
+        guard !hotkeyIsSuspended else { return }
         hotkeyMonitor?.start()
+    }
+
+    @objc private func suspendHotkeyMonitor(_ notification: Notification) {
+        hotkeyIsSuspended = true
+        hotkeyMonitor?.stop()
+        coordinator?.cancelDictation()
+    }
+
+    @objc private func resumeHotkeyMonitor(_ notification: Notification) {
+        hotkeyIsSuspended = false
+        hotkeyMonitor?.start(forceRestart: true)
     }
 
     func applicationWillTerminate(_ notification: Notification) {

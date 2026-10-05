@@ -126,6 +126,106 @@ final class HotkeyMonitorTests: XCTestCase {
         monitor.stop()
     }
 
+    func testFailedResumeKeepsLocalHotkeyAvailable() {
+        let source = FakeHotkeyEventSource()
+        source.localStartSucceeds = true
+        var time: TimeInterval = 0
+        let monitor = ControlHotkeyMonitor(source: source, now: { time })
+        defer { monitor.stop() }
+        var holds = 0
+        monitor.onHoldStarted = { holds += 1 }
+        monitor.start()
+        source.isRunning = false
+        source.resumeSucceeds = false
+        source.send(.tapDisabledByTimeout)
+        XCTAssertEqual(monitor.status, .unavailable)
+        XCTAssertTrue(source.isLocalRunning)
+        source.send(.flagsChanged, keyCode: 59, flags: .maskControl)
+        time = 0.25
+        monitor.handleHoldThreshold()
+        XCTAssertEqual(holds, 1)
+    }
+
+    func testRetryWithoutPermissionPreservesPendingLocalHold() {
+        let source = FakeHotkeyEventSource()
+        source.hasPermission = false
+        source.localStartSucceeds = true
+        var time: TimeInterval = 0
+        let monitor = ControlHotkeyMonitor(source: source, now: { time })
+        defer { monitor.stop() }
+        var holds = 0
+        monitor.onHoldStarted = { holds += 1 }
+        monitor.start()
+        source.send(.flagsChanged, keyCode: 59, flags: .maskControl)
+        time = 0.1
+        monitor.start()
+        time = 0.25
+        monitor.handleHoldThreshold()
+        XCTAssertEqual(holds, 1)
+        XCTAssertEqual(monitor.status, .inputMonitoringRequired)
+    }
+
+    func testSilentListenerFailureRecoversWithoutAppFocusChange() {
+        let source = FakeHotkeyEventSource()
+        let monitor = ControlHotkeyMonitor(source: source)
+        defer { monitor.stop() }
+        monitor.start()
+        source.isRunning = false
+        source.resumeSucceeds = false
+        let deadline = Date().addingTimeInterval(6.5)
+        while source.starts == 1, Date() < deadline {
+            _ = RunLoop.main.run(mode: .default, before: deadline)
+        }
+        XCTAssertEqual(source.starts, 2)
+        XCTAssertEqual(monitor.status, .active)
+        XCTAssertEqual(source.permissionRequests, 0)
+    }
+
+    func testHealthCheckPreservesHealthyHold() {
+        let source = FakeHotkeyEventSource()
+        var time: TimeInterval = 0
+        let monitor = ControlHotkeyMonitor(source: source, now: { time })
+        defer { monitor.stop() }
+        var holds = 0
+        monitor.onHoldStarted = { holds += 1 }
+        monitor.start()
+        source.send(.flagsChanged, keyCode: 59, flags: .maskControl)
+        monitor.checkHealth()
+        time = 0.25
+        monitor.handleHoldThreshold()
+        XCTAssertEqual(holds, 1)
+        XCTAssertEqual(source.starts, 1)
+    }
+
+    func testHealthCheckRespectsRevokedAccess() {
+        let source = FakeHotkeyEventSource()
+        var time: TimeInterval = 0
+        let monitor = ControlHotkeyMonitor(source: source, now: { time })
+        defer { monitor.stop() }
+        var cancellations = 0
+        monitor.onCancel = { cancellations += 1 }
+        monitor.start()
+        source.send(.flagsChanged, keyCode: 59, flags: .maskControl)
+        time = 0.25
+        monitor.handleHoldThreshold()
+        source.hasPermission = false
+        monitor.checkHealth()
+        XCTAssertEqual(cancellations, 1)
+        XCTAssertEqual(monitor.status, .inputMonitoringRequired)
+        XCTAssertEqual(source.permissionRequests, 0)
+    }
+
+    func testStoppedMonitorCannotBeRestartedByHealthCheck() {
+        let source = FakeHotkeyEventSource()
+        let monitor = ControlHotkeyMonitor(source: source)
+        monitor.start()
+        monitor.stop()
+        monitor.checkHealth()
+        XCTAssertEqual(source.starts, 1)
+        XCTAssertEqual(monitor.status, .stopped)
+        XCTAssertFalse(source.isRunning)
+    }
+
     func testRevokedPermissionCancelsRecordingAndReportsMissingAccess() {
         let source = FakeHotkeyEventSource()
         var time: TimeInterval = 0
