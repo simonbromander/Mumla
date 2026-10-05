@@ -220,3 +220,36 @@ the pill never steals focus and each attempt is saved in history exactly once.
   `.build/direct32-build.log`, `.build/direct32-notarize.log`,
   `.build/hotkey-background-focused-tests.log`, and
   `.build/hotkey-background-all-tests.log`.
+
+## Updater and Focused Hotkey Build: 2026-10-05
+
+- Direct `1.0.1 (35)` was built from
+  `62957a1aa07297f7540f7169f2cc11038028bb85`; bundle and team are unchanged.
+  It adds direct Settings routing, a focused-app listener, trigger diagnostics,
+  early hold-timer recovery, and the direct-only signed updater.
+- All 113 Swift tests passed. The compact Settings rendering was inspected.
+  Signing tests passed with 12 tests/13 assertions; feed policy tests passed
+  with 6 tests/18 assertions. Simulated tests are not hardware acceptance.
+- Apple notarization `5c6c9c0b-ea83-4f2e-92ef-7b060c5304e8` was accepted.
+  The ticket was stapled and validated, and Gatekeeper accepted the app.
+- The notarized ZIP SHA-256 is
+  `abc20636f67947f4212425f893c9dc18992d6c4bd19e2651b7b63985aa0043c9`.
+- The current sandboxed `MumlaMac` source also compiled for both architectures.
+  Its binary has no Sparkle dependency or updater feed metadata. Its unchanged
+  build number 29 is a local compile check, not a new TestFlight upload.
+- Build 35 is a prerelease in both the private source repository and the public
+  downloads-only `Mumla-Releases` repository. Only the notarized ZIP and checksum
+  are assets. Public Git contains README and the signed appcast, not app source.
+- Feed signing completed after an initial Keychain wait. The update key remains
+  in the local Keychain. Anonymous ZIP download and Ed25519 verification passed
+  before feed publication. The live feed is byte-identical to the signed staging
+  feed; live feed signature and enclosure verification also passed.
+- Public feed commit: `a4cf0da`. ZIP size: 23,594,069 bytes.
+  [Download and installation notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-35).
+- Live update/replacement/relaunch testing is blocked by pending Computer Use
+  permissions. Hardware hotkey, cross-app paste, and preservation of populated
+  user data remain unverified. The build host's local stores were empty.
+- Evidence: `.build/direct35-build.log`, `.build/direct35-notarize.log`,
+  `.build/DirectMac/notarization35.json`, `.build/hotkey-local-tests.log`,
+  `.build/hotkey35-app-store-build.log`, and `.build/hotkey-settings-compact.png`.
+- [Store compatibility and the proposed paste-only experiment](mac-app-store-compatibility.md).
