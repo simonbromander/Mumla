@@ -6,6 +6,7 @@ require "open3"
 require "openssl"
 require "shellwords"
 require_relative "direct_signing"
+require_relative "ios_signing"
 
 default_platform(:ios)
 
@@ -41,20 +42,22 @@ def mumla_context
   identities, error, status = Open3.capture3("security", "find-identity", "-v", "-p", "codesigning")
   UI.user_error!("Cannot inspect local signing identities: #{error}") unless status.success?
 
-  teams = Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: "DISTRIBUTION" }).filter_map do |certificate|
+  certificates = Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: "DISTRIBUTION" }).filter_map do |certificate|
     cert = OpenSSL::X509::Certificate.new(Base64.decode64(certificate.certificate_content))
     fingerprint = Digest::SHA1.hexdigest(cert.to_der).upcase
     next unless cert.not_after > Time.now && identities.include?(fingerprint)
-    cert.subject.to_a.find { |entry| entry[0] == "OU" }&.at(1)
-  end.uniq
+    { id: certificate.id, fingerprint: fingerprint, expires: cert.not_after,
+      team: cert.subject.to_a.find { |entry| entry[0] == "OU" }&.at(1) }
+  end
+  identity = certificates.select { |certificate| certificate[:team] == TEAM_ID }.max_by { |certificate| certificate[:expires] }
 
-  UI.user_error!("No unexpired API-team distribution certificate with a local private key was found.") unless teams.include?(TEAM_ID)
+  UI.user_error!("No unexpired API-team distribution certificate with a local private key was found.") unless identity
 
   app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
   UI.success("API authentication and local distribution identity verified. Team: #{TEAM_ID}")
   UI.message(app ? "App Store Connect record found for #{BUNDLE_ID}." : "No App Store Connect app record exists for #{BUNDLE_ID} yet.")
 
-  { api_key: api_key, app: app }
+  { api_key: api_key, app: app, certificate_id: identity[:id], fingerprint: identity[:fingerprint] }
 end
 
 platform :ios do
@@ -129,7 +132,8 @@ platform :ios do
   end
 
   desc "Create a signed App Store/TestFlight IPA without uploading"
-  lane :build do
+  lane :build do |options|
+    options ||= {}
     context = mumla_context
     FileUtils.mkdir_p(OUTPUT)
     sh("xcodegen", "generate", "--spec", File.join(ROOT, "project.yml"))
@@ -145,17 +149,29 @@ platform :ios do
       16
     end
 
-    auth = [
-      "-allowProvisioningUpdates",
-      "-authenticationKeyPath", File.expand_path(ENV.fetch("ASC_KEY_PATH")),
-      "-authenticationKeyID", ENV.fetch("ASC_KEY_ID"),
-      "-authenticationKeyIssuerID", ENV.fetch("ASC_ISSUER_ID")
-    ].shelljoin
+    profile_directory = File.join(ROOT, ".build", "ios-profiles")
+    profiles = MumlaIOSSigning::TARGETS.values.to_h do |identifier|
+      filename = "#{identifier}.mobileprovision"
+      uuid = get_provisioning_profile(
+        api_key: context[:api_key], app_identifier: identifier, team_id: TEAM_ID,
+        cert_id: context.fetch(:certificate_id), platform: "ios", development: false,
+        force: options[:refresh_keyboard_profile] == true && identifier == MumlaIOSSigning::TARGETS.fetch("MumlaKeyboard"),
+        output_path: profile_directory, filename: filename
+      )
+      profile = MumlaIOSSigning.read_profile(File.join(profile_directory, filename))
+      verified_uuid = MumlaIOSSigning.validate_profile(
+        profile, identifier: identifier, team_id: TEAM_ID, fingerprint: context.fetch(:fingerprint)
+      )
+      UI.user_error!("Downloaded profile UUID does not match for #{identifier}.") unless uuid == verified_uuid
+      [identifier, verified_uuid]
+    end
+    MumlaIOSSigning.configure_project(PROJECT, profiles)
     settings = [
       "DEVELOPMENT_TEAM=#{TEAM_ID}",
       "MARKETING_VERSION=#{VERSION}",
       "CURRENT_PROJECT_VERSION=#{next_build}",
-      "CODE_SIGN_STYLE=Automatic"
+      "CODE_SIGN_STYLE=Manual",
+      "CODE_SIGN_IDENTITY=#{context.fetch(:fingerprint)}"
     ].shelljoin
 
     build_app(
@@ -171,12 +187,14 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         method: "app-store-connect",
-        signingStyle: "automatic",
+        signingStyle: "manual",
+        signingCertificate: context.fetch(:fingerprint),
+        provisioningProfiles: profiles,
         teamID: TEAM_ID,
         manageAppVersionAndBuildNumber: false,
         uploadSymbols: true
       },
-      xcargs: "#{auth} #{settings}"
+      xcargs: settings
     )
   end
 

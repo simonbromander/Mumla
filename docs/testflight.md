@@ -22,6 +22,37 @@ first signed archive, verify the extension identifiers and App Group capability:
   Unsigned device builds, Simulator tests and fixtures do not prove background
   audio, Neural Engine transcription or physical haptics.
 
+### iOS Build 28 Preparation: 2026-10-05
+
+- Core tests: 130 passed. Compact iPhone Simulator: all 16 UI tests passed,
+  including the actual keyboard's typing and single transcript insertion.
+- Release tooling: 31 Ruby tests passed. An integration check on a temporary
+  generated project verified all three explicit Release profiles without
+  changing Debug or Mac configurations. The downloaded main-app profile passed
+  the real entitlement/certificate check; the keyboard failed only membership.
+- Release preflight passed. The initial automatic archive failed because
+  Xcode provisioning authentication failed for the new keyboard identifier.
+- Registered `com.mumla.app.keyboard` and enabled App Groups through Apple's
+  API. The keyboard still needs membership in the existing `group.com.mumla.app`:
+  Apple Developer -> Identifiers -> Mumla Keyboard -> App Groups -> Configure
+  -> select that group -> Save.
+- The explicit-profile retry confirmed that missing membership: it stopped at
+  the profile validation gate before archiving. No iOS build 28 was uploaded.
+- Created App Store profiles for the existing app and widget using the valid
+  local distribution certificate. The previous profiles referenced a different
+  certificate without its private key on this Mac.
+- The iOS build lane now validates each target's profile, local certificate,
+  bundle identity, distribution entitlements, App Group and main-app production
+  iCloud capability. Only generated Release configurations use manual profiles;
+  Debug and both Mac release lanes retain their existing setup.
+- After saving keyboard membership, regenerate only its profile and archive:
+  `fastlane ios build refresh_keyboard_profile:true`. Audit the signed IPA
+  before `fastlane ios upload`, then publish the versioned testing notes and
+  refresh `fastlane ios beta_status`.
+- Notes are prepared in `fastlane/testflight/ios-1.0.1-28.json`. Physical-device
+  keyboard/background-audio acceptance remains pending; this is an experimental
+  internal beta, not evidence of the stable-release acceptance gate.
+
 ## macOS Release 29: 2026-10-01
 
 - macOS `1.0.1 (29)`, source commit `7bfe96c` (recorder rendering fix from

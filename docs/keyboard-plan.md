@@ -1,6 +1,6 @@
 # Mumla Keyboard
 
-Status: implemented; physical-iPhone acceptance and release provisioning pending,
+Status: implemented; physical-iPhone acceptance and keyboard App Group assignment pending,
 2026-10-05.
 
 ## Scope
@@ -77,7 +77,11 @@ Live Activity ends the session as well. No remote pushes or servers.
 - Local logs/results/screenshots are retained under `.build/keyboard-*.log` and
   `.build/Keyboard*QA.xcresult`. These generated artifacts are not committed.
 
-### Physical Acceptance Before Release
+### Physical Acceptance Before Stable Release
+
+An experimental internal TestFlight build can exercise this checklist, with the
+unverified behavior stated in its testing notes. Passing Simulator fixtures is
+not sufficient to mark the keyboard accepted for a stable release.
 
 - Messages, Mail and Notes: start in Mumla, return manually, record while Mumla
   is backgrounded, stop and verify one insertion into the original field.
