@@ -253,3 +253,32 @@ the pill never steals focus and each attempt is saved in history exactly once.
   `.build/DirectMac/notarization35.json`, `.build/hotkey-local-tests.log`,
   `.build/hotkey35-app-store-build.log`, and `.build/hotkey-settings-compact.png`.
 - [Store compatibility and the proposed paste-only experiment](mac-app-store-compatibility.md).
+
+## Rams Appearance Beta: 2026-10-05
+
+- Universal direct 1.0.1 (36) was archived from source
+  `d0bc0eb64940c6466a31cf9f05f831a8ea38cdd9`. It adds persistent System / Light /
+  Dark choices, a menu-bar Appearance submenu and the new Rams-inspired icon.
+  It does not change hotkey, recording or paste behavior.
+- The exported app retains `com.mumla.app`, team `PF2PWR4YG4`, macOS 14 minimum,
+  arm64/x86_64, hardened runtime and microphone-only entitlements. No sandbox,
+  debugger or unused CloudKit/App Group entitlements were added.
+- All 132 core/Mac tests and 31 release-helper tests passed. Native appearance
+  mapping, persistence, override reset and primary text contrast were checked.
+- Apple notarization `edde0dcd-00f6-4d60-9482-edb8b05eaa22` was Accepted.
+  Stapling, ticket validation and Gatekeeper acceptance passed.
+- ZIP size: 22,949,303 bytes. SHA-256:
+  `3b8471e9c3c275c9640f3bde343a9f64d3e0965a0535e1841589fbbfe1bd52ea`.
+- Published prerelease `macos-1.0.1-36` in the private source repository and
+  public downloads-only repository. Anonymous download and Ed25519 verification
+  passed for both feed enclosures (36 and 35) before publishing the new feed.
+- Feed commit: `0a2b424`. The live feed is byte-identical to the verified staging
+  feed, and its signature passed verification. Existing direct build 35 can
+  discover it through Check for Updates; live installation/relaunch remains
+  unverified while this Mac is locked.
+- [Download and installation notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-36).
+- iOS and Mac TestFlight were not uploaded by this direct release. iOS 28 is
+  waiting on keyboard App Group membership; Mac TestFlight remains build 29.
+- Evidence: `.build/DirectMac/build-audit-36.json`, `.build/direct36-build.log`,
+  `.build/direct36-notarize.log`, `.build/direct36-feed-prepare.json`,
+  `.build/direct36-public-verify.json` and `.build/direct36-live-appcast.xml`.

@@ -9,7 +9,9 @@ final class MumlaUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
         configureMumlaKeyboard(fullAccess: true)
-        app.activate()
+        // Changing extension access can restart the host without its test arguments.
+        app.launch()
+        defer { restoreSystemKeyboard(app) }
         selectMumlaKeyboard(app)
         let record = app.buttons["keyboard.record"]
         let ready = NSPredicate(format: "enabled == true")
@@ -39,7 +41,8 @@ final class MumlaUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
         configureMumlaKeyboard(fullAccess: false)
-        app.activate()
+        app.launch()
+        defer { restoreSystemKeyboard(app) }
         selectMumlaKeyboard(app)
         XCTAssertTrue(app.buttons["keyboard.key.h"].waitForExistence(timeout: 5))
         for key in ["h", "e", "j"] { app.buttons["keyboard.key.\(key)"].tap() }
@@ -89,6 +92,7 @@ final class MumlaUITests: XCTestCase {
     }
 
     private func selectMumlaKeyboard(_ app: XCUIApplication) {
+        XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 5))
         app.textViews["keyboard.hostField"].tap()
         if !app.buttons["keyboard.key.h"].exists {
             let globe = app.buttons["Next keyboard"].firstMatch
@@ -96,6 +100,16 @@ final class MumlaUITests: XCTestCase {
             app.staticTexts["Mumla"].firstMatch.tap()
         }
         XCTAssertTrue(app.buttons["keyboard.key.h"].waitForExistence(timeout: 5))
+    }
+
+    private func restoreSystemKeyboard(_ app: XCUIApplication) {
+        let globe = app.buttons["keyboard.globe"]
+        guard globe.exists && globe.isHittable else { return }
+        globe.tap()
+        let switched = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"), object: app.buttons["keyboard.key.h"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [switched], timeout: 5), .completed)
     }
 
     func testKeyboardTypingShiftSwedishLettersSymbolsAndDelete() {

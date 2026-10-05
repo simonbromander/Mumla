@@ -53,6 +53,25 @@ first signed archive, verify the extension identifiers and App Group capability:
   keyboard/background-audio acceptance remains pending; this is an experimental
   internal beta, not evidence of the stable-release acceptance gate.
 
+### Appearance and Icon Follow-Up: 2026-10-05
+
+- Source now includes the new Rams-inspired icon and System / Light / Dark
+  controls at the top of iPhone Settings. The preference persists across
+  launches, sheets and keyboard session packets. System is the default.
+- All 132 core/Mac tests, 31 release-helper tests and 17 final compact-iPhone UI
+  tests passed. The final unsigned iOS Release simulator preflight also passed.
+- UI test isolation was improved after rerun failures around extension-access
+  changes and persistent custom-keyboard selection; no runtime workaround or
+  permission bypass was added. Real-device keyboard acceptance remains pending.
+- The current signed keyboard profile still lacks `group.com.mumla.app`.
+  Apple Developer UI access is blocked by the locked build Mac. Complete the
+  association above, then regenerate its profile using the documented lane.
+- No new signed iOS archive or upload was made. Testing notes for build 28 now
+  include the new icon and appearance selection. The notarized direct Mac 36
+  release is separate from iOS and sandboxed Mac TestFlight.
+- Evidence: `.build/appearance-ui-release-isolated.xcresult`,
+  `.build/appearance-ios-release-preflight.log` and `docs/light-appearance.md`.
+
 ## macOS Release 29: 2026-10-01
 
 - macOS `1.0.1 (29)`, source commit `7bfe96c` (recorder rendering fix from

@@ -53,3 +53,20 @@ change does not modify transcription, permissions, hotkey or paste behavior.
   `.build/appearance-ui-20261005.xcresult`,
   `.build/appearance-ui-final-20261005.xcresult`,
   `.build/AppearanceScreenshotsFinal/` and Mac Settings captures.
+
+## Final Release Verification
+
+- The full suite rerun exposed two test-transition failures: the keyboard test
+  returned from Settings without its debug host, and a later text-entry test
+  lost keyboard focus. An isolated retry reproduced the latter.
+- Test setup now explicitly relaunches the debug host after extension access
+  changes and restores the system keyboard when the real-extension test ends.
+  No app runtime or permission behavior changed. All 17 final UI tests passed.
+- The final iOS Release simulator preflight passed, including both extensions.
+  This is unsigned compilation, not a TestFlight upload.
+- Direct Mac 1.0.1 (36) was signed, notarized, stapled and published with the
+  new icon. The anonymous downloads, archive signatures and live signed update
+  feed passed verification. iOS 28 still requires the keyboard App Group setup.
+- Final evidence: `.build/appearance-ui-release-isolated.xcresult`,
+  `.build/appearance-ios-release-preflight.log`, `.build/direct36-build.log`,
+  `.build/direct36-notarize.log` and `.build/DirectMac/build-audit-36.json`.
