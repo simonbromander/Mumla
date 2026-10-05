@@ -6,6 +6,22 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
+## Keyboard Build Prerequisites
+
+The keyboard implementation on main is not a TestFlight release. Before its
+first signed archive, verify the extension identifiers and App Group capability:
+
+- `com.mumla.app.keyboard`: keyboard extension, new identifier.
+- `com.mumla.app.widgets`: keyboard Live Activity, preserved identifier.
+- Both extensions and `com.mumla.app` require `group.com.mumla.app`.
+- All three targets must have matching version/build numbers, distribution
+  signatures and profiles for team `PF2PWR4YG4` with `get-task-allow=false`.
+- Audit the embedded `.appex` bundles as well as the containing app. Neither
+  extension should link FluidAudio or have microphone/network entitlements.
+- Run the physical-iPhone checklist in [keyboard-plan.md](keyboard-plan.md).
+  Unsigned device builds, Simulator tests and fixtures do not prove background
+  audio, Neural Engine transcription or physical haptics.
+
 ## macOS Release 29: 2026-10-01
 
 - macOS `1.0.1 (29)`, source commit `7bfe96c` (recorder rendering fix from

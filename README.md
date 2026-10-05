@@ -1,9 +1,9 @@
 # Mumla
 
 Mumla is a native, on-device dictation app for macOS and iOS. Its recorder-inspired
-interface pairs a recessed sage display with tactile graphite controls and iPhone
-haptic feedback. Swedish dictation is implemented; English routing, meetings,
-keyboard extensions, and private iCloud sync remain planned work.
+interface pairs a recessed sage display with tactile graphite or white controls
+and iPhone haptic feedback. Swedish dictation and an iOS keyboard are implemented;
+English routing, meetings and private iCloud sync remain planned work.
 
 This repo intentionally starts clean. The old `kb-ios` repo is kept locally as a
 reference at `/Users/bob/projects/_references/kb-ios`, but this implementation
@@ -32,8 +32,15 @@ open Mumla.xcodeproj
 Choose `Mumla` for iOS or `MumlaMac` for macOS. Both use the local `MumlaCore`,
 `MumlaAudio`, and `MumlaUI` packages. Download the Swedish model in the app before
 recording. iOS supports recording, on-device transcription, history, copy/share,
-and a persistent replacement dictionary. It does not yet dictate into other
-apps through a keyboard extension.
+a persistent replacement dictionary and the Mumla keyboard.
+
+For the keyboard, add Mumla under iOS Settings > General > Keyboard > Keyboards
+and enable Full Access for local App Group communication. Open Mumla's keyboard
+setup, start a 15-minute session, switch back to your app and select Mumla with
+the globe key. Recording and transcription stay in the containing app; the
+extension inserts text directly, without the clipboard. Normal typing works
+without Full Access. The model-backed background session and haptics still need
+physical-iPhone acceptance. See [the keyboard plan](docs/keyboard-plan.md).
 
 See [the design system](docs/design-system.md) and
 [TestFlight release instructions](docs/testflight.md).

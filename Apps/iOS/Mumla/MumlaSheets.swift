@@ -8,6 +8,7 @@ struct MumlaSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var showAbout = false
+    @State private var showKeyboard = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,6 +33,8 @@ struct MumlaSettingsSheet: View {
                     action(mText("Mikrofonbehörighet", "Microphone permission"), symbol: "mic") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
+                    action(mText("Mumla-tangentbord", "Mumla keyboard"), symbol: "keyboard") { showKeyboard = true }
+                        .accessibilityIdentifier("settings.keyboard")
                     Divider().padding(.vertical, 4)
                     sectionTitle(mText("Om Mumla", "About Mumla"))
                     readout("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
@@ -45,6 +48,7 @@ struct MumlaSettingsSheet: View {
         .presentationBackground(MumlaStyle.background)
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .sheet(isPresented: $showAbout) { MumlaAboutView() }
+        .sheet(isPresented: $showKeyboard) { KeyboardSetupSheet(session: session) }
     }
 
     private func sectionTitle(_ title: String) -> some View {

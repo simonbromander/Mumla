@@ -1,3 +1,4 @@
+import ActivityKit
 import AVFoundation
 import MumlaAudio
 import MumlaCore
@@ -16,6 +17,8 @@ final class DictationSession: ObservableObject {
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var samples = Array(repeating: 0.0, count: 43)
     @Published private(set) var hasPendingAudio = false
+    @Published private(set) var keyboardSnapshot = KeyboardSessionSnapshot()
+    @Published private(set) var isStartingKeyboard = false
     @Published var error: String?
     @Published var selectedRecord: DictationRecord?
     @Published var copiedID: UUID?
@@ -24,10 +27,12 @@ final class DictationSession: ObservableObject {
     private let installer = ModelInstaller()
     private let recorder = MicrophoneRecorder()
     private let pendingURL = ModelPathResolver.appSupportDirectory().appendingPathComponent("pending-dictation.wav")
+    private let keyboardPendingURL = ModelPathResolver.appSupportDirectory().appendingPathComponent("pending-keyboard.caf")
     private var transcriber: LocalPianissimoTranscriber?
     private var meterTask: Task<Void, Never>?
     private var unloadTask: Task<Void, Never>?
     private var interruptionObserver: NSObjectProtocol?
+    private var keyboardSession: KeyboardDictationSession?
 
     init() {
         #if DEBUG
@@ -62,7 +67,15 @@ final class DictationSession: ObservableObject {
             dictionary = try dictionaryStore.load()
         } catch { self.error = error.localizedDescription }
         modelReady = ModelPathResolver.resolveCompiledPianissimoModel() != nil
-        hasPendingAudio = FileManager.default.fileExists(atPath: pendingURL.path)
+        recoverKeyboardClip()
+        hasPendingAudio = FileManager.default.fileExists(atPath: pendingURL.path) || FileManager.default.fileExists(atPath: keyboardPendingURL.path)
+        if let store = KeyboardSessionStore.shared() { try? store.write(KeyboardSessionSnapshot()) }
+        let previousActivityIDs = Set(Activity<MumlaKeyboardActivityAttributes>.activities.map(\.id))
+        Task {
+            for activity in Activity<MumlaKeyboardActivityAttributes>.activities where previousActivityIDs.contains(activity.id) {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
+        }
         interruptionObserver = NotificationCenter.default.addObserver(
             forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
         ) { [weak self] notification in
@@ -93,7 +106,7 @@ final class DictationSession: ObservableObject {
     }
 
     func record() async {
-        guard state == .idle, modelReady, !hasPendingAudio else { return }
+        guard state == .idle, modelReady, !hasPendingAudio, !keyboardSnapshot.isAlive(), !isStartingKeyboard else { return }
         state = .requestingPermission
         guard await recorder.microphonePermissionGranted() else {
             state = .idle
@@ -150,8 +163,8 @@ final class DictationSession: ObservableObject {
         }
     }
 
-    func transcribePending() async {
-        guard hasPendingAudio else { return }
+    @discardableResult func transcribePending() async -> DictationRecord? {
+        guard hasPendingAudio else { return nil }
         state = .transcribing
         unloadTask?.cancel()
         defer { state = .idle; scheduleUnload() }
@@ -161,20 +174,83 @@ final class DictationSession: ObservableObject {
             }
             guard let transcriber else {
                 error = mText("Hämta språkmodellen först.", "Download the language model first.")
-                return
+                return nil
             }
-            let result = try await transcriber.transcribe(audioURL: pendingURL)
+            let audioURL = FileManager.default.fileExists(atPath: keyboardPendingURL.path) ? keyboardPendingURL : pendingURL
+            let result = try await transcriber.transcribe(audioURL: audioURL)
             let text = TranscriptNormalizer(dictionaryEntries: dictionary).normalize(result.text, language: .swedish)
             guard !text.isEmpty else {
                 error = mText("Inget tal hördes. Försök igen.", "No speech detected. Try again.")
-                discardPending()
-                return
+                discardPending(audioURL)
+                return nil
             }
             let record = DictationRecord(text: text, language: .swedish, durationMilliseconds: result.durationSeconds * 1000)
             history = try historyStore.append(record)
             MumlaFeedback.success()
-            discardPending()
-        } catch { self.error = error.localizedDescription }
+            discardPending(audioURL)
+            return record
+        } catch { self.error = error.localizedDescription; return nil }
+    }
+
+    func startKeyboardSession() async {
+        guard state == .idle, modelReady, !hasPendingAudio, !keyboardSnapshot.isAlive(), !isStartingKeyboard else { return }
+        isStartingKeyboard = true
+        error = nil
+        defer { isStartingKeyboard = false }
+        guard let store = KeyboardSessionStore.shared() else {
+            error = mText("Tangentbordets delade lagring saknas. Installera om Mumla.", "Keyboard shared storage is unavailable. Reinstall Mumla.")
+            return
+        }
+        guard await recorder.microphonePermissionGranted() else {
+            error = mText("Tillåt mikrofonen i Inställningar för att starta tangentbordet.", "Allow microphone access in Settings to start the keyboard.")
+            return
+        }
+        do {
+            unloadTask?.cancel()
+            if transcriber == nil, let directory = ModelPathResolver.resolveCompiledPianissimoModel() {
+                transcriber = LocalPianissimoTranscriber(modelDirectory: directory)
+            }
+            try await transcriber?.warmUp()
+            if keyboardSession == nil {
+                keyboardSession = KeyboardDictationSession(store: store) { [weak self] url in
+                    guard let self else { throw CancellationError() }
+                    if !self.hasPendingAudio {
+                        try FileManager.default.createDirectory(at: self.keyboardPendingURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try FileManager.default.moveItem(at: url, to: self.keyboardPendingURL)
+                        self.hasPendingAudio = true
+                    }
+                    guard let record = await self.transcribePending() else {
+                        throw NSError(domain: "MumlaKeyboard", code: 1, userInfo: [NSLocalizedDescriptionKey:
+                            self.error ?? mText("Öppna Mumla för att fortsätta.", "Open Mumla to continue.")])
+                    }
+                    return record
+                } canRetry: { [weak self] in self?.hasPendingAudio == true } changed: { [weak self] snapshot in
+                    guard let self else { return }
+                    let wasActive = self.keyboardSnapshot.sessionID != nil
+                    self.keyboardSnapshot = snapshot
+                    if wasActive && snapshot.sessionID == nil {
+                        self.recoverKeyboardClip()
+                        self.hasPendingAudio = FileManager.default.fileExists(atPath: self.pendingURL.path) || FileManager.default.fileExists(atPath: self.keyboardPendingURL.path)
+                        self.scheduleUnload()
+                    }
+                }
+            }
+            try await keyboardSession?.start()
+            MumlaFeedback.latch()
+        } catch { self.error = error.localizedDescription; scheduleUnload() }
+    }
+
+    func endKeyboardSession() { keyboardSession?.end(); scheduleUnload() }
+
+    func discardPendingAudio() {
+        guard state == .idle, !keyboardSnapshot.isAlive() else { return }
+        discardPending()
+    }
+
+    func refreshPendingAudio() {
+        guard state == .idle, keyboardSnapshot.sessionID == nil, !isStartingKeyboard else { return }
+        recoverKeyboardClip()
+        hasPendingAudio = FileManager.default.fileExists(atPath: pendingURL.path) || FileManager.default.fileExists(atPath: keyboardPendingURL.path)
     }
 
     func cancel() {
@@ -224,10 +300,24 @@ final class DictationSession: ObservableObject {
         catch { self.error = error.localizedDescription }
     }
     private func deactivateAudio() { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
-    private func discardPending() { try? FileManager.default.removeItem(at: pendingURL); hasPendingAudio = false }
+    private func discardPending(_ audioURL: URL? = nil) {
+        let completed = audioURL ?? (FileManager.default.fileExists(atPath: keyboardPendingURL.path) ? keyboardPendingURL : pendingURL)
+        try? FileManager.default.removeItem(at: completed)
+        recoverKeyboardClip()
+        hasPendingAudio = FileManager.default.fileExists(atPath: pendingURL.path) || FileManager.default.fileExists(atPath: keyboardPendingURL.path)
+    }
+    private func recoverKeyboardClip() {
+        guard keyboardSnapshot.sessionID == nil, !FileManager.default.fileExists(atPath: keyboardPendingURL.path) else { return }
+        let directory = ModelPathResolver.appSupportDirectory().appendingPathComponent("KeyboardClips", isDirectory: true)
+        guard let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey]),
+              let clip = files.filter({ $0.pathExtension == "caf" }).sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).first else { return }
+        try? FileManager.default.moveItem(at: clip, to: keyboardPendingURL)
+    }
     private func scheduleUnload() {
+        unloadTask?.cancel()
         unloadTask = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(600)) } catch { return }
+            guard self?.keyboardSnapshot.isAlive() != true else { return }
             self?.transcriber = nil
         }
     }

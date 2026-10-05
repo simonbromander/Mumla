@@ -53,6 +53,41 @@ targetTemplates:
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         MUMLA_DISTRIBUTION: app-store
 targets:
+  MumlaKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Apps/iOS/MumlaKeyboard
+    dependencies:
+      - package: MumlaKit
+        product: MumlaCore
+      - package: MumlaKit
+        product: MumlaUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mumla.app.keyboard
+        INFOPLIST_FILE: Apps/iOS/MumlaKeyboard/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Apps/iOS/MumlaKeyboard/MumlaKeyboard.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+  MumlaWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Apps/iOS/MumlaWidgets
+      - path: Apps/iOS/Shared
+    dependencies:
+      - package: MumlaKit
+        product: MumlaCore
+      - package: MumlaKit
+        product: MumlaUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mumla.app.widgets
+        INFOPLIST_FILE: Apps/iOS/MumlaWidgets/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Apps/iOS/MumlaWidgets/MumlaWidgets.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
   MumlaUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -88,7 +123,12 @@ targets:
     platform: iOS
     sources:
       - path: Apps/iOS/Mumla
+      - path: Apps/iOS/Shared
     dependencies:
+      - target: MumlaKeyboard
+        embed: true
+      - target: MumlaWidgets
+        embed: true
       - package: MumlaKit
         product: MumlaCore
       - package: MumlaKit

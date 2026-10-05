@@ -3,6 +3,222 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testKeyboardExtensionInsertsSharedResultOnce() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-host", "--keyboard-session-fixture", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
+        configureMumlaKeyboard(fullAccess: true)
+        app.activate()
+        selectMumlaKeyboard(app)
+        let record = app.buttons["keyboard.record"]
+        let ready = NSPredicate(format: "enabled == true")
+        expectation(for: ready, evaluatedWith: record)
+        waitForExpectations(timeout: 5)
+        record.tap()
+        let stop = app.buttons["Stop dictation"]
+        XCTAssertTrue(stop.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["keyboard.cancel"].exists)
+        capture("38-keyboard-real-recording-command", app: app)
+        stop.tap()
+        let field = app.textViews["keyboard.hostField"]
+        expectation(for: NSPredicate(format: "value == %@", "Hej från Mumla."), evaluatedWith: field)
+        waitForExpectations(timeout: 5)
+        XCTAssertFalse(app.buttons["keyboard.insert"].exists)
+        app.buttons["keyboard.key.å"].tap()
+        XCTAssertEqual(field.value as? String, "Hej från Mumla.å")
+        capture("39-keyboard-real-insertion", app: app)
+        app.buttons["keyboard.end"].tap()
+        expectation(for: NSPredicate(format: "enabled == false"), evaluatedWith: record)
+        waitForExpectations(timeout: 5)
+    }
+
+    func testKeyboardExtensionTypesWithoutFullAccess() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-host", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
+        configureMumlaKeyboard(fullAccess: false)
+        app.activate()
+        selectMumlaKeyboard(app)
+        XCTAssertTrue(app.buttons["keyboard.key.h"].waitForExistence(timeout: 5))
+        for key in ["h", "e", "j"] { app.buttons["keyboard.key.\(key)"].tap() }
+        app.buttons["keyboard.space"].tap()
+        for key in ["å", "ä", "ö"] { app.buttons["keyboard.key.\(key)"].tap() }
+        XCTAssertEqual(app.textViews["keyboard.hostField"].value as? String, "hej åäö")
+        XCTAssertFalse(app.buttons["keyboard.record"].isEnabled)
+        capture("37-keyboard-real-extension", app: app)
+    }
+
+    private func configureMumlaKeyboard(fullAccess: Bool) {
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settings.launchArguments = ["-AppleLanguages", "(en)"]
+        settings.launch()
+        for _ in 0..<5 where settings.buttons["BackButton"].exists { settings.buttons["BackButton"].tap() }
+        let general = settings.staticTexts["General"]
+        for _ in 0..<4 where !general.isHittable { settings.swipeUp() }
+        XCTAssertTrue(general.waitForExistence(timeout: 3)); general.tap()
+        let keyboard = settings.staticTexts["Keyboard"].firstMatch
+        for _ in 0..<4 where !keyboard.isHittable { settings.swipeUp() }
+        keyboard.tap()
+        settings.cells["KEYBOARDS"].tap()
+        let installed = settings.cells.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Mumla")).firstMatch
+        if !installed.exists {
+            settings.buttons["AddNewKeyboard"].tap()
+            let mumla = settings.cells.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Mumla")).firstMatch
+            XCTAssertTrue(mumla.waitForExistence(timeout: 5)); mumla.tap()
+        }
+        let mumla = settings.cells.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Mumla")).firstMatch
+        XCTAssertTrue(mumla.waitForExistence(timeout: 3)); mumla.tap()
+        let access = settings.switches["Allow Full Access"]
+        XCTAssertTrue(access.waitForExistence(timeout: 3))
+        if (access.value as? String == "1") != fullAccess {
+            access.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+                .withOffset(CGVector(dx: -25, dy: 0)).tap()
+            if fullAccess {
+                let allow = settings.buttons["Allow"].firstMatch
+                if allow.waitForExistence(timeout: 2) { allow.tap() }
+            }
+        }
+        if access.value as? String != (fullAccess ? "1" : "0") {
+            let hierarchy = XCTAttachment(string: settings.debugDescription)
+            hierarchy.lifetime = .keepAlways; add(hierarchy)
+            capture("40-keyboard-access-settings", app: settings)
+        }
+        XCTAssertEqual(access.value as? String, fullAccess ? "1" : "0")
+    }
+
+    private func selectMumlaKeyboard(_ app: XCUIApplication) {
+        app.textViews["keyboard.hostField"].tap()
+        if !app.buttons["keyboard.key.h"].exists {
+            let globe = app.buttons["Next keyboard"].firstMatch
+            XCTAssertTrue(globe.waitForExistence(timeout: 3)); globe.press(forDuration: 1)
+            app.staticTexts["Mumla"].firstMatch.tap()
+        }
+        XCTAssertTrue(app.buttons["keyboard.key.h"].waitForExistence(timeout: 5))
+    }
+
+    func testKeyboardTypingShiftSwedishLettersSymbolsAndDelete() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-preview", "-AppleLanguages", "(sv)"]
+        app.launch()
+        let shift = app.buttons["keyboard.shift"]
+        XCTAssertTrue(shift.waitForExistence(timeout: 10))
+        shift.tap()
+        app.buttons["keyboard.key.h"].tap()
+        app.buttons["keyboard.key.e"].tap()
+        app.buttons["keyboard.key.j"].tap()
+        app.buttons["keyboard.space"].tap()
+        for key in ["å", "ä", "ö"] { app.buttons["keyboard.key.\(key)"].tap() }
+        XCTAssertEqual(app.staticTexts["keyboard.output"].label, "Hej åäö")
+        app.buttons["keyboard.layout"].tap()
+        for key in ["1", "2", "3"] { app.buttons["keyboard.key.\(key)"].tap() }
+        app.buttons["keyboard.delete"].tap()
+        XCTAssertEqual(app.staticTexts["keyboard.output"].label, "Hej åäö12")
+        app.buttons["keyboard.shift"].tap()
+        app.buttons["keyboard.key.€"].tap()
+        XCTAssertEqual(app.staticTexts["keyboard.output"].label, "Hej åäö12€")
+        app.buttons["keyboard.return"].tap()
+        capture("30-keyboard-light", app: app)
+        app.buttons["Dark"].tap()
+        capture("31-keyboard-dark", app: app)
+        XCTAssertTrue(app.buttons["keyboard.return"].isHittable)
+    }
+
+    func testKeyboardRecordingPreviewAndAccessStates() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-preview", "-AppleLanguages", "(sv)"]
+        app.launch()
+        let record = app.buttons["keyboard.record"]
+        XCTAssertTrue(record.waitForExistence(timeout: 10))
+        record.tap()
+        XCTAssertEqual(record.label, "Stoppa diktering")
+        XCTAssertTrue(app.buttons["keyboard.cancel"].exists)
+        capture("32-keyboard-recording", app: app)
+        app.buttons["keyboard.cancel"].tap()
+        XCTAssertEqual(record.label, "Spela in diktering")
+        record.tap(); record.tap()
+        let insert = app.buttons["keyboard.insert"]
+        XCTAssertTrue(insert.waitForExistence(timeout: 3))
+        XCTAssertTrue(insert.isHittable)
+        capture("33-keyboard-result", app: app)
+        insert.tap()
+        XCTAssertEqual(app.staticTexts["keyboard.output"].label, "Vi ses klockan nio.")
+        XCTAssertFalse(insert.exists)
+        record.tap(); record.tap()
+        let keep = app.buttons["keyboard.keep"]
+        XCTAssertTrue(keep.waitForExistence(timeout: 3))
+        keep.tap()
+        XCTAssertFalse(insert.exists)
+        XCTAssertEqual(app.staticTexts["keyboard.output"].label, "Vi ses klockan nio.")
+        XCTAssertTrue(record.isEnabled)
+        app.buttons["Access"].tap()
+        XCTAssertFalse(record.isEnabled)
+        app.buttons["keyboard.key.å"].tap()
+        XCTAssertTrue(app.staticTexts["keyboard.output"].label.hasSuffix("å"))
+        capture("34-keyboard-no-access", app: app)
+        app.buttons["Access"].tap()
+        app.buttons["keyboard.end"].tap()
+        XCTAssertFalse(record.isEnabled)
+        capture("35-keyboard-no-session", app: app)
+    }
+
+    func testKeyboardSetupIsAvailableWithoutAReadyModel() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(sv)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["keyboard.setup"].waitForExistence(timeout: 10))
+        app.buttons["keyboard.setup"].tap()
+        XCTAssertTrue(app.buttons["keyboard.settings"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["keyboard.session"].exists)
+        XCTAssertFalse(app.buttons["keyboard.session"].isEnabled)
+        capture("36-keyboard-setup", app: app)
+        app.buttons["Klart"].tap()
+        app.buttons["Inställningar"].tap()
+        XCTAssertTrue(app.buttons["settings.keyboard"].waitForExistence(timeout: 3))
+    }
+
+    func testKeyboardControlsFitPortraitAndLandscape() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-preview", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["keyboard.record"].waitForExistence(timeout: 10))
+        assertKeyboardControlsFit(app)
+        app.buttons["keyboard.record"].tap(); app.buttons["keyboard.record"].tap()
+        XCTAssertTrue(app.buttons["keyboard.insert"].waitForExistence(timeout: 3))
+        assertKeyboardControlsFit(app)
+        capture("41-keyboard-portrait-fit", app: app)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            XCUIDevice.shared.orientation = .landscapeLeft
+            defer { XCUIDevice.shared.orientation = .portrait }
+            let rotated = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 5), .completed)
+            app.buttons["keyboard.key.h"].tap()
+            assertKeyboardControlsFit(app)
+            capture("42-keyboard-landscape-fit", app: app)
+        }
+    }
+
+    private func assertKeyboardControlsFit(_ app: XCUIApplication) {
+        let keys = ["keyboard.record", "keyboard.shift", "keyboard.key.q", "keyboard.key.å", "keyboard.key.ä", "keyboard.delete", "keyboard.layout", "keyboard.space", "keyboard.return"]
+        for identifier in keys {
+            let key = app.buttons[identifier]
+            XCTAssertTrue(key.isHittable, identifier)
+            XCTAssertGreaterThanOrEqual(key.frame.minX, 0, identifier)
+            XCTAssertLessThanOrEqual(key.frame.maxX, app.frame.maxX, identifier)
+            XCTAssertLessThanOrEqual(key.frame.maxY, app.frame.maxY, identifier)
+        }
+        let shift = app.buttons["keyboard.shift"], z = app.buttons["keyboard.key.z"]
+        XCTAssertLessThanOrEqual(shift.frame.maxX, z.frame.minX)
+        let space = app.buttons["keyboard.space"], enter = app.buttons["keyboard.return"]
+        XCTAssertFalse(space.frame.intersects(enter.frame))
+        if app.buttons["keyboard.insert"].exists {
+            XCTAssertTrue(app.buttons["keyboard.insert"].isHittable)
+            XCTAssertTrue(app.buttons["keyboard.keep"].isHittable)
+            XCTAssertLessThanOrEqual(app.buttons["keyboard.keep"].frame.maxY, app.buttons["keyboard.key.q"].frame.minY)
+        }
+    }
+
     func testAppearanceSelectionPersistsAndSharesWithSheets() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-AppleLanguages", "(sv)"]

@@ -44,7 +44,11 @@ Mumla is a native Swift/SwiftUI app with a shared Swift package:
 - `MumlaMac`: menu bar app, floating pill, hotkey event tap, paste/clipboard
   insertion, Accessibility field observation, meeting capture.
 - `Apps/iOS/Mumla`: main app, microphone recording, local transcription, history,
-  dictionary, and native model installer. Keyboard and Live Activity are deferred.
+  dictionary, native model installer and explicit background keyboard sessions.
+- `Apps/iOS/MumlaKeyboard`: Swedish keyboard, local session commands and direct
+  text insertion. No microphone or model runtime in the extension.
+- `Apps/iOS/MumlaWidgets`: keyboard Live Activity and local end-session intent.
+  See `keyboard-plan.md` for platform limits and outstanding device acceptance.
 - Future storage layer: encrypted transcript fields and CloudKit private database
   sync. Current stores are local; iCloud entitlements do not imply working sync.
 
@@ -175,8 +179,9 @@ macOS meetings and sync:
 iOS:
 
 - Main iOS app.
-- Custom keyboard session flow.
-- Live Activity.
+- Custom keyboard session flow: implemented with an explicit containing-app
+  session; physical-iPhone microphone/background acceptance remains open.
+- Live Activity: implemented for keyboard session status and stop control.
 - In-person meeting recording.
 - Optional on-device summaries only if Swedish quality passes owner review.
 
@@ -186,5 +191,5 @@ iOS:
 - StoreKit tiers or quota.
 - Account creation.
 - AI formatting presets from the old app.
-- Watch, widgets, CarPlay, broadcast upload, or Obsidian export before the core
+- Watch, home-screen widgets, CarPlay, broadcast upload, or Obsidian export before the core
   dictation product is working.

@@ -3,13 +3,15 @@ import MumlaUI
 import SwiftUI
 
 struct MumlaHomeView: View {
-    @StateObject private var session = DictationSession()
+    @ObservedObject var session: DictationSession
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     @State private var tab = HomeTab.dictate
     @State private var pressedTab: HomeTab?
     @State private var showSettings = false
+    @State private var showKeyboard = false
     @State private var showAddWord = false
+    @State private var showDiscardAudio = false
     @State private var query = ""
 
     var body: some View {
@@ -24,6 +26,8 @@ struct MumlaHomeView: View {
                             Task { await session.install() }
                         }.disabled(session.isInstalling)
                     }
+                    MumlaIconButton("keyboard", label: mText("Mumla-tangentbord", "Mumla keyboard")) { showKeyboard = true }
+                        .accessibilityIdentifier("keyboard.setup")
                     MumlaIconButton("slider.horizontal.3", label: mText("Inställningar", "Settings")) { showSettings = true }
                 }.frame(height: 44)
                 if tab == .dictate {
@@ -50,14 +54,21 @@ struct MumlaHomeView: View {
         .onChange(of: tab) { _, _ in MumlaFeedback.latch() }
         .onChange(of: session.error) { _, error in if error != nil { MumlaFeedback.error() } }
         .sheet(isPresented: $showSettings) { MumlaSettingsSheet(session: session) }
+        .sheet(isPresented: $showKeyboard) { KeyboardSetupSheet(session: session) }
         .sheet(isPresented: $showAddWord) { AddWordSheet(session: session) }
         .sheet(item: $session.selectedRecord) { record in TranscriptSheet(record: record, session: session) }
         .alert("Mumla", isPresented: Binding(get: { session.error != nil }, set: { if !$0 { session.error = nil } })) {
             Button("OK", role: .cancel) { session.error = nil }
         } message: { Text(session.error ?? "") }
+        .alert(mText("Radera osparat ljud?", "Discard unsaved audio?"), isPresented: $showDiscardAudio) {
+            Button(mText("Radera", "Discard"), role: .destructive) { session.discardPendingAudio() }
+            Button(mText("Avbryt", "Cancel"), role: .cancel) {}
+        } message: { Text(mText("Det här klippet har inget sparat transkript än.", "This clip does not have a saved transcript yet.")) }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background && session.state == .recording { Task { await session.finish() } }
+            if phase == .active { session.refreshPendingAudio() }
         }
+        .onOpenURL { url in if url.scheme == "mumla" && url.host == "keyboard" { showKeyboard = true } }
     }
 
     private var dictate: some View {
@@ -103,8 +114,11 @@ struct MumlaHomeView: View {
 
     private func transport(compact: Bool) -> some View {
         HStack(alignment: .center, spacing: 10) {
-            MumlaTransportKey("xmark", title: mText("Avbryt", "Cancel"), compact: compact) { session.cancel() }
-                .disabled(session.state != .recording)
+            MumlaTransportKey("xmark", title: session.hasPendingAudio ? mText("Radera klipp", "Discard clip") : mText("Avbryt", "Cancel"), compact: compact) {
+                if session.state == .recording { session.cancel() }
+                else { showDiscardAudio = true }
+            }
+                .disabled(session.state != .recording && (session.state != .idle || !session.hasPendingAudio || session.keyboardSnapshot.isAlive()))
             MumlaTransportKey(
                 session.state == .recording ? "stop.fill" : session.hasPendingAudio ? "arrow.clockwise" : "circle.fill",
                 title: session.state == .recording ? mText("Stoppa", "Stop") : session.hasPendingAudio ? mText("Fortsätt", "Resume") : mText("Spela in", "Record"),
@@ -118,7 +132,7 @@ struct MumlaHomeView: View {
                     else { await session.record() }
                 }
             }
-            .disabled(!session.modelReady || session.state == .transcribing || session.state == .requestingPermission)
+            .disabled(!session.modelReady || session.state == .transcribing || session.state == .requestingPermission || session.keyboardSnapshot.isAlive() || session.isStartingKeyboard)
             .accessibilityIdentifier("recorder.record")
             MumlaTransportKey("text.alignleft", title: mText("Senaste", "Latest"), compact: compact) {
                 MumlaFeedback.press()
@@ -227,6 +241,7 @@ struct MumlaHomeView: View {
     }
     private var filteredHistory: [DictationRecord] { session.history.filter { query.isEmpty || $0.text.localizedCaseInsensitiveContains(query) } }
     private var displayStatus: String {
+        if session.keyboardSnapshot.isAlive() { return mText("TANGENTBORD", "KEYBOARD") }
         if session.isInstalling { return mText("HÄMTAR", "LOADING") }
         switch session.state {
         case .recording: return "REC"
@@ -236,6 +251,7 @@ struct MumlaHomeView: View {
         }
     }
     private var recordingTitle: String {
+        if session.keyboardSnapshot.isAlive() { return mText("Tangentbordssession aktiv", "Keyboard session active") }
         if session.isInstalling { return mText("Förbereder svenska", "Preparing Swedish") + " \(Int(session.progress.fraction * 100)) %" }
         switch session.state {
         case .recording: return mText("Lyssnar", "Listening")
