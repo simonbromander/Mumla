@@ -6,6 +6,48 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
+## Verified iOS Release 31: 2026-10-06
+
+- iOS `1.0.1 (31)`, source commit
+  `bbaf0d6eebaf445f4a511a1119b62fcbc2d0a4d6`, pushed to `main`.
+- Improves keyboard activation with payload-free local notifications after
+  protected atomic writes, validated commands and polling as the fallback.
+  Mic taps show arming/finishing acknowledgements instead of appearing missed.
+  Recording is only shown after the app starts the clip. Setup shows permission,
+  model-loading and microphone-startup stages and requires a real loaded model
+  and foreground app before arming. The LCD has explicit VoiceOver status/value.
+- Includes the everyday typing work from `e82e943`: capitalization, double-space
+  punctuation, accents, spacebar cursor movement, local SV/EN suggestions,
+  conservative autocorrect and correction undo. English ASR is not included.
+- Passed 143 core/Mac tests, 31 release-helper tests (74 assertions) and 18 hosted
+  iOS tests on compact phone and iPad. Seven phone UI cases are covered across
+  regression runs; the initial arming accessibility assertion failed and was
+  corrected, then all three final real-extension cases passed. Two final iPad
+  UI cases passed. Screenshots were inspected. This is not a fresh complete
+  zero-failure UI-suite run. Release preflight and signed archive/export passed.
+- Archive and IPA signatures passed. App, keyboard and widget match
+  `1.0.1 (31)`, the expected team, distribution certificate and App Group in
+  signed entitlements/profiles, with `get-task-allow=false`. Both extensions
+  contain no ASR-runtime, audio-engine/recorder/session class linkage or
+  microphone/background-audio declarations. Existing profiles were reused.
+- App Store Connect accepted the upload at `2026-10-06T13:27:30Z`;
+  processing completed at `2026-10-06T13:30:07Z`.
+- App `6759602919`, build ID `1e4a048e-208c-4492-8933-f8fd18ba4d4e`, verified
+  `VALID` and `IN_BETA_TESTING` at `2026-10-06T13:30:45Z`. Existing `Test` and
+  `Friends` groups both include it. No audience changes, external beta review
+  or public App Store submission were made.
+- Swedish and English notes from `fastlane/testflight/ios-1.0.1-31.json` were
+  published and read back at `2026-10-06T13:30:42Z`.
+- IPA SHA-256:
+  `1494c6f7ac65bbe8251a7bd630114fe245324e5edd4a214dea8328fb528674db`.
+  Preserved IPA, dSYM and signing audit:
+  `.build/ReleaseAuditIOS31-20261006/`. Logs: `.build/ios31-*-20261006.log`.
+- No physical device was connected. This remains an experimental keyboard
+  beta: background microphone continuity in Messages/Mail/Notes, first-word
+  capture, actual haptics and the reported iOS 27.2 beta remain unverified.
+  Notifications cannot revive a suspended app. Start in Mumla, wait for
+  SESSION READY, then manually return to the host app. No Mac release included.
+
 ## Verified iOS Release 30: 2026-10-06
 
 - Experimental keyboard connection/activation update, iOS `1.0.1 (30)`, source
