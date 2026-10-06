@@ -6,10 +6,45 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
+## Verified iOS Release 28: 2026-10-06
+
+- iOS `1.0.1 (28)`, source commit
+  `65d26f24e328670a1fa4dcff209a887616bd883c`.
+- Includes the Rams-inspired icon, persistent System / Light / Dark controls,
+  Mumla keyboard, local dictation sessions and the Live Activity. This is an
+  experimental internal keyboard beta; physical-iPhone acceptance is pending.
+- The Account Holder assigned the keyboard identifier to `group.com.mumla.app`.
+  Regenerated its App Store profile and verified that the app and both extensions
+  contain the group in their signed entitlements and embedded profiles.
+- All three bundles have matching `1.0.1 (28)` versions, distribution signatures
+  for team `PF2PWR4YG4`, and `get-task-allow=false`. The main app has production
+  iCloud entitlements; neither extension links FluidAudio or carries microphone
+  or network entitlements. Archive and exported-IPA signatures passed inspection.
+- Reran 132 core/Mac tests and 31 release-helper tests (74 assertions), all
+  passing. The iOS Release simulator preflight and signed archive/export passed.
+  The prior 17 iPhone UI tests cover this unchanged app source; they were not
+  rerun as part of this provisioning-only release attempt.
+- App Store Connect accepted the upload at `2026-10-06T04:50:10Z`; processing
+  completed at `2026-10-06T04:53:24Z`.
+- App `6759602919`, build ID `67e14905-2b06-4cde-8178-34dd8a86f843`, verified
+  `VALID` and `IN_BETA_TESTING` at `2026-10-06T04:54:10Z`. Existing internal groups
+  `Test` and `Friends` both contain the build. No audience changes, external beta
+  review or App Store release submission were made.
+- Swedish and English notes from `fastlane/testflight/ios-1.0.1-28.json` were
+  published and read back successfully at `2026-10-06T04:53:44Z`.
+- IPA SHA-256:
+  `cfe4cc272e439be25cd5d91003dfc233d4a7c04c152c5835f6ddb6851eda78c9`.
+- Preserved IPA and signing audit: `.build/ReleaseAuditIOS28-20261006/`.
+  Preflight, archive, upload, notes and final status logs are
+  `.build/ios28-*-20261006.log`.
+- Real-device background audio, insertion, interruptions and haptics still need
+  the checklist in `docs/keyboard-plan.md`. Meetings, English routing and iCloud
+  sync remain unimplemented. No Mac release was built or uploaded in this run.
+
 ## Keyboard Build Prerequisites
 
-The keyboard implementation on main is not a TestFlight release. Before its
-first signed archive, verify the extension identifiers and App Group capability:
+The keyboard ships in iOS build 28 as an experimental internal beta. Before each
+signed archive, verify the extension identifiers and App Group capability:
 
 - `com.mumla.app.keyboard`: keyboard extension, new identifier.
 - `com.mumla.app.widgets`: keyboard Live Activity, preserved identifier.
