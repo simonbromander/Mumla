@@ -6,6 +6,43 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
+## Verified iOS Release 30: 2026-10-06
+
+- Experimental keyboard connection/activation update, iOS `1.0.1 (30)`, source
+  commit `d84829044469aee934e0afb70d759a3d67a2f04d`.
+- The explicitly started keyboard audio session now allows mixing with other
+  apps' audio. The keyboard retains stale-session identity and termination
+  reasons, distinguishing missing, expired and unresponsive sessions. Inactive
+  mic guidance stays inside the keyboard; setup offers saved-clip recovery,
+  confirmed discard and visible startup errors. The build 29 callback fix remains.
+- Passed 132 core/Mac tests, 31 release-helper tests (74 assertions) and five
+  hosted audio tests. The full signed Simulator run passed 18 of 19 UI cases;
+  the remaining failure was an incorrect accessibility-type selector. After
+  changing only that selector, the targeted case passed. All 24 cases are covered
+  across those runs, not a single zero-failure full-suite run. Screenshots were
+  inspected; Release compilation and signed archive/export passed.
+- Archive and IPA signatures were verified. Main app, keyboard and widget have
+  matching version/build, the expected team/certificate, signed and provisioned
+  `group.com.mumla.app`, and `get-task-allow=false`. The extensions contain no
+  FluidAudio, audio engine/recorder or microphone/background-audio declarations.
+- App Store Connect accepted the upload at `2026-10-06T07:50:17Z`.
+  Processing completed at `2026-10-06T07:52:26Z`.
+- App `6759602919`, build ID `9dfb86e8-e488-4384-915e-f916a745417f`, verified
+  `VALID` and `IN_BETA_TESTING` at `2026-10-06T07:53:13Z`. Existing `Test` and
+  `Friends` groups both include it. No audience changes or external beta review
+  submissions were made.
+- Swedish and English notes from `fastlane/testflight/ios-1.0.1-30.json` were
+  published and read back at `2026-10-06T07:52:58Z`.
+- IPA SHA-256:
+  `3fb7793009fec0e21689a384d24ec20d686ffc52d6ec2839aa4ee56d3ca7da3c`.
+  Preserved IPA, dSYM and signing audit:
+  `.build/ReleaseAuditIOS30-20261006/`. Logs: `.build/ios30-*-20261006.log`.
+- Physical-iPhone session continuity is still unverified. No physical device
+  was connected here, and Simulator fixtures do not capture audio or prove the
+  background handoff to Messages/Mail/Notes. Retest on device and report the
+  keyboard status and whether its Live Activity stays visible. No Mac build,
+  external beta review or public App Store submission is included.
+
 ## Verified iOS Release 29: 2026-10-06
 
 - Keyboard audio crash hotfix, iOS `1.0.1 (29)`, source commit
