@@ -3,6 +3,83 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testKeyboardEverydayTypingInRealExtension() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-host", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
+        configureMumlaKeyboard(fullAccess: false)
+        app.terminate(); app.launch()
+        defer { restoreSystemKeyboard(app) }
+        selectMumlaKeyboard(app)
+        let field = app.textViews["keyboard.hostField"]
+        let language = app.buttons["keyboard.language"]
+        if language.value as? String != "English" { language.tap() }
+        let correction = app.buttons["keyboard.autocorrect"]
+        if correction.value as? String != "On" { correction.tap() }
+        for key in ["h", "e", "l", "l", "o"] { app.buttons["keyboard.key.\(key)"].tap() }
+        XCTAssertEqual(field.value as? String, "Hello")
+        XCTAssertTrue(app.buttons["keyboard.suggestion.0"].exists)
+        XCTAssertEqual(app.buttons["keyboard.suggestion.0"].label, "Keep Hello")
+        app.buttons["keyboard.space"].doubleTap()
+        XCTAssertEqual(field.value as? String, "Hello. ")
+        app.buttons["keyboard.key.e"].press(forDuration: 0.5)
+        let accent = app.buttons["keyboard.accent.é"]
+        XCTAssertTrue(accent.waitForExistence(timeout: 3))
+        XCTAssertEqual(field.value as? String, "Hello. ")
+        capture("46-keyboard-accent-strip", app: app)
+        accent.tap()
+        XCTAssertEqual(field.value as? String, "Hello. É")
+        app.buttons["keyboard.delete"].tap()
+        app.buttons["keyboard.key.a"].press(forDuration: 0.5)
+        XCTAssertTrue(app.buttons["keyboard.accent.å"].waitForExistence(timeout: 3))
+        app.buttons["keyboard.key.h"].tap()
+        XCTAssertEqual(field.value as? String, "Hello. H")
+        XCTAssertFalse(app.buttons["keyboard.accent.å"].exists)
+        app.buttons["keyboard.delete"].tap()
+        for key in ["h", "e", "l", "l", "l", "o"] { app.buttons["keyboard.key.\(key)"].tap() }
+        app.buttons["keyboard.space"].tap()
+        XCTAssertEqual(field.value as? String, "Hello. Hello ")
+        app.buttons["keyboard.delete"].tap()
+        XCTAssertEqual(field.value as? String, "Hello. Helllo")
+        let suggestion = app.buttons["keyboard.suggestion.1"]
+        XCTAssertTrue(suggestion.waitForExistence(timeout: 3))
+        XCTAssertEqual(suggestion.label, "Hello")
+        capture("47-keyboard-local-suggestions", app: app)
+        suggestion.tap()
+        XCTAssertEqual(field.value as? String, "Hello. Hello ")
+        let space = app.buttons["keyboard.space"]
+        let start = space.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.4, thenDragTo: start.withOffset(CGVector(dx: -27, dy: 0)))
+        app.buttons["keyboard.key.x"].tap()
+        let moved = field.value as? String ?? ""
+        XCTAssertEqual(moved.replacingOccurrences(of: "x", with: ""), "Hello. Hello ")
+        XCTAssertNotEqual(moved, "Hello. Hello x")
+        XCTAssertTrue(moved.hasPrefix("Hello. H"))
+        language.tap()
+        XCTAssertEqual(language.value as? String, "Svenska")
+        assertKeyboardControlsFit(app)
+        capture("48-keyboard-everyday-typing", app: app)
+    }
+
+    func testKeyboardLiteralFieldDisablesCorrectionsAndCapitalization() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-host", "--keyboard-literal-field", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
+        configureMumlaKeyboard(fullAccess: false)
+        app.terminate(); app.launch()
+        defer { restoreSystemKeyboard(app) }
+        selectMumlaKeyboard(app)
+        for key in ["h", "e", "l", "l", "l", "o"] { app.buttons["keyboard.key.\(key)"].tap() }
+        app.buttons["keyboard.space"].doubleTap()
+        XCTAssertEqual(app.textViews["keyboard.hostField"].value as? String, "helllo  ")
+        XCTAssertFalse(app.buttons["keyboard.suggestion.0"].exists)
+        XCTAssertEqual(app.buttons["keyboard.autocorrect"].value as? String, "Off")
+        XCTAssertFalse(app.buttons["keyboard.autocorrect"].isEnabled)
+        capture("49-keyboard-literal-field", app: app)
+    }
+
     func testKeyboardExtensionInsertsSharedResultOnce() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--keyboard-host", "--keyboard-session-fixture", "-AppleLanguages", "(en)"]
@@ -55,7 +132,7 @@ final class MumlaUITests: XCTestCase {
         for key in ["h", "e", "j"] { app.buttons["keyboard.key.\(key)"].tap() }
         app.buttons["keyboard.space"].tap()
         for key in ["å", "ä", "ö"] { app.buttons["keyboard.key.\(key)"].tap() }
-        XCTAssertEqual(app.textViews["keyboard.hostField"].value as? String, "hej åäö")
+        XCTAssertEqual(app.textViews["keyboard.hostField"].value as? String, "Hej åäö")
         app.buttons["keyboard.record"].tap()
         XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].label.contains("Full Access"))
@@ -84,7 +161,7 @@ final class MumlaUITests: XCTestCase {
         capture("44-keyboard-connection-lost", app: app)
         app.buttons["keyboard.activationClose"].tap()
         app.buttons["keyboard.key.h"].tap()
-        XCTAssertEqual(app.textViews["keyboard.hostField"].value as? String, "h")
+        XCTAssertEqual(app.textViews["keyboard.hostField"].value as? String, "H")
         XCTAssertFalse(app.buttons["keyboard.cancel"].exists)
     }
 

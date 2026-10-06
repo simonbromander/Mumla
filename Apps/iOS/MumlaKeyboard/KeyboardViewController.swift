@@ -6,13 +6,22 @@ import UIKit
 @MainActor
 final class KeyboardViewController: UIInputViewController {
     private let client = KeyboardClient()
+    let typing = KeyboardTypingAssistant()
     private var host: UIHostingController<KeyboardRoot>?
     private var heightConstraint: NSLayoutConstraint?
     private var visible = false
+    private var applyingEdit = false
+    private var lastContext: KeyboardTypingContext?
+    private var documentID: UUID?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        primaryLanguage = "sv"
+        primaryLanguage = typing.language
+        Task { [weak self] in
+            guard let self else { return }
+            let lexicon = await requestSupplementaryLexicon()
+            typing.setLexicon(lexicon.entries.map { (input: $0.userInput, output: $0.documentText) })
+        }
         client.onRefresh = { [weak self] in self?.receiveResult(); self?.updateHeight() }
         let root = KeyboardRoot(client: client, controller: self)
         let host = UIHostingController(rootView: root)
@@ -25,17 +34,18 @@ final class KeyboardViewController: UIInputViewController {
             host.view.topAnchor.constraint(equalTo: view.topAnchor),
             host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-        let height = view.heightAnchor.constraint(equalToConstant: 300)
+        let height = view.heightAnchor.constraint(equalToConstant: 344)
         height.priority = .init(999); height.isActive = true
         heightConstraint = height; self.host = host
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated); visible = true
         client.returnTitle = returnTitle
+        refreshTyping(external: true)
         client.start(fullAccess: hasFullAccess); updateHeight()
     }
     override func viewWillDisappear(_ animated: Bool) {
-        visible = false; client.pause()
+        visible = false; client.pause(); typing.deactivate(); lastContext = nil
         super.viewWillDisappear(animated)
     }
     override func viewDidLayoutSubviews() { super.viewDidLayoutSubviews(); updateHeight() }
@@ -43,10 +53,16 @@ final class KeyboardViewController: UIInputViewController {
         super.textDidChange(textInput)
         client.fullAccess = hasFullAccess
         client.returnTitle = returnTitle
+        if !applyingEdit { refreshTyping(external: true) }
         receiveResult()
+    }
+    override func selectionDidChange(_ textInput: (any UITextInput)?) {
+        super.selectionDidChange(textInput)
+        if !applyingEdit { refreshTyping(external: true) }
     }
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning(); client.samples = []; client.result = nil
+        typing.deactivate(); lastContext = nil
     }
 
     func record() {
@@ -62,7 +78,10 @@ final class KeyboardViewController: UIInputViewController {
             let fresh = try store.snapshot()
             guard fresh.isAlive(), fresh.sessionID == result.sessionID, fresh.resultID == result.id else { return }
             if try store.claim(result.id) {
+                applyingEdit = true
                 textDocumentProxy.insertText(result.text)
+                applyingEdit = false
+                typing.reset(); refreshTyping()
                 MumlaFeedback.success()
             }
             client.send(.consume, resultID: result.id)
@@ -77,8 +96,56 @@ final class KeyboardViewController: UIInputViewController {
     }
     private func updateHeight() {
         let landscape = view.window?.windowScene?.interfaceOrientation.isLandscape == true
-        let height: CGFloat = landscape ? 266 : client.result == nil ? 300 : 342
+        let height: CGFloat = landscape ? (client.result == nil ? 266 : 306) : (client.result == nil ? 344 : 384)
         if heightConstraint?.constant != height { heightConstraint?.constant = height }
+    }
+    func type(_ text: String) {
+        refreshTyping()
+        apply(typing.insert(text))
+    }
+    func delete() {
+        refreshTyping()
+        apply(typing.delete())
+    }
+    func choose(_ suggestion: KeyboardTypingSuggestion) {
+        refreshTyping()
+        if let edit = typing.choose(suggestion) { apply(edit) }
+    }
+    func moveCursor(_ offset: Int) {
+        guard textDocumentProxy.selectedText?.isEmpty != false else { return }
+        applyingEdit = true
+        textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
+        applyingEdit = false
+        typing.reset(); refreshTyping()
+    }
+    private func apply(_ edit: KeyboardTextEdit) {
+        applyingEdit = true
+        for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
+        if !edit.insertion.isEmpty { textDocumentProxy.insertText(edit.insertion) }
+        applyingEdit = false
+        refreshTyping()
+    }
+    private func refreshTyping(external: Bool = false) {
+        let proxy = textDocumentProxy
+        // iOS can return nil context for a genuinely empty field.
+        let before = proxy.documentContextBeforeInput ?? (proxy.hasText ? nil : "")
+        let context = KeyboardTypingContext(before: before,
+            after: proxy.documentContextAfterInput, selection: proxy.selectedText)
+        let changedDocument = documentID != proxy.documentIdentifier
+        if changedDocument { typing.reset() }
+        documentID = proxy.documentIdentifier
+        let capitalization: KeyboardCapitalization
+        switch proxy.autocapitalizationType ?? .sentences {
+        case .none: capitalization = .none
+        case .words: capitalization = .words
+        case .allCharacters: capitalization = .allCharacters
+        default: capitalization = .sentences
+        }
+        let literalField = [.emailAddress, .URL, .numberPad, .decimalPad, .asciiCapableNumberPad, .phonePad, .namePhonePad].contains(proxy.keyboardType ?? .default)
+        typing.update(context: context, capitalization: capitalization,
+            allowsCorrection: !literalField && proxy.autocorrectionType != .no,
+            externalChange: changedDocument || (external && context != lastContext))
+        lastContext = context
     }
     private var returnTitle: String {
         switch textDocumentProxy.returnKeyType {
@@ -95,7 +162,11 @@ final class KeyboardViewController: UIInputViewController {
 @MainActor
 private struct KeyboardRoot: View {
     @ObservedObject var client: KeyboardClient
+    @ObservedObject var typing: KeyboardTypingAssistant
     weak var controller: KeyboardViewController?
+    init(client: KeyboardClient, controller: KeyboardViewController) {
+        self.client = client; self.typing = controller.typing; self.controller = controller
+    }
     var body: some View {
         MumlaKeyboardView(snapshot: client.snapshot, fullAccess: client.fullAccess,
             pending: client.pending != nil, preview: client.result?.text, notice: client.notice,
@@ -106,9 +177,15 @@ private struct KeyboardRoot: View {
                 else { client.send(.cancel) }
             },
             onInsert: { controller?.insertResult() }, onEnd: { client.send(.end) },
-            onKey: { controller?.textDocumentProxy.insertText($0) },
-            onDelete: { controller?.textDocumentProxy.deleteBackward() },
-            onReturn: { controller?.textDocumentProxy.insertText("\n") })
+            onKey: { controller?.type($0) }, onDelete: { controller?.delete() },
+            onReturn: { controller?.type("\n") },
+            suggestions: typing.suggestions, automaticUppercase: typing.automaticUppercase,
+            typingRevision: typing.revision, typingLanguage: typing.language,
+            correctionEnabled: typing.correctionEnabled, correctionAvailable: typing.allowsCorrection,
+            onSuggestion: { controller?.choose($0) }, onTypingLanguage: {
+                typing.toggleLanguage(); controller?.primaryLanguage = typing.language
+            },
+            onCorrection: { typing.toggleCorrection() }, onCursorMove: { controller?.moveCursor($0) })
     }
 }
 

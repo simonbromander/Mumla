@@ -38,6 +38,7 @@
 		5FEC291BE863F4FB9756E2FF /* KeyboardSessionActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 169E390DD01C7C1E1296A047 /* KeyboardSessionActivity.swift */; };
 		6381149654C0DF316C1ADCC8 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A432FF30D74178468BEBF0F3 /* LaunchAtLoginController.swift */; };
 		668A4B23244D1339FE361FFC /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8872258132BA6AB31FED6E5 /* KeyboardViewController.swift */; };
+		6C2065A40D4E05A0E458E7E5 /* KeyboardTypingAssistantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EF711788A62D393B8D55991 /* KeyboardTypingAssistantTests.swift */; };
 		748E13453C97705C236EE45A /* DictationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29B34DB8773C80755E4CDC9 /* DictationSession.swift */; };
 		765F0AD946AB3DB8FE9A3C74 /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 659F23D5D52E09F72854982F /* MumlaCore */; };
 		79981F12C18B985B1A82EE66 /* MumlaSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */; };
@@ -149,6 +150,7 @@
 		791F70BF1C779A4CF3E87870 /* MumlaKeyboard.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = MumlaKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		898B56239AD94246CC0FF25C /* PillWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillWindowController.swift; sourceTree = "<group>"; };
 		8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaMacApp.swift; sourceTree = "<group>"; };
+		8EF711788A62D393B8D55991 /* KeyboardTypingAssistantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardTypingAssistantTests.swift; sourceTree = "<group>"; };
 		9222E27C9A685214FBE17749 /* KeyboardAudioCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardAudioCaptureTests.swift; sourceTree = "<group>"; };
 		92571BD96423422D811E989B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextInserter.swift; sourceTree = "<group>"; };
@@ -230,6 +232,7 @@
 			isa = PBXGroup;
 			children = (
 				9222E27C9A685214FBE17749 /* KeyboardAudioCaptureTests.swift */,
+				8EF711788A62D393B8D55991 /* KeyboardTypingAssistantTests.swift */,
 			);
 			name = MumlaIOSTests;
 			path = Tests/MumlaIOSTests;
@@ -676,6 +679,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E96A6626ADB312ADEBB76BE2 /* KeyboardAudioCaptureTests.swift in Sources */,
+				6C2065A40D4E05A0E458E7E5 /* KeyboardTypingAssistantTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

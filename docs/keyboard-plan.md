@@ -40,8 +40,10 @@ the session-start key disabled without a recovery path. Errors from starting
 the session are shown in the setup sheet itself.
 
 Full Access is needed only to write local commands in group.com.mumla.app.
-Typing works without it. No networking, telemetry, host-field scraping or
-clipboard use in the keyboard. Secure fields use Apple's system keyboard.
+Typing works without it. No networking, telemetry, whole-field scraping or
+clipboard use in the keyboard. Typing assistance uses only the context supplied
+by UITextDocumentProxy; that context is transient and cleared when the keyboard
+disappears. Secure fields use Apple's system keyboard.
 
 The extension uses UITextDocumentProxy.insertText. Auto-insert only for a
 result requested by this keyboard instance, while visible, in the same document.
@@ -70,6 +72,32 @@ Live Activity ends the session as well. No remote pushes or servers.
   session and test Messages, Mail and Notes; interruptions, lock, timeout,
   stop/cancel, background transcription and Live Activity end. Simulator UI and
   successful builds are not evidence of this physical-device gate.
+
+## Everyday Typing: 2026-10-06
+
+Implement the approved first slice: automatic capitalization honoring the
+host field, double-space punctuation, long-press accents, spacebar cursor
+movement, and local Swedish/English spelling suggestions and conservative
+autocorrection. Keep the recorder materials and existing dictation contract.
+
+- Use a small pure-core editing policy with tests for bounded word replacement,
+  sentence boundaries, rapid spaces, correction undo and cursor gestures.
+- Use UIKit's local UITextChecker and supplementary lexicon; typed context is
+  transient, never logged, persisted or sent over the network. Typing assistance
+  works without Full Access or a microphone session.
+- Preserve unknown names, digits, URLs, email addresses, mixed-case identifiers,
+  selections and mid-word edits. Respect fields that disable autocorrection or
+  capitalization. Only replace the current word, never the whole host field.
+- Three fixed suggestion slots, a Swedish/English typing-language key and an
+  autocorrect switch stay within the keyboard bounds. Long-press alternatives
+  occupy that same strip, not an out-of-bounds popup. Backspace can undo the last
+  automatic replacement; cursor/focus changes invalidate pending replacements.
+- Verify core and hosted tests, the actual extension in Simulator, light/dark
+  compact portrait/landscape layouts and regression coverage for dictation.
+  Physical haptics and real-app typing remain device acceptance checks.
+
+Out of this slice: swipe typing, emoji picker, Apple prediction-engine parity,
+new ASR languages, new microphone-session behavior and an automatic release.
 
 ### Recorded Results: 2026-10-05
 
@@ -111,6 +139,13 @@ not sufficient to mark the keyboard accepted for a stable release.
 
 Simulator fixtures, compiled code and source review do not close this checklist.
 
+Typing acceptance also needs a physical iPhone: Swedish and English spelling,
+contacts/text shortcuts, sentence capitalization, manual shift/caps override,
+double-space punctuation, accented letters, cursor dragging and backspace undo
+in Messages, Mail and Notes. Check that secure fields switch to Apple's keyboard
+and literal URL/email fields never apply corrections. Verify haptics and typing
+while the microphone session starts, ends or becomes unavailable.
+
 ### Connection and Activation Checks: 2026-10-06
 
 - All 132 core/Mac tests and 31 release-helper tests (74 assertions) passed.
@@ -138,15 +173,43 @@ Simulator fixtures, compiled code and source review do not close this checklist.
   Retest session continuity on device and report the exact keyboard status and
   whether the Live Activity remains visible if it fails.
 
+### Everyday Typing Verification: 2026-10-06
+
+- All 143 core/Mac tests passed, including 11 new editing-policy tests.
+- A full compact-iPhone Simulator run passed all 21 UI cases and 12 hosted
+  cases. A final targeted run then covered the additional context-clearing
+  test, literal-field suggestion guard, correction undo, accent dismissal and
+  compact landscape refinements: 13 hosted tests and three iPad UI tests passed,
+  followed by both real-extension iPhone typing cases passing again.
+- The actual extension types without Full Access, capitalizes an empty field,
+  turns rapid spaces into a period, offers local spelling suggestions, applies
+  and undoes an automatic correction, inserts an explicitly chosen suggestion,
+  chooses accented letters without inserting the base letter, and moves the
+  cursor without adding a space. Literal fields disable correction and
+  capitalization according to their traits; old suggestions cannot rewrite them.
+- Light/dark compact-phone and iPad portrait/landscape screenshots were inspected
+  without overlapping keys or out-of-bounds accent controls. VoiceOver has
+  named accent and cursor actions; physical haptics remain unverified.
+- Generic iOS Release build passed with signing disabled. App and extension
+  identities are unchanged; the keyboard has no ASR-runtime or microphone-class
+  linkage. This build is not an archive, upload or new TestFlight release.
+- Evidence: `.build/KeyboardTypingFull-20261006.xcresult`,
+  `.build/KeyboardTypingIPad-20261006.xcresult`,
+  `.build/KeyboardTypingAcceptance-20261006.xcresult`,
+  `.build/KeyboardTypingScreenshots-20261006/` and
+  `.build/KeyboardTypingIPadScreenshots-20261006/`.
+
 ## Non-goals
 
-English ASR, a new model, cloud fallback, autocorrect/predictive typing, meeting
+English ASR, a new model, cloud fallback, next-word prediction, meeting
 recording, iCloud sync, replacing the Mac hotkey, and an automatic TestFlight
 upload. New extension identifiers/profiles need release-time provisioning.
 
 ## Primary References
 
 - https://developer.apple.com/documentation/uikit/creating-a-custom-keyboard
+- https://developer.apple.com/documentation/uikit/handling-text-interactions-in-custom-keyboards
+- https://developer.apple.com/documentation/uikit/uitextchecker
 - https://developer.apple.com/documentation/uikit/configuring-open-access-for-a-custom-keyboard
 - https://developer.apple.com/documentation/foundation/nsextensioncontext/open(_:completionhandler:)
 - https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities

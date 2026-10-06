@@ -17,10 +17,24 @@ public struct MumlaKeyboardView: View {
     public var onDelete: () -> Void
     public var onReturn: () -> Void
     public var returnTitle: String
+    public var suggestions: [KeyboardTypingSuggestion]
+    public var automaticUppercase: Bool
+    public var typingRevision: Int
+    public var typingLanguage: String
+    public var correctionEnabled: Bool
+    public var correctionAvailable: Bool
+    public var onSuggestion: (KeyboardTypingSuggestion) -> Void
+    public var onTypingLanguage: () -> Void
+    public var onCorrection: () -> Void
+    public var onCursorMove: (Int) -> Void
     @State private var layout = MumlaKeyboardLayout.letters
     @State private var shift = MumlaKeyboardShift()
     @State private var deleteTask: Task<Void, Never>?
     @State private var showActivationRequirement = false
+    @State private var accentKey: String?
+    @State private var cursorDrag = KeyboardCursorDrag()
+    @State private var movingCursor = false
+    @State private var suppressSpace = false
     private var active: Bool { snapshot.isAlive() }
     private var recording: Bool { active && snapshot.phase == .recording }
 
@@ -28,16 +42,26 @@ public struct MumlaKeyboardView: View {
                 notice: String? = nil, samples: [Double] = [], nextKeyboard: AnyView,
                 returnTitle: String = "↵", onRecord: @escaping () -> Void, onCancel: @escaping () -> Void,
                 onInsert: @escaping () -> Void, onEnd: @escaping () -> Void,
-                onKey: @escaping (String) -> Void, onDelete: @escaping () -> Void, onReturn: @escaping () -> Void) {
+                onKey: @escaping (String) -> Void, onDelete: @escaping () -> Void, onReturn: @escaping () -> Void,
+                suggestions: [KeyboardTypingSuggestion] = [], automaticUppercase: Bool = false,
+                typingRevision: Int = 0, typingLanguage: String = "sv", correctionEnabled: Bool = true, correctionAvailable: Bool = true,
+                onSuggestion: @escaping (KeyboardTypingSuggestion) -> Void = { _ in },
+                onTypingLanguage: @escaping () -> Void = {}, onCorrection: @escaping () -> Void = {},
+                onCursorMove: @escaping (Int) -> Void = { _ in }) {
         self.snapshot = snapshot; self.fullAccess = fullAccess; self.pending = pending
         self.preview = preview; self.notice = notice; self.samples = samples; self.nextKeyboard = nextKeyboard
         self.returnTitle = returnTitle; self.onRecord = onRecord; self.onCancel = onCancel
         self.onInsert = onInsert; self.onEnd = onEnd; self.onKey = onKey; self.onDelete = onDelete; self.onReturn = onReturn
+        self.suggestions = suggestions; self.automaticUppercase = automaticUppercase; self.typingRevision = typingRevision
+        self.typingLanguage = typingLanguage; self.correctionEnabled = correctionEnabled
+        self.correctionAvailable = correctionAvailable
+        self.onSuggestion = onSuggestion; self.onTypingLanguage = onTypingLanguage; self.onCorrection = onCorrection
+        self.onCursorMove = onCursorMove
     }
 
     public var body: some View {
         GeometryReader { geometry in
-            let compact = geometry.size.height < 280
+            let compact = geometry.size.height < 320
             let gap: CGFloat = geometry.size.width < 350 ? 3 : 5
             VStack(spacing: compact ? 5 : 8) {
                 HStack(spacing: 8) {
@@ -73,6 +97,7 @@ public struct MumlaKeyboardView: View {
                 if showActivationRequirement {
                     activationRequirement(compact: compact)
                 } else {
+                    suggestionStrip(compact: compact)
                     if let preview, !preview.isEmpty {
                         HStack(spacing: 8) {
                             Text(preview).font(.system(size: 12, design: .monospaced)).lineLimit(1)
@@ -88,6 +113,7 @@ public struct MumlaKeyboardView: View {
                         HStack(spacing: gap) {
                             if index == 2 {
                                 Button {
+                                    accentKey = nil
                                     if layout == .letters { shift.tap(at: Date().timeIntervalSinceReferenceDate) }
                                     else { layout = layout == .numbers ? .symbols : .numbers }
                                 } label: {
@@ -103,28 +129,69 @@ public struct MumlaKeyboardView: View {
                             }
                             ForEach(row, id: \.self) { key in
                                 let output = layout == .letters && shift.uppercase ? key.uppercased() : key
-                                Button { onKey(output); shift.didType() } label: {
+                                Button {
+                                    if accentKey == output { return }
+                                    accentKey = nil
+                                    shift.didType(); onKey(output)
+                                } label: {
                                     Text(output).font(.system(size: 17, weight: .medium, design: .monospaced))
                                         .frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
-                                }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityIdentifier("keyboard.key.\(key)")
+                                }.buttonStyle(MumlaKeyStyle(radius: 5))
+                                    .simultaneousGesture(LongPressGesture(minimumDuration: 0.35).onEnded { _ in
+                                        guard !KeyboardAccents.alternatives(for: output).isEmpty else { return }
+                                        accentKey = output; MumlaFeedback.press()
+                                    })
+                                    .accessibilityAction(named: mText("Accenter", "Accents")) {
+                                        if !KeyboardAccents.alternatives(for: output).isEmpty { accentKey = output }
+                                    }
+                                    .accessibilityIdentifier("keyboard.key.\(key)")
                             }
                             if index == 2 { deleteKey(compact: compact, width: geometry.size.width < 350 ? 38 : 44) }
                         }
                     }
                     HStack(spacing: gap) {
-                        Button { layout = layout == .letters ? .numbers : .letters; shift.reset() } label: {
+                        Button {
+                            layout = layout == .letters ? .numbers : .letters
+                            accentKey = nil; shift.reset(); shift.updateAutomatic(automaticUppercase)
+                        } label: {
                             Text(layout == .letters ? "123" : "ABC").font(.system(size: 13, weight: .medium, design: .monospaced))
                                 .frame(width: 42, height: compact ? 34 : 42)
                         }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityIdentifier("keyboard.layout")
                         nextKeyboard.frame(width: 38, height: compact ? 34 : 42).mumlaSurface(radius: 5)
-                        Button { onKey(" ") } label: {
-                            Text("mumla").font(.system(size: 13, weight: .medium, design: .monospaced))
+                        Button {
+                            guard !suppressSpace else { return }
+                            accentKey = nil; onKey(" ")
+                        } label: {
+                            Group {
+                                if movingCursor { Image(systemName: "arrow.left.and.right") }
+                                else { Text("mumla") }
+                            }.font(.system(size: 13, weight: .medium, design: .monospaced))
                                 .foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
-                        }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(mText("Mellanslag", "Space")).accessibilityIdentifier("keyboard.space")
-                        Button { onKey(".") } label: {
+                        }.buttonStyle(MumlaKeyStyle(radius: 5))
+                            .simultaneousGesture(LongPressGesture(minimumDuration: 0.3).sequenced(before: DragGesture(minimumDistance: 0))
+                                .onChanged { value in
+                                    if case .second(true, let drag) = value {
+                                        if !movingCursor { movingCursor = true; suppressSpace = true; cursorDrag.reset(); MumlaFeedback.press() }
+                                        if let drag {
+                                            let offset = cursorDrag.move(translation: drag.translation.width)
+                                            if offset != 0 { onCursorMove(offset) }
+                                        }
+                                    }
+                                }.onEnded { _ in
+                                    movingCursor = false; cursorDrag.reset()
+                                    Task { @MainActor in
+                                        try? await Task.sleep(for: .milliseconds(100))
+                                        suppressSpace = false
+                                    }
+                                })
+                            .accessibilityLabel(mText("Mellanslag", "Space"))
+                            .accessibilityAction(named: mText("Flytta markören åt vänster", "Move cursor left")) { onCursorMove(-1) }
+                            .accessibilityAction(named: mText("Flytta markören åt höger", "Move cursor right")) { onCursorMove(1) }
+                            .accessibilityIdentifier("keyboard.space")
+                        Button { accentKey = nil; onKey(".") } label: {
                             Text(".").font(.system(size: 18, design: .monospaced)).frame(width: 30, height: compact ? 34 : 42)
                         }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(mText("Punkt", "Period"))
-                        Button(action: onReturn) {
+                        Button { accentKey = nil; onReturn() } label: {
                             Text(returnTitle).font(.system(size: 13, weight: .medium, design: .monospaced))
                                 .lineLimit(1).minimumScaleFactor(0.7).frame(width: 54, height: compact ? 34 : 42)
                         }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(returnTitle == "↵" ? mText("Retur", "Return") : returnTitle)
@@ -138,9 +205,62 @@ public struct MumlaKeyboardView: View {
         .background(MumlaStyle.panel).foregroundStyle(MumlaStyle.ink)
         .preferredColorScheme(MumlaAppearance(rawValue: snapshot.appearance)?.colorScheme)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .onAppear { shift.updateAutomatic(automaticUppercase) }
+        .onChange(of: typingRevision) { _, _ in shift.updateAutomatic(automaticUppercase) }
+        .onChange(of: automaticUppercase) { _, uppercase in shift.updateAutomatic(uppercase) }
         .onChange(of: fullAccess && active) { _, ready in if ready { showActivationRequirement = false } }
         .onChange(of: recording) { _, active in if active { MumlaFeedback.recordStart() } else { MumlaFeedback.recordStop() } }
-        .onDisappear { deleteTask?.cancel(); deleteTask = nil; showActivationRequirement = false }
+        .onDisappear {
+            deleteTask?.cancel(); deleteTask = nil; showActivationRequirement = false
+            accentKey = nil; movingCursor = false; suppressSpace = false; cursorDrag.reset()
+        }
+    }
+
+    private func suggestionStrip(compact: Bool) -> some View {
+        HStack(spacing: 4) {
+            if let accentKey {
+                ForEach(KeyboardAccents.alternatives(for: accentKey), id: \.self) { accent in
+                    Button {
+                        self.accentKey = nil; shift.didType(); onKey(accent); MumlaFeedback.press()
+                    } label: {
+                        Text(accent).font(.system(size: 17, weight: .medium, design: .monospaced))
+                            .frame(maxWidth: .infinity).frame(height: compact ? 26 : 30)
+                    }.buttonStyle(MumlaKeyStyle(radius: 4)).accessibilityIdentifier("keyboard.accent.\(accent.lowercased())")
+                }
+                Button { self.accentKey = nil } label: {
+                    Image(systemName: "xmark").frame(width: 30, height: compact ? 26 : 30)
+                }.buttonStyle(MumlaKeyStyle(radius: 4)).accessibilityLabel(mText("Stäng accenter", "Close accents"))
+                    .accessibilityIdentifier("keyboard.accentClose")
+            } else {
+                Button(action: onTypingLanguage) {
+                    Text(typingLanguage.uppercased()).font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(MumlaStyle.accent).frame(width: 30, height: compact ? 26 : 30)
+                }.buttonStyle(MumlaKeyStyle(radius: 4))
+                    .accessibilityLabel(mText("Skrivspråk", "Typing language"))
+                    .accessibilityValue(typingLanguage == "sv" ? "Svenska" : "English")
+                    .accessibilityIdentifier("keyboard.language")
+                ForEach(0..<3) { index in
+                    if index < suggestions.count {
+                        let suggestion = suggestions[index]
+                        Button { shift.didType(); onSuggestion(suggestion) } label: {
+                            Text(suggestion.text).font(.system(size: 12, weight: suggestion.original ? .regular : .medium, design: .monospaced))
+                                .lineLimit(1).truncationMode(.tail)
+                                .frame(maxWidth: .infinity).frame(height: compact ? 26 : 30)
+                        }.buttonStyle(MumlaKeyStyle(radius: 4))
+                            .accessibilityLabel(suggestion.original ? mText("Behåll \(suggestion.text)", "Keep \(suggestion.text)") : suggestion.text)
+                            .accessibilityIdentifier("keyboard.suggestion.\(index)")
+                    } else { Color.clear.frame(maxWidth: .infinity).frame(height: compact ? 26 : 30) }
+                }
+                Button(action: onCorrection) {
+                    Image(systemName: correctionEnabled && correctionAvailable ? "text.badge.checkmark" : "text.badge.xmark")
+                        .font(.system(size: 13)).foregroundStyle(correctionEnabled && correctionAvailable ? MumlaStyle.accent : MumlaStyle.secondary)
+                        .frame(width: 30, height: compact ? 26 : 30)
+                }.buttonStyle(MumlaKeyStyle(radius: 4)).disabled(!correctionAvailable)
+                    .accessibilityLabel(mText("Autokorrigering", "Autocorrect"))
+                    .accessibilityValue(correctionEnabled && correctionAvailable ? mText("På", "On") : mText("Av", "Off"))
+                    .accessibilityIdentifier("keyboard.autocorrect")
+            }
+        }.padding(3).mumlaRecess(radius: 6).frame(height: compact ? 32 : 36)
     }
 
     private func activationRequirement(compact: Bool) -> some View {
@@ -217,7 +337,7 @@ public struct MumlaKeyboardView: View {
             .buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(label)
     }
     private func deleteKey(compact: Bool, width: CGFloat) -> some View {
-        Button(action: onDelete) {
+        Button { accentKey = nil; onDelete() } label: {
             Image(systemName: "delete.left").font(.system(size: 18)).frame(width: width, height: compact ? 34 : 42)
         }
         .buttonStyle(MumlaKeyStyle(radius: 5))

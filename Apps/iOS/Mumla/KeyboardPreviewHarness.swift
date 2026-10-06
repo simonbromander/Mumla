@@ -38,7 +38,7 @@ struct KeyboardPreviewHarness: View {
                 onInsert: { output += preview ?? ""; preview = nil; snapshot.phase = .ready },
                 onEnd: { snapshot = .init() }, onKey: { output += $0 },
                 onDelete: { if !output.isEmpty { output.removeLast() } }, onReturn: { output += "\n" })
-                .frame(height: UIDevice.current.orientation.isLandscape ? 266 : preview == nil ? 300 : 342)
+                .frame(height: UIDevice.current.orientation.isLandscape ? (preview == nil ? 266 : 306) : (preview == nil ? 344 : 384))
         }
         .padding(.top, 16).background(MumlaStyle.background)
         .preferredColorScheme(MumlaAppearance(rawValue: snapshot.appearance)?.colorScheme)
@@ -54,10 +54,15 @@ struct KeyboardPreviewHarness: View {
 struct KeyboardHostHarness: View {
     @State private var text = ""
     @FocusState private var focused: Bool
+    private var literal: Bool { CommandLine.arguments.contains("--keyboard-literal-field") }
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Mumla / keyboard host").font(.system(.headline, design: .monospaced))
-            TextEditor(text: $text).focused($focused).accessibilityIdentifier("keyboard.hostField")
+            TextEditor(text: $text).focused($focused)
+                .textInputAutocapitalization(literal ? .never : .sentences)
+                .autocorrectionDisabled(literal)
+                .keyboardType(literal ? .URL : .default)
+                .accessibilityIdentifier("keyboard.hostField")
         }.padding(20).onAppear { focused = true }
             .task {
                 guard (CommandLine.arguments.contains("--keyboard-session-fixture") || CommandLine.arguments.contains("--keyboard-stale-session-fixture")),
