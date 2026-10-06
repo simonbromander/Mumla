@@ -80,6 +80,34 @@ final class MumlaUITests: XCTestCase {
         capture("49-keyboard-literal-field", app: app)
     }
 
+    func testKeyboardMicShowsAcknowledgementWithoutPretendingToRecord() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-host", "--keyboard-session-fixture",
+                               "--keyboard-delayed-command-fixture", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
+        configureMumlaKeyboard(fullAccess: true)
+        app.terminate(); app.launch()
+        defer { restoreSystemKeyboard(app) }
+        selectMumlaKeyboard(app)
+        let record = app.buttons["keyboard.record"]
+        record.tap()
+        let status = app.descendants(matching: .any).matching(identifier: "keyboard.status").firstMatch
+        expectation(for: NSPredicate(format: "label CONTAINS %@", "ARMING MICROPHONE"), evaluatedWith: status)
+        waitForExpectations(timeout: 2)
+        XCTAssertFalse(record.isEnabled)
+        XCTAssertFalse(app.buttons["keyboard.cancel"].exists)
+        capture("50-keyboard-arming-acknowledgement", app: app)
+        let stop = app.buttons["Stop dictation"]
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: stop)
+        waitForExpectations(timeout: 5)
+        XCTAssertTrue(app.buttons["keyboard.cancel"].exists)
+        stop.tap()
+        expectation(for: NSPredicate(format: "value == %@", "Hej från Mumla."), evaluatedWith: app.textViews["keyboard.hostField"])
+        waitForExpectations(timeout: 5)
+        XCTAssertFalse(app.buttons["keyboard.insert"].exists)
+    }
+
     func testKeyboardExtensionInsertsSharedResultOnce() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--keyboard-host", "--keyboard-session-fixture", "-AppleLanguages", "(en)"]

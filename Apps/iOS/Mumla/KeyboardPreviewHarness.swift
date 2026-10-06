@@ -78,12 +78,22 @@ struct KeyboardHostHarness: View {
                     return
                 }
                 var documentID: UUID?
+                var delayedCommandID: UUID?
+                var commandArrivedAt = Date.distantPast
                 defer { try? store.write(KeyboardSessionSnapshot()); try? store.clearResult() }
                 do {
                     try store.clearResult()
                     while !Task.isCancelled {
                         state.heartbeat = Date()
                         if let command = try store.command(), state.accepts(command) {
+                            if CommandLine.arguments.contains("--keyboard-delayed-command-fixture"), command.action == .start {
+                                if delayedCommandID != command.id { delayedCommandID = command.id; commandArrivedAt = Date() }
+                                if Date().timeIntervalSince(commandArrivedAt) < 3 {
+                                    try store.write(state, notify: false)
+                                    try await Task.sleep(for: .milliseconds(100))
+                                    continue
+                                }
+                            }
                             state.acknowledgedCommandID = command.id
                             switch command.action {
                             case .start:

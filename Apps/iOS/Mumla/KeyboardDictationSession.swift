@@ -13,6 +13,8 @@ final class KeyboardDictationSession {
     private let canRetry: @MainActor () -> Bool
     private var snapshot = KeyboardSessionSnapshot()
     private var loop: Task<Void, Never>?
+    private var commandSignal: KeyboardSessionSignal?
+    private var lastPublishedSnapshot = KeyboardSessionSnapshot()
     private var processing: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
     private var documentID: UUID?
@@ -41,6 +43,9 @@ final class KeyboardDictationSession {
             snapshot.phase = .ready; publish()
             guard snapshot.sessionID != nil else { throw CocoaError(.fileWriteUnknown) }
         } catch { tearDown(); throw error }
+        commandSignal = KeyboardSessionSignal(.command) { [weak self] in
+            Task { @MainActor [weak self] in self?.tick() }
+        }
         startActivity()
         let center = NotificationCenter.default
         for name in [AVAudioSession.interruptionNotification, UIApplication.protectedDataWillBecomeUnavailableNotification,
@@ -86,11 +91,12 @@ final class KeyboardDictationSession {
 
     private func tearDown(reason: String? = nil) {
         loop?.cancel(); loop = nil
+        commandSignal = nil
         capture.endSession()
         observers.forEach(NotificationCenter.default.removeObserver); observers.removeAll()
         snapshot = .init(); snapshot.heartbeat = Date()
         snapshot.error = reason
-        try? store.write(snapshot); changed(snapshot)
+        try? store.write(snapshot); lastPublishedSnapshot = snapshot; changed(snapshot)
         try? store.clearResult()
         if let activity {
             let content = ActivityContent(state: activity.content.state, staleDate: nil)
@@ -194,7 +200,11 @@ final class KeyboardDictationSession {
         snapshot.inputLevel = snapshot.phase == .recording ? capture.inputLevel : 0
         snapshot.appearance = MumlaAppearance.stored().rawValue
         snapshot.hapticsEnabled = UserDefaults.standard.object(forKey: MumlaFeedback.preferenceKey) as? Bool ?? true
-        do { try store.write(snapshot) }
+        let notify = snapshot.sessionID != lastPublishedSnapshot.sessionID ||
+            snapshot.phase != lastPublishedSnapshot.phase ||
+            snapshot.acknowledgedCommandID != lastPublishedSnapshot.acknowledgedCommandID ||
+            snapshot.resultID != lastPublishedSnapshot.resultID || snapshot.error != lastPublishedSnapshot.error
+        do { try store.write(snapshot, notify: notify); lastPublishedSnapshot = snapshot }
         catch {
             // A locked or unavailable shared container must not keep a microphone session alive.
             if snapshot.phase != .inactive {

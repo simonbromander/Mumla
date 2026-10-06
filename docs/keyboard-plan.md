@@ -3,6 +3,54 @@
 Status: experimental internal beta; physical-iPhone acceptance is pending.
 The App Group is assigned to the app and both extensions. Updated 2026-10-06.
 
+## Activation Update: 2026-10-06
+
+Assumption: the reported clunky speech activation concerns the iOS keyboard
+handoff and mic key, not the Mac global hotkey. Keep the existing explicit
+session, local-only audio and Rams controls; do not add unsupported app hops.
+
+- Use payload-free Darwin notifications after atomic command writes and state
+  transitions. Both sides re-read and validate the protected files; a hint is
+  not authorization. Keep the existing polling/heartbeat as the fallback.
+- Resolve outstanding acknowledgements before another command, without
+  re-entering the result insertion callback. Do not allow duplicate mic taps.
+- Show arming/finishing acknowledgements immediately in the keyboard LCD;
+  only show recording after the app has actually opened the clip.
+- Show microphone permission, Swedish model loading and microphone startup
+  separately in setup. Require a real loaded transcriber and foreground app
+  before arming; leaving during cold startup must not silently start a session.
+- Include the already verified everyday typing changes in the next iOS beta.
+- Verify notification lifecycle, readable atomic packets, invalid-command
+  rejection, delayed acknowledgement, exactly-once insertion, setup and layouts.
+  Audit the signed IPA and verify upload and TestFlight status separately.
+
+Notifications cannot revive a suspended app or grant microphone permissions.
+Physical background-session continuity and haptics remain a separate gate.
+
+Verification for build 31:
+
+- 143 core/Mac tests and 31 release-helper tests (74 assertions) passed.
+- 18 hosted iOS tests passed on compact iPhone and again on iPad, including
+  five audio regressions, eight typing-assistance checks and five new
+  notification checks. No real microphone/model session runs in these tests.
+- Six of seven initial compact-phone UI cases passed. The pending-state
+  screenshot was correct, but the combined accessibility-label assertion
+  failed. An explicit status label/value and a three-second delayed fixture
+  corrected that check. All three final real-extension cases passed:
+  arming acknowledgement, unresponsive-session status and one-time insertion.
+- Two final iPad UI cases passed, covering portrait/landscape keyboard fit
+  and setup. Screenshots were inspected on both form factors. These are
+  targeted regression runs, not a fresh complete UI-suite pass.
+- Evidence: `.build/ActivationHostedAccepted-20261006.xcresult`,
+  `.build/ActivationPhone-20261006.xcresult`,
+  `.build/ActivationPhoneAccepted-20261006.xcresult` and
+  `.build/ActivationIPad-20261006.xcresult`.
+- No physical device was connected. Messages/Mail/Notes background audio,
+  actual haptics and the reported iOS 27.2 beta remain unverified.
+
+Public API reference:
+https://developer.apple.com/documentation/darwinnotify/notify_register_dispatch(_:_:_:_:)
+
 ## Scope
 
 Build a Swedish iOS keyboard with the shared light/dark recorder materials,

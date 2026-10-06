@@ -185,7 +185,8 @@ private struct KeyboardRoot: View {
             onSuggestion: { controller?.choose($0) }, onTypingLanguage: {
                 typing.toggleLanguage(); controller?.primaryLanguage = typing.language
             },
-            onCorrection: { typing.toggleCorrection() }, onCursorMove: { controller?.moveCursor($0) })
+            onCorrection: { typing.toggleCorrection() }, onCursorMove: { controller?.moveCursor($0) },
+            pendingAction: client.pending?.action)
     }
 }
 
@@ -220,10 +221,16 @@ private final class KeyboardClient: ObservableObject {
     var store: KeyboardSessionStore?
     var onRefresh: (() -> Void)?
     private var task: Task<Void, Never>?
+    private var stateSignal: KeyboardSessionSignal?
 
     func start(fullAccess: Bool) {
         pause(); self.fullAccess = fullAccess
         store = fullAccess ? KeyboardSessionStore.shared() : nil
+        if fullAccess {
+            stateSignal = KeyboardSessionSignal(.state) { [weak self] in
+                Task { @MainActor [weak self] in self?.refresh() }
+            }
+        }
         refresh()
         task = Task { [weak self] in
             while !Task.isCancelled {
@@ -232,8 +239,10 @@ private final class KeyboardClient: ObservableObject {
             }
         }
     }
-    func pause() { task?.cancel(); task = nil }
+    func pause() { task?.cancel(); task = nil; stateSignal = nil }
     func send(_ action: KeyboardSessionCommand.Action, documentID: UUID? = nil, resultID: UUID? = nil) {
+        // Resolve an acknowledgement before accepting a new tap, even between polling ticks.
+        refresh(notifyController: false)
         guard fullAccess, pending == nil, let store, let id = snapshot.sessionID, snapshot.isAlive() else { return }
         let command = KeyboardSessionCommand(sessionID: id, action: action, requestID: snapshot.requestID,
                                              documentID: documentID, resultID: resultID)
@@ -243,7 +252,7 @@ private final class KeyboardClient: ObservableObject {
             if action == .start { requestID = command.id }
         } catch { notice = mText("Öppna Mumla för att starta om sessionen.", "Open Mumla to restart the session.") }
     }
-    private func refresh() {
+    private func refresh(notifyController: Bool = true) {
         guard fullAccess else { snapshot = .init(); result = nil; pending = nil; notice = nil; return }
         if store == nil { store = KeyboardSessionStore.shared() }
         guard let store else {
@@ -282,7 +291,7 @@ private final class KeyboardClient: ObservableObject {
             if let pending, Date().timeIntervalSince(pending.createdAt) >= 5 {
                 self.pending = nil; notice = mText("Öppna Mumla för att starta om sessionen.", "Open Mumla to restart the session.")
             }
-            onRefresh?()
+            if notifyController { onRefresh?() }
         } catch {
             snapshot = .init(); result = nil; pending = nil; requestID = nil
             notice = mText("Öppna Mumla. Sessionen är inte tillgänglig.", "Open Mumla. The session is unavailable.")

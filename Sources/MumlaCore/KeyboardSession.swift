@@ -122,8 +122,18 @@ public final class KeyboardSessionStore: Sendable {
         guard result == nil || result?.version == KeyboardSessionSnapshot.schema else { throw KeyboardSessionStoreError.invalidPacket }
         return result
     }
-    public func write(_ snapshot: KeyboardSessionSnapshot) throws { try write(snapshot, to: "state.json") }
-    public func send(_ command: KeyboardSessionCommand) throws { try write(command, to: "command.json") }
+    public func write(_ snapshot: KeyboardSessionSnapshot, notify: Bool = true) throws {
+        try write(snapshot, to: "state.json")
+        #if os(iOS)
+        if notify { KeyboardSessionSignal.post(.state) }
+        #endif
+    }
+    public func send(_ command: KeyboardSessionCommand) throws {
+        try write(command, to: "command.json")
+        #if os(iOS)
+        KeyboardSessionSignal.post(.command)
+        #endif
+    }
     public func publish(_ result: KeyboardSessionResult) throws { try write(result, to: "result.json") }
     public func clearResult() throws {
         let url = directory.appendingPathComponent("result.json")

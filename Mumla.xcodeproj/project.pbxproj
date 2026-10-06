@@ -58,6 +58,7 @@
 		B35A13B0268D4F610D5B8C38 /* PillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749B69E10CE6D1D7FC443EBA /* PillView.swift */; };
 		B3C2CE5843FB1780074B06D0 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */; };
 		B5201BB10944B9325AFAA8FC /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
+		B769CDE18330B935CA9E7D19 /* KeyboardSessionSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD72BF9A49E892842340380F /* KeyboardSessionSignalTests.swift */; };
 		B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */; };
 		BA3F945570826A391E965859 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
 		BC59DCA6E81E340BEFFC281B /* MumlaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83E6911303AC4BC9E5177E8 /* MumlaApp.swift */; };
@@ -161,6 +162,7 @@
 		B2FE40E14122384A93F10589 /* MumlaWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = MumlaWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuController.swift; sourceTree = "<group>"; };
 		BD10F02C250E626695DAB3B1 /* MumlaWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaWidgets.swift; sourceTree = "<group>"; };
+		CD72BF9A49E892842340380F /* KeyboardSessionSignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSessionSignalTests.swift; sourceTree = "<group>"; };
 		CE353AB1AAC2AB5A392B97A0 /* CorrectableTranscript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectableTranscript.swift; sourceTree = "<group>"; };
 		D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTextTargetInspector.swift; sourceTree = "<group>"; };
 		D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermission.swift; sourceTree = "<group>"; };
@@ -232,6 +234,7 @@
 			isa = PBXGroup;
 			children = (
 				9222E27C9A685214FBE17749 /* KeyboardAudioCaptureTests.swift */,
+				CD72BF9A49E892842340380F /* KeyboardSessionSignalTests.swift */,
 				8EF711788A62D393B8D55991 /* KeyboardTypingAssistantTests.swift */,
 			);
 			name = MumlaIOSTests;
@@ -679,6 +682,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E96A6626ADB312ADEBB76BE2 /* KeyboardAudioCaptureTests.swift in Sources */,
+				B769CDE18330B935CA9E7D19 /* KeyboardSessionSignalTests.swift in Sources */,
 				6C2065A40D4E05A0E458E7E5 /* KeyboardTypingAssistantTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1019,7 +1023,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 31;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1107,7 +1111,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 31;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1263,7 +1267,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 31;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_NS_ASSERTIONS = NO;

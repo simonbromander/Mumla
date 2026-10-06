@@ -5,6 +5,7 @@ public struct MumlaKeyboardView: View {
     public var snapshot: KeyboardSessionSnapshot
     public var fullAccess: Bool
     public var pending: Bool
+    public var pendingAction: KeyboardSessionCommand.Action?
     public var preview: String?
     public var notice: String?
     public var samples: [Double]
@@ -47,8 +48,10 @@ public struct MumlaKeyboardView: View {
                 typingRevision: Int = 0, typingLanguage: String = "sv", correctionEnabled: Bool = true, correctionAvailable: Bool = true,
                 onSuggestion: @escaping (KeyboardTypingSuggestion) -> Void = { _ in },
                 onTypingLanguage: @escaping () -> Void = {}, onCorrection: @escaping () -> Void = {},
-                onCursorMove: @escaping (Int) -> Void = { _ in }) {
+                onCursorMove: @escaping (Int) -> Void = { _ in },
+                pendingAction: KeyboardSessionCommand.Action? = nil) {
         self.snapshot = snapshot; self.fullAccess = fullAccess; self.pending = pending
+        self.pendingAction = pendingAction
         self.preview = preview; self.notice = notice; self.samples = samples; self.nextKeyboard = nextKeyboard
         self.returnTitle = returnTitle; self.onRecord = onRecord; self.onCancel = onCancel
         self.onInsert = onInsert; self.onEnd = onEnd; self.onKey = onKey; self.onDelete = onDelete; self.onReturn = onReturn
@@ -71,7 +74,8 @@ public struct MumlaKeyboardView: View {
                         else { onRecord() }
                     } label: {
                         Group {
-                            if recording { Image(systemName: "stop.fill") }
+                            if pending { Image(systemName: "ellipsis") }
+                            else if recording { Image(systemName: "stop.fill") }
                             else if snapshot.phase == .failed && snapshot.canRetry { Image(systemName: "arrow.clockwise") }
                             else { Image(systemName: "mic.fill") }
                         }.font(.system(size: compact ? 17 : 21, weight: .medium))
@@ -295,7 +299,7 @@ public struct MumlaKeyboardView: View {
                         .multilineTextAlignment(.trailing).frame(width: 50)
                 } else { Text("SV / 01").font(.system(size: 9, design: .monospaced)) }
             }
-            if recording { MumlaWaveform(samples: samples, active: true).frame(height: compact ? 12 : 20) }
+            if recording && !pending { MumlaWaveform(samples: samples, active: true).frame(height: compact ? 12 : 20) }
             else {
                 Text(notice ?? detail).font(.system(size: 10, design: .monospaced)).lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -305,7 +309,9 @@ public struct MumlaKeyboardView: View {
         .frame(maxWidth: .infinity, minHeight: compact ? 48 : 60, maxHeight: compact ? 48 : 60, alignment: .leading)
         .background(MumlaStyle.lcd).clipShape(RoundedRectangle(cornerRadius: 5))
         .padding(3).mumlaRecess(radius: 7)
-        .accessibilityElement(children: .combine).accessibilityIdentifier("keyboard.status")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(status).accessibilityValue(notice ?? detail)
+        .accessibilityIdentifier("keyboard.status")
     }
     private var status: String {
         if !fullAccess { return mText("FULL ÅTKOMST", "FULL ACCESS") }
@@ -313,6 +319,16 @@ public struct MumlaKeyboardView: View {
             return snapshot.expiresAt <= Date() ? mText("SESSIONEN ÄR SLUT", "SESSION EXPIRED") : mText("ANSLUTNING BRUTEN", "CONNECTION LOST")
         }
         if !active { return mText("INGEN SESSION", "NO SESSION") }
+        if pending, let pendingAction {
+            switch pendingAction {
+            case .start: return mText("STARTAR MIKROFON", "ARMING MICROPHONE")
+            case .stop: return mText("AVSLUTAR KLIPP", "FINISHING CLIP")
+            case .cancel: return mText("AVBRYTER", "CANCELLING")
+            case .retry: return mText("BEARBETAR", "PROCESSING")
+            case .consume: return mText("INFOGAR", "INSERTING")
+            case .end: return mText("AVSLUTAR SESSION", "ENDING SESSION")
+            }
+        }
         switch snapshot.phase {
         case .recording: return "REC"
         case .transcribing: return mText("BEARBETAR", "PROCESSING")
@@ -325,6 +341,8 @@ public struct MumlaKeyboardView: View {
     private var detail: String {
         if !fullAccess { return mText("Aktivera Full åtkomst i Inställningar.", "Enable Full Access in Settings.") }
         if !active { return mText("Starta tangentbordssessionen i Mumla.", "Start the keyboard session in Mumla.") }
+        if pendingAction == .start { return mText("Börja prata när REC visas.", "Speak when REC appears.") }
+        if pending { return mText("Väntar på Mumla.", "Waiting for Mumla.") }
         if snapshot.phase == .failed {
             return snapshot.canRetry ? mText("Klippet finns kvar i Mumla.", "Your clip is saved in Mumla.") : mText("Öppna Mumla eller spela in igen.", "Open Mumla or record again.")
         }

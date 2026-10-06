@@ -16,6 +16,21 @@ struct KeyboardSetupSheet: View {
                         Spacer()
                         MumlaReadout(session.keyboardSnapshot.isAlive() ? mText("PÅ", "ON") : mText("AV", "OFF"))
                     }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(session.keyboardPreparationTitle,
+                              systemImage: session.keyboardSnapshot.isAlive() ? "checkmark.circle.fill" : "mic.fill")
+                            .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                        Text(session.isStartingKeyboard
+                             ? mText("Stanna i Mumla tills sessionen är redo. Första starten kan ta längre tid.", "Stay in Mumla until the session is ready. The first start may take longer.")
+                             : session.keyboardSnapshot.isAlive()
+                             ? mText("Gå tillbaka till din app. Mikrofonknappen är redo i Mumla-tangentbordet.", "Return to your app. The microphone key is ready in the Mumla keyboard.")
+                             : mText("Starta en 15-minuterssession nedan.", "Start a 15-minute session below."))
+                            .font(.system(.footnote, design: .monospaced)).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .foregroundStyle(MumlaStyle.lcdInk).padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(MumlaStyle.lcd).clipShape(RoundedRectangle(cornerRadius: 5))
+                    .padding(4).mumlaRecess(radius: 8)
+                    .accessibilityElement(children: .combine).accessibilityIdentifier("keyboard.preparation")
                     Text(mText("Diktera där du skriver.", "Dictate where you write."))
                         .font(.system(.title2, design: .monospaced).weight(.semibold))
                     VStack(alignment: .leading, spacing: 16) {
@@ -83,8 +98,9 @@ struct KeyboardSetupSheet: View {
                 if session.keyboardSnapshot.isAlive() { session.endKeyboardSession() }
                 else { Task { await session.startKeyboardSession() } }
             } label: {
-                Label(session.isStartingKeyboard ? mText("Förbereder", "Preparing") : session.keyboardSnapshot.isAlive() ? mText("Avsluta session", "End session") : mText("Starta session", "Start session"),
+                Label(session.isStartingKeyboard ? session.keyboardPreparationTitle : session.keyboardSnapshot.isAlive() ? mText("Avsluta session", "End session") : mText("Starta session", "Start session"),
                       systemImage: session.keyboardSnapshot.isAlive() ? "power" : "mic.fill")
+                    .font(.system(.subheadline, design: .monospaced)).lineLimit(1).minimumScaleFactor(0.8)
                     .frame(maxWidth: .infinity).padding(18)
             }
             .buttonStyle(MumlaStereoKeyStyle(isLatched: session.keyboardSnapshot.isAlive(), height: 60))

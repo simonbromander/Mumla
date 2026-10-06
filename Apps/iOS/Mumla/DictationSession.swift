@@ -8,6 +8,7 @@ import SwiftUI
 @MainActor
 final class DictationSession: ObservableObject {
     enum State: Equatable { case idle, requestingPermission, recording, transcribing }
+    enum KeyboardPreparation { case permission, model, microphone }
     @Published private(set) var state: State = .idle
     @Published private(set) var history: [DictationRecord] = []
     @Published private(set) var dictionary: [DictionaryEntry] = []
@@ -19,6 +20,7 @@ final class DictationSession: ObservableObject {
     @Published private(set) var hasPendingAudio = false
     @Published private(set) var keyboardSnapshot = KeyboardSessionSnapshot()
     @Published private(set) var isStartingKeyboard = false
+    @Published private(set) var keyboardPreparation: KeyboardPreparation?
     @Published var error: String?
     @Published var selectedRecord: DictationRecord?
     @Published var copiedID: UUID?
@@ -220,8 +222,9 @@ final class DictationSession: ObservableObject {
     func startKeyboardSession() async {
         guard state == .idle, modelReady, !hasPendingAudio, !keyboardSnapshot.isAlive(), !isStartingKeyboard else { return }
         isStartingKeyboard = true
+        keyboardPreparation = .permission
         error = nil
-        defer { isStartingKeyboard = false }
+        defer { isStartingKeyboard = false; keyboardPreparation = nil }
         guard let store = KeyboardSessionStore.shared() else {
             error = mText("Tangentbordets delade lagring saknas. Installera om Mumla.", "Keyboard shared storage is unavailable. Reinstall Mumla.")
             return
@@ -232,10 +235,21 @@ final class DictationSession: ObservableObject {
         }
         do {
             unloadTask?.cancel()
+            keyboardPreparation = .model
             if transcriber == nil, let directory = ModelPathResolver.resolveCompiledPianissimoModel() {
                 transcriber = LocalPianissimoTranscriber(modelDirectory: directory)
             }
-            try await transcriber?.warmUp()
+            guard let transcriber else {
+                throw NSError(domain: "MumlaKeyboard", code: 2, userInfo: [NSLocalizedDescriptionKey:
+                    mText("Språkmodellen saknas. Hämta svenska igen.", "The language model is missing. Download Swedish again.")])
+            }
+            try await transcriber.warmUp()
+            try Task.checkCancellation()
+            guard UIApplication.shared.applicationState == .active else {
+                throw NSError(domain: "MumlaKeyboard", code: 3, userInfo: [NSLocalizedDescriptionKey:
+                    mText("Kom tillbaka till Mumla och starta sessionen när förberedelsen är klar.", "Return to Mumla and start the session once preparation finishes.")])
+            }
+            keyboardPreparation = .microphone
             if keyboardSession == nil {
                 keyboardSession = KeyboardDictationSession(store: store) { [weak self] url in
                     guard let self else { throw CancellationError() }
@@ -266,6 +280,15 @@ final class DictationSession: ObservableObject {
     }
 
     func endKeyboardSession() { keyboardSession?.end(); scheduleUnload() }
+
+    var keyboardPreparationTitle: String {
+        switch keyboardPreparation {
+        case .permission: mText("MIKROFONÅTKOMST", "MICROPHONE ACCESS")
+        case .model: mText("LADDAR SVENSKA", "LOADING SWEDISH")
+        case .microphone: mText("STARTAR MIKROFON", "ARMING MICROPHONE")
+        case nil: keyboardSnapshot.isAlive() ? mText("SESSION REDO", "SESSION READY") : mText("INGEN SESSION", "NO SESSION")
+        }
+    }
 
     func discardPendingAudio() {
         guard state == .idle, !keyboardSnapshot.isAlive() else { return }
