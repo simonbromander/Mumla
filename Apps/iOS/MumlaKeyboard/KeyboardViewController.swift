@@ -167,13 +167,19 @@ private final class KeyboardClient: ObservableObject {
         } catch { notice = mText("Öppna Mumla för att starta om sessionen.", "Open Mumla to restart the session.") }
     }
     private func refresh() {
-        guard fullAccess else { snapshot = .init(); result = nil; return }
+        guard fullAccess else { snapshot = .init(); result = nil; pending = nil; notice = nil; return }
         if store == nil { store = KeyboardSessionStore.shared() }
-        guard let store else { return }
+        guard let store else {
+            snapshot = .init(); result = nil; pending = nil
+            notice = mText("Delad lagring saknas. Installera om Mumla.", "Shared storage is unavailable. Reinstall Mumla.")
+            return
+        }
         do {
             let next = try store.snapshot()
             if next.isAlive() {
-                if next.sessionID != snapshot.sessionID { requestID = nil; result = nil; pending = nil }
+                if next.sessionID != snapshot.sessionID || !snapshot.isAlive() {
+                    requestID = nil; result = nil; pending = nil; notice = nil
+                }
                 snapshot = next
                 if UserDefaults.standard.object(forKey: MumlaFeedback.preferenceKey) as? Bool != next.hapticsEnabled {
                     UserDefaults.standard.set(next.hapticsEnabled, forKey: MumlaFeedback.preferenceKey)
@@ -187,13 +193,21 @@ private final class KeyboardClient: ObservableObject {
                     let packet = try store.result()
                     result = packet?.sessionID == snapshot.sessionID && packet?.id == snapshot.resultID ? packet : nil
                 } else if snapshot.phase != .result { result = nil }
-            } else { snapshot = .init(); result = nil; samples = Array(repeating: 0, count: 43) }
+            } else {
+                snapshot = next; result = nil; samples = Array(repeating: 0, count: 43)
+                pending = nil; requestID = nil
+                if next.sessionID != nil && next.phase != .inactive {
+                    notice = next.expiresAt <= Date()
+                        ? mText("Sessionens 15 minuter är slut.", "The 15-minute session expired.")
+                        : mText("Mumla-sessionen svarar inte. Starta om den i appen.", "The Mumla session is not responding. Restart it in the app.")
+                } else { notice = next.error }
+            }
             if let pending, Date().timeIntervalSince(pending.createdAt) >= 5 {
                 self.pending = nil; notice = mText("Öppna Mumla för att starta om sessionen.", "Open Mumla to restart the session.")
             }
             onRefresh?()
         } catch {
-            snapshot = .init(); result = nil
+            snapshot = .init(); result = nil; pending = nil; requestID = nil
             notice = mText("Öppna Mumla. Sessionen är inte tillgänglig.", "Open Mumla. The session is unavailable.")
         }
     }

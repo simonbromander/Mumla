@@ -26,8 +26,8 @@ final class DictationSession: ObservableObject {
     private let dictionaryStore: DictionaryStore
     private let installer = ModelInstaller()
     private let recorder = MicrophoneRecorder()
-    private let pendingURL = ModelPathResolver.appSupportDirectory().appendingPathComponent("pending-dictation.wav")
-    private let keyboardPendingURL = ModelPathResolver.appSupportDirectory().appendingPathComponent("pending-keyboard.caf")
+    private let pendingURL: URL
+    private let keyboardPendingURL: URL
     private var transcriber: LocalPianissimoTranscriber?
     private var meterTask: Task<Void, Never>?
     private var unloadTask: Task<Void, Never>?
@@ -35,6 +35,16 @@ final class DictationSession: ObservableObject {
     private var keyboardSession: KeyboardDictationSession?
 
     init() {
+        let audioDirectory: URL = {
+            #if DEBUG
+            if CommandLine.arguments.contains("--ui-testing") {
+                return FileManager.default.temporaryDirectory.appendingPathComponent("MumlaUITests", isDirectory: true)
+            }
+            #endif
+            return ModelPathResolver.appSupportDirectory()
+        }()
+        pendingURL = audioDirectory.appendingPathComponent("pending-dictation.wav")
+        keyboardPendingURL = audioDirectory.appendingPathComponent("pending-keyboard.caf")
         #if DEBUG
         if CommandLine.arguments.contains("--ui-testing") {
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaUITests", isDirectory: true)
@@ -67,6 +77,21 @@ final class DictationSession: ObservableObject {
             dictionary = try dictionaryStore.load()
         } catch { self.error = error.localizedDescription }
         modelReady = ModelPathResolver.resolveCompiledPianissimoModel() != nil
+        #if DEBUG
+        if CommandLine.arguments.contains("--ui-testing") {
+            if CommandLine.arguments.contains("--model-ready-fixture") { modelReady = true }
+            if CommandLine.arguments.contains("--seed-pending-clip"),
+               let format = AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1),
+               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1_600) {
+                try? FileManager.default.createDirectory(at: audioDirectory, withIntermediateDirectories: true)
+                buffer.frameLength = 1_600
+                buffer.floatChannelData?.pointee.update(repeating: 0, count: 1_600)
+                if let file = try? AVAudioFile(forWriting: pendingURL, settings: format.settings) {
+                    try? file.write(from: buffer)
+                }
+            }
+        }
+        #endif
         recoverKeyboardClip()
         hasPendingAudio = FileManager.default.fileExists(atPath: pendingURL.path) || FileManager.default.fileExists(atPath: keyboardPendingURL.path)
         if let store = KeyboardSessionStore.shared() { try? store.write(KeyboardSessionSnapshot()) }
@@ -308,7 +333,7 @@ final class DictationSession: ObservableObject {
     }
     private func recoverKeyboardClip() {
         guard keyboardSnapshot.sessionID == nil, !FileManager.default.fileExists(atPath: keyboardPendingURL.path) else { return }
-        let directory = ModelPathResolver.appSupportDirectory().appendingPathComponent("KeyboardClips", isDirectory: true)
+        let directory = keyboardPendingURL.deletingLastPathComponent().appendingPathComponent("KeyboardClips", isDirectory: true)
         guard let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey]),
               let clip = files.filter({ $0.pathExtension == "caf" }).sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).first else { return }
         try? FileManager.default.moveItem(at: clip, to: keyboardPendingURL)

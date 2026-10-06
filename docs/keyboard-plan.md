@@ -1,7 +1,7 @@
 # Mumla Keyboard
 
-Status: implemented; physical-iPhone acceptance and keyboard App Group assignment pending,
-2026-10-05.
+Status: experimental internal beta; physical-iPhone acceptance is pending.
+The App Group is assigned to the app and both extensions. Updated 2026-10-06.
 
 ## Scope
 
@@ -23,6 +23,21 @@ with NSExtensionContext.open. Do not use responder-chain tricks, private APIs,
 invisible URL buttons or automatic return-to-app claims. Start the session in
 Mumla, switch back manually, then use the keyboard without another app switch.
 The keyboard gives a clear inactive/full-access state rather than a dead mic.
+Tapping an inactive mic shows the activation requirement inside the keyboard,
+where it can be presented reliably; it never opens another app or starts audio.
+An unresponsive heartbeat is distinguished from a missing or expired session,
+and termination reasons remain visible in the keyboard and containing app.
+
+The explicitly started microphone session uses play-and-record with mixing,
+so it can coexist with the host app's audio. Calls, actual interruptions,
+route changes, locking and expiry still stop it. This configuration change
+must be verified on a physical iPhone; simulator configuration tests do not
+prove background microphone continuity.
+
+An unfinished clip blocks new sessions to protect that audio. Keyboard setup
+offers transcription or an explicitly confirmed discard instead of leaving
+the session-start key disabled without a recovery path. Errors from starting
+the session are shown in the setup sheet itself.
 
 Full Access is needed only to write local commands in group.com.mumla.app.
 Typing works without it. No networking, telemetry, host-field scraping or
@@ -95,6 +110,33 @@ not sufficient to mark the keyboard accepted for a stable release.
 - Check network traffic during dictation; no audio/text or analytics requests.
 
 Simulator fixtures, compiled code and source review do not close this checklist.
+
+### Connection and Activation Checks: 2026-10-06
+
+- All 132 core/Mac tests and 31 release-helper tests (74 assertions) passed.
+- Five hosted tests passed, including the real audio callback regressions and
+  a check that the keyboard's audio configuration enables mixing without
+  activating a microphone.
+- The complete signed Simulator run passed 18 of 19 UI cases. The remaining
+  case queried the LCD as the wrong accessibility element type; its stale-state
+  message and typing assertions already passed. After correcting only that
+  selector, the targeted case passed. Together the runs cover all 24 hosted/UI
+  cases, not a single clean full-suite run.
+- Real-extension fixtures exercise typing without Full Access, activation
+  guidance, start/stop/consume and exactly-once insertion, and stale-session
+  diagnostics. The saved-clip fixture verifies that discard requires confirmation
+  and unlocks session startup; cancel leaves the clip and startup gate intact.
+- A system alert did not appear from the real keyboard extension in the first
+  iteration. Activation guidance now stays inside the extension's view bounds;
+  its close key and keyboard switcher remain usable. Compact screenshots for
+  connection loss and saved-clip recovery were inspected without overlap.
+- Evidence: `.build/keyboard-connection-tests-20261006.xcresult`,
+  `.build/keyboard-connection-selector-rerun-20261006.xcresult` and
+  `.build/KeyboardConnectionScreenshots-20261006/`.
+- These fixtures do not exercise the actual microphone or background handoff
+  to Messages/Mail/Notes. No physical iPhone was connected to the build Mac.
+  Retest session continuity on device and report the exact keyboard status and
+  whether the Live Activity remains visible if it fails.
 
 ## Non-goals
 

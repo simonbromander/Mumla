@@ -57,7 +57,7 @@ struct MumlaHomeView: View {
         .sheet(isPresented: $showKeyboard) { KeyboardSetupSheet(session: session) }
         .sheet(isPresented: $showAddWord) { AddWordSheet(session: session) }
         .sheet(item: $session.selectedRecord) { record in TranscriptSheet(record: record, session: session) }
-        .alert("Mumla", isPresented: Binding(get: { session.error != nil }, set: { if !$0 { session.error = nil } })) {
+        .alert("Mumla", isPresented: Binding(get: { session.error != nil && !showKeyboard }, set: { if !$0 && !showKeyboard { session.error = nil } })) {
             Button("OK", role: .cancel) { session.error = nil }
         } message: { Text(session.error ?? "") }
         .alert(mText("Radera osparat ljud?", "Discard unsaved audio?"), isPresented: $showDiscardAudio) {

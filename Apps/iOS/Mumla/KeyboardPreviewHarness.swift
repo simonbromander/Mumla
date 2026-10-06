@@ -60,13 +60,18 @@ struct KeyboardHostHarness: View {
             TextEditor(text: $text).focused($focused).accessibilityIdentifier("keyboard.hostField")
         }.padding(20).onAppear { focused = true }
             .task {
-                guard CommandLine.arguments.contains("--keyboard-session-fixture"),
+                guard (CommandLine.arguments.contains("--keyboard-session-fixture") || CommandLine.arguments.contains("--keyboard-stale-session-fixture")),
                       let store = KeyboardSessionStore.shared() else { return }
                 let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaUITests", isDirectory: true)
                 let history = DictationHistoryStore(directory: directory)
                 var state = KeyboardSessionSnapshot()
                 state.sessionID = UUID(); state.phase = .ready; state.expiresAt = Date().addingTimeInterval(300)
                 state.appearance = "light"
+                if CommandLine.arguments.contains("--keyboard-stale-session-fixture") {
+                    state.heartbeat = Date().addingTimeInterval(-10)
+                    try? store.write(state)
+                    return
+                }
                 var documentID: UUID?
                 defer { try? store.write(KeyboardSessionSnapshot()); try? store.clearResult() }
                 do {

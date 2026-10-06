@@ -19,6 +19,7 @@ final class KeyboardDictationSession {
     private var activity: Activity<MumlaKeyboardActivityAttributes>?
     private var activityTask: Task<Void, Never>?
     private var endAfterProcessing = false
+    private var pendingEndReason: String?
     private var pendingURL: URL?
     private var backgroundTask = UIBackgroundTaskIdentifier.invalid
     private var lastActivityUpdate = Date.distantPast
@@ -51,7 +52,16 @@ final class KeyboardDictationSession {
                 if notification.name == AVAudioSession.routeChangeNotification,
                    let raw = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
                    AVAudioSession.RouteChangeReason(rawValue: raw) == .categoryChange { return }
-                Task { @MainActor [weak self] in self?.end() }
+                let reason: String
+                switch notification.name {
+                case UIApplication.protectedDataWillBecomeUnavailableNotification:
+                    reason = mText("Sessionen avslutades när telefonen låstes.", "The session ended when the phone locked.")
+                case AVAudioSession.interruptionNotification:
+                    reason = mText("Mikrofonen avbröts av en annan app.", "Another app interrupted the microphone.")
+                default:
+                    reason = mText("Mikrofonen ändrades. Starta en ny session.", "The microphone changed. Start a new session.")
+                }
+                Task { @MainActor [weak self] in self?.end(reason: reason) }
             })
         }
         loop = Task { [weak self] in
@@ -62,22 +72,24 @@ final class KeyboardDictationSession {
         }
     }
 
-    func end() {
+    func end(reason: String? = nil) {
         guard snapshot.sessionID != nil else { return }
+        if let reason { pendingEndReason = reason }
         if snapshot.phase == .transcribing { endAfterProcessing = true; releaseMicrophone(); return }
         if snapshot.phase == .recording {
             endAfterProcessing = true; finish()
-            if snapshot.phase != .transcribing { tearDown() } else { releaseMicrophone() }
+            if snapshot.phase != .transcribing { tearDown(reason: pendingEndReason) } else { releaseMicrophone() }
             return
         }
-        tearDown()
+        tearDown(reason: pendingEndReason)
     }
 
-    private func tearDown() {
+    private func tearDown(reason: String? = nil) {
         loop?.cancel(); loop = nil
         capture.endSession()
         observers.forEach(NotificationCenter.default.removeObserver); observers.removeAll()
         snapshot = .init(); snapshot.heartbeat = Date()
+        snapshot.error = reason
         try? store.write(snapshot); changed(snapshot)
         try? store.clearResult()
         if let activity {
@@ -85,7 +97,7 @@ final class KeyboardDictationSession {
             Task { await activity.end(content, dismissalPolicy: .immediate) }
         }
         activity = nil; activityTask?.cancel(); activityTask = nil
-        endAfterProcessing = false; documentID = nil; pendingURL = nil
+        endAfterProcessing = false; pendingEndReason = nil; documentID = nil; pendingURL = nil
         if backgroundTask != .invalid { UIApplication.shared.endBackgroundTask(backgroundTask); backgroundTask = .invalid }
     }
 
@@ -101,11 +113,13 @@ final class KeyboardDictationSession {
     private func tick() {
         guard snapshot.sessionID != nil else { return }
         let now = Date()
-        if now >= snapshot.expiresAt { end() }
+        if now >= snapshot.expiresAt { end(reason: mText("Sessionens 15 minuter är slut.", "The 15-minute session expired.")) }
         guard snapshot.sessionID != nil else { return }
         if snapshot.phase == .recording, let start = snapshot.recordingStartedAt,
            now.timeIntervalSince(start) >= 600 { finish() }
-        if !capture.isRunning && snapshot.phase != .transcribing { end(); return }
+        if !capture.isRunning && snapshot.phase != .transcribing {
+            end(reason: mText("Mikrofonen har stoppats. Starta en ny session.", "The microphone stopped. Start a new session.")); return
+        }
         if let command = try? store.command(), snapshot.accepts(command, at: now) { handle(command) }
         publish()
         if now.timeIntervalSince(lastActivityUpdate) >= 5 { updateActivity() }
@@ -183,7 +197,9 @@ final class KeyboardDictationSession {
         do { try store.write(snapshot) }
         catch {
             // A locked or unavailable shared container must not keep a microphone session alive.
-            if snapshot.phase != .inactive { tearDown() }
+            if snapshot.phase != .inactive {
+                tearDown(reason: mText("Tangentbordets delade lagring är inte tillgänglig.", "The keyboard's shared storage is unavailable."))
+            }
         }
         changed(snapshot)
     }

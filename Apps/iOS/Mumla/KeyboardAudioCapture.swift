@@ -19,7 +19,7 @@ final class KeyboardAudioCapture: @unchecked Sendable {
 
     @MainActor func startSession() throws {
         let audio = AVAudioSession.sharedInstance()
-        try audio.setCategory(.record, mode: .measurement)
+        try configureAudioSession()
         try audio.setActive(true)
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
@@ -30,6 +30,11 @@ final class KeyboardAudioCapture: @unchecked Sendable {
         engine.prepare()
         do { try engine.start() }
         catch { input.removeTap(onBus: 0); tapInstalled = false; throw error }
+    }
+
+    @MainActor func configureAudioSession() throws {
+        // Keep the user-started keyboard session compatible with the host app's audio.
+        try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers])
     }
 
     @MainActor func startClip() throws {

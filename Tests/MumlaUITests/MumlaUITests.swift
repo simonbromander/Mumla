@@ -32,8 +32,13 @@ final class MumlaUITests: XCTestCase {
         XCTAssertEqual(field.value as? String, "Hej från Mumla.å")
         capture("39-keyboard-real-insertion", app: app)
         app.buttons["keyboard.end"].tap()
-        expectation(for: NSPredicate(format: "enabled == false"), evaluatedWith: record)
+        expectation(for: NSPredicate(format: "label == %@", "Enable dictation"), evaluatedWith: record)
         waitForExpectations(timeout: 5)
+        record.tap()
+        XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].label.contains("Start session"))
+        XCTAssertEqual(field.value as? String, "Hej från Mumla.å")
+        app.buttons["keyboard.activationClose"].tap()
     }
 
     func testKeyboardExtensionTypesWithoutFullAccess() {
@@ -51,8 +56,36 @@ final class MumlaUITests: XCTestCase {
         app.buttons["keyboard.space"].tap()
         for key in ["å", "ä", "ö"] { app.buttons["keyboard.key.\(key)"].tap() }
         XCTAssertEqual(app.textViews["keyboard.hostField"].value as? String, "hej åäö")
-        XCTAssertFalse(app.buttons["keyboard.record"].isEnabled)
+        app.buttons["keyboard.record"].tap()
+        XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].label.contains("Full Access"))
+        app.buttons["keyboard.activationClose"].tap()
         capture("37-keyboard-real-extension", app: app)
+    }
+
+    func testKeyboardExtensionIdentifiesUnresponsiveSession() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--keyboard-host", "--keyboard-stale-session-fixture", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
+        configureMumlaKeyboard(fullAccess: true)
+        app.terminate(); app.launch()
+        defer { restoreSystemKeyboard(app) }
+        selectMumlaKeyboard(app)
+        let status = app.descendants(matching: .any).matching(identifier: "keyboard.status").firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 3))
+        expectation(for: NSPredicate(format: "label CONTAINS %@", "CONNECTION LOST"), evaluatedWith: status)
+        waitForExpectations(timeout: 5)
+        app.buttons["keyboard.record"].tap()
+        let message = app.staticTexts["keyboard.activationMessage"]
+        XCTAssertTrue(message.waitForExistence(timeout: 3))
+        XCTAssertTrue(message.label.contains("not responding"))
+        XCTAssertTrue(app.buttons["keyboard.globe"].isHittable)
+        capture("44-keyboard-connection-lost", app: app)
+        app.buttons["keyboard.activationClose"].tap()
+        app.buttons["keyboard.key.h"].tap()
+        XCTAssertEqual(app.textViews["keyboard.hostField"].value as? String, "h")
+        XCTAssertFalse(app.buttons["keyboard.cancel"].exists)
     }
 
     private func configureMumlaKeyboard(fullAccess: Bool) {
@@ -169,14 +202,51 @@ final class MumlaUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["keyboard.output"].label, "Vi ses klockan nio.")
         XCTAssertTrue(record.isEnabled)
         app.buttons["Access"].tap()
-        XCTAssertFalse(record.isEnabled)
+        XCTAssertTrue(record.isEnabled)
+        record.tap()
+        XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].label.contains("Full åtkomst"))
+        app.buttons["keyboard.activationClose"].tap()
         app.buttons["keyboard.key.å"].tap()
         XCTAssertTrue(app.staticTexts["keyboard.output"].label.hasSuffix("å"))
         capture("34-keyboard-no-access", app: app)
         app.buttons["Access"].tap()
         app.buttons["keyboard.end"].tap()
-        XCTAssertFalse(record.isEnabled)
+        XCTAssertTrue(record.isEnabled)
+        record.tap()
+        XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["keyboard.activationMessage"].label.contains("Starta session"))
+        capture("45-keyboard-session-help", app: app)
+        app.buttons["keyboard.activationClose"].tap()
         capture("35-keyboard-no-session", app: app)
+    }
+
+    func testKeyboardSetupRecoversBlockedClipWithoutDiscardingSilently() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--model-ready-fixture", "--seed-pending-clip", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["keyboard.setup"].waitForExistence(timeout: 10))
+        app.buttons["keyboard.setup"].tap()
+        let start = app.buttons["keyboard.session"]
+        XCTAssertTrue(start.waitForExistence(timeout: 3))
+        XCTAssertFalse(start.isEnabled)
+        let recover = app.buttons["keyboard.recoverClip"]
+        let discard = app.buttons["keyboard.discardClip"]
+        for _ in 0..<5 where !discard.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        XCTAssertTrue(recover.isEnabled)
+        XCTAssertTrue(discard.isHittable)
+        capture("43-keyboard-pending-clip-recovery", app: app)
+        discard.tap()
+        XCTAssertTrue(app.alerts["Discard unsaved audio?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(discard.exists)
+        XCTAssertFalse(start.isEnabled)
+        discard.tap()
+        app.alerts.buttons["Discard"].tap()
+        XCTAssertFalse(discard.exists)
+        XCTAssertFalse(recover.exists)
+        XCTAssertTrue(start.isEnabled)
+        XCTAssertEqual(start.label, "Start session")
     }
 
     func testKeyboardSetupIsAvailableWithoutAReadyModel() {

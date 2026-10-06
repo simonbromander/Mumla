@@ -5,6 +5,7 @@ import SwiftUI
 struct KeyboardSetupSheet: View {
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
+    @State private var showDiscardAudio = false
     var body: some View {
         VStack(spacing: 0) {
             MumlaPanelHeader(mText("Mumla-tangentbord", "Mumla keyboard"), closeLabel: mText("Klart", "Done")) { dismiss() }
@@ -38,6 +39,36 @@ struct KeyboardSetupSheet: View {
                         }.buttonStyle(MumlaKeyStyle()).disabled(session.isInstalling)
                         if session.isInstalling { MumlaDownloadGauge(fraction: session.progress.fraction) }
                     }
+                    if session.hasPendingAudio && !session.keyboardSnapshot.isAlive() {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label(mText("Osparat klipp", "Unsaved clip"), systemImage: "waveform")
+                                .font(.system(.headline, design: .monospaced))
+                            Text(mText("Ett tidigare klipp väntar på transkribering. Spara eller radera det innan du startar en ny session.", "A previous clip is waiting for transcription. Save or discard it before starting a new session."))
+                                .font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                            Button { Task { await session.transcribePending() } } label: {
+                                Label(mText("Spara transkript", "Save transcript"), systemImage: "arrow.clockwise")
+                                    .frame(maxWidth: .infinity).padding(14)
+                            }.buttonStyle(MumlaKeyStyle())
+                                .disabled(!session.modelReady || session.state != .idle || session.isStartingKeyboard)
+                                .accessibilityIdentifier("keyboard.recoverClip")
+                            Button(role: .destructive) { showDiscardAudio = true } label: {
+                                Label(mText("Radera klipp", "Discard clip"), systemImage: "trash")
+                                    .frame(maxWidth: .infinity).padding(14)
+                            }.buttonStyle(MumlaKeyStyle())
+                                .disabled(session.state != .idle || session.isStartingKeyboard)
+                                .accessibilityIdentifier("keyboard.discardClip")
+                        }.padding(18).mumlaRecess(radius: 8)
+                    }
+                    if let error = session.error {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .accessibilityIdentifier("keyboard.error")
+                    }
+                    if !session.keyboardSnapshot.isAlive(), let reason = session.keyboardSnapshot.error {
+                        Label(reason, systemImage: "exclamationmark.triangle")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .accessibilityIdentifier("keyboard.connectionError")
+                    }
                     Button {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     } label: {
@@ -64,6 +95,10 @@ struct KeyboardSetupSheet: View {
         .background { MumlaBackdrop() }.mumlaAppearance()
         .font(.system(.body, design: .monospaced))
         .presentationBackground(MumlaStyle.background)
+        .alert(mText("Radera osparat ljud?", "Discard unsaved audio?"), isPresented: $showDiscardAudio) {
+            Button(mText("Radera", "Discard"), role: .destructive) { session.discardPendingAudio() }
+            Button(mText("Avbryt", "Cancel"), role: .cancel) {}
+        } message: { Text(mText("Det här klippet har inget sparat transkript än.", "This clip does not have a saved transcript yet.")) }
     }
     private func step(_ number: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 14) {

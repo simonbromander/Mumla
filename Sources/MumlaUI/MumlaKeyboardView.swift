@@ -20,6 +20,7 @@ public struct MumlaKeyboardView: View {
     @State private var layout = MumlaKeyboardLayout.letters
     @State private var shift = MumlaKeyboardShift()
     @State private var deleteTask: Task<Void, Never>?
+    @State private var showActivationRequirement = false
     private var active: Bool { snapshot.isAlive() }
     private var recording: Bool { active && snapshot.phase == .recording }
 
@@ -41,22 +42,25 @@ public struct MumlaKeyboardView: View {
             VStack(spacing: compact ? 5 : 8) {
                 HStack(spacing: 8) {
                     lcd(compact: compact)
-                    Button(action: onRecord) {
+                    Button {
+                        if !fullAccess || !active { showActivationRequirement = true }
+                        else { onRecord() }
+                    } label: {
                         Group {
                             if recording { Image(systemName: "stop.fill") }
                             else if snapshot.phase == .failed && snapshot.canRetry { Image(systemName: "arrow.clockwise") }
                             else { Image(systemName: "mic.fill") }
                         }.font(.system(size: compact ? 17 : 21, weight: .medium))
                             .padding(.top, compact ? 8 : 6)
-                            .foregroundStyle(!fullAccess || !active ? MumlaStyle.secondary : recording ? MumlaStyle.recording : MumlaStyle.accent)
+                            .foregroundStyle(recording ? MumlaStyle.recording : MumlaStyle.accent)
                             .transaction { $0.animation = nil }
                     }
                     .buttonStyle(MumlaStereoKeyStyle(isLatched: recording, height: compact ? 48 : 60) { pressed in
                         if pressed { MumlaFeedback.press() }
                     })
                     .frame(width: compact ? 48 : 54)
-                    .disabled(!fullAccess || !active || pending || ![.ready, .recording, .failed].contains(snapshot.phase))
-                    .accessibilityLabel(recording ? mText("Stoppa diktering", "Stop dictation") : snapshot.phase == .failed && snapshot.canRetry ? mText("Försök igen", "Retry dictation") : mText("Spela in diktering", "Record dictation"))
+                    .disabled(fullAccess && active && (pending || ![.ready, .recording, .failed].contains(snapshot.phase)))
+                    .accessibilityLabel(!fullAccess || !active ? mText("Aktivera diktering", "Enable dictation") : recording ? mText("Stoppa diktering", "Stop dictation") : snapshot.phase == .failed && snapshot.canRetry ? mText("Försök igen", "Retry dictation") : mText("Spela in diktering", "Record dictation"))
                     .accessibilityIdentifier("keyboard.record")
                     if recording {
                         tool("xmark", label: mText("Avbryt diktering", "Cancel dictation"), action: onCancel)
@@ -66,62 +70,66 @@ public struct MumlaKeyboardView: View {
                             .disabled(pending).accessibilityIdentifier("keyboard.end")
                     }
                 }
-                if let preview, !preview.isEmpty {
-                    HStack(spacing: 8) {
-                        Text(preview).font(.system(size: 12, design: .monospaced)).lineLimit(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        tool("arrow.down.to.line", label: mText("Infoga transkript", "Insert transcript"), action: onInsert)
-                            .disabled(pending)
-                            .accessibilityIdentifier("keyboard.insert")
-                        tool("xmark", label: mText("Behåll i historiken", "Keep in history"), action: onCancel)
-                            .disabled(pending).accessibilityIdentifier("keyboard.keep")
-                    }.frame(height: 36)
-                }
-                ForEach(Array(layout.rows.enumerated()), id: \.offset) { index, row in
-                    HStack(spacing: gap) {
-                        if index == 2 {
-                            Button {
-                                if layout == .letters { shift.tap(at: Date().timeIntervalSinceReferenceDate) }
-                                else { layout = layout == .numbers ? .symbols : .numbers }
-                            } label: {
-                                Group {
-                                    if layout == .letters { Image(systemName: shift.locked ? "capslock.fill" : shift.uppercase ? "shift.fill" : "shift") }
-                                    else { Text(layout == .numbers ? "#+=" : "123") }
-                                }.font(.system(size: 16, weight: .medium, design: .monospaced))
-                                    .frame(width: geometry.size.width < 350 ? 38 : 44, height: compact ? 34 : 42)
-                            }.buttonStyle(MumlaKeyStyle(radius: 5))
-                                .accessibilityLabel(layout == .letters ? mText("Skift", "Shift") : mText("Fler symboler", "More symbols"))
-                                .accessibilityValue(shift.locked ? mText("Skiftlås", "Caps lock") : shift.uppercase ? mText("På", "On") : mText("Av", "Off"))
-                                .accessibilityIdentifier("keyboard.shift")
-                        }
-                        ForEach(row, id: \.self) { key in
-                            let output = layout == .letters && shift.uppercase ? key.uppercased() : key
-                            Button { onKey(output); shift.didType() } label: {
-                                Text(output).font(.system(size: 17, weight: .medium, design: .monospaced))
-                                    .frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
-                            }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityIdentifier("keyboard.key.\(key)")
-                        }
-                        if index == 2 { deleteKey(compact: compact, width: geometry.size.width < 350 ? 38 : 44) }
+                if showActivationRequirement {
+                    activationRequirement(compact: compact)
+                } else {
+                    if let preview, !preview.isEmpty {
+                        HStack(spacing: 8) {
+                            Text(preview).font(.system(size: 12, design: .monospaced)).lineLimit(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            tool("arrow.down.to.line", label: mText("Infoga transkript", "Insert transcript"), action: onInsert)
+                                .disabled(pending)
+                                .accessibilityIdentifier("keyboard.insert")
+                            tool("xmark", label: mText("Behåll i historiken", "Keep in history"), action: onCancel)
+                                .disabled(pending).accessibilityIdentifier("keyboard.keep")
+                        }.frame(height: 36)
                     }
-                }
-                HStack(spacing: gap) {
-                    Button { layout = layout == .letters ? .numbers : .letters; shift.reset() } label: {
-                        Text(layout == .letters ? "123" : "ABC").font(.system(size: 13, weight: .medium, design: .monospaced))
-                            .frame(width: 42, height: compact ? 34 : 42)
-                    }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityIdentifier("keyboard.layout")
-                    nextKeyboard.frame(width: 38, height: compact ? 34 : 42).mumlaSurface(radius: 5)
-                    Button { onKey(" ") } label: {
-                        Text("mumla").font(.system(size: 13, weight: .medium, design: .monospaced))
-                            .foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
-                    }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(mText("Mellanslag", "Space")).accessibilityIdentifier("keyboard.space")
-                    Button { onKey(".") } label: {
-                        Text(".").font(.system(size: 18, design: .monospaced)).frame(width: 30, height: compact ? 34 : 42)
-                    }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(mText("Punkt", "Period"))
-                    Button(action: onReturn) {
-                        Text(returnTitle).font(.system(size: 13, weight: .medium, design: .monospaced))
-                            .lineLimit(1).minimumScaleFactor(0.7).frame(width: 54, height: compact ? 34 : 42)
-                    }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(returnTitle == "↵" ? mText("Retur", "Return") : returnTitle)
-                        .accessibilityIdentifier("keyboard.return")
+                    ForEach(Array(layout.rows.enumerated()), id: \.offset) { index, row in
+                        HStack(spacing: gap) {
+                            if index == 2 {
+                                Button {
+                                    if layout == .letters { shift.tap(at: Date().timeIntervalSinceReferenceDate) }
+                                    else { layout = layout == .numbers ? .symbols : .numbers }
+                                } label: {
+                                    Group {
+                                        if layout == .letters { Image(systemName: shift.locked ? "capslock.fill" : shift.uppercase ? "shift.fill" : "shift") }
+                                        else { Text(layout == .numbers ? "#+=" : "123") }
+                                    }.font(.system(size: 16, weight: .medium, design: .monospaced))
+                                        .frame(width: geometry.size.width < 350 ? 38 : 44, height: compact ? 34 : 42)
+                                }.buttonStyle(MumlaKeyStyle(radius: 5))
+                                    .accessibilityLabel(layout == .letters ? mText("Skift", "Shift") : mText("Fler symboler", "More symbols"))
+                                    .accessibilityValue(shift.locked ? mText("Skiftlås", "Caps lock") : shift.uppercase ? mText("På", "On") : mText("Av", "Off"))
+                                    .accessibilityIdentifier("keyboard.shift")
+                            }
+                            ForEach(row, id: \.self) { key in
+                                let output = layout == .letters && shift.uppercase ? key.uppercased() : key
+                                Button { onKey(output); shift.didType() } label: {
+                                    Text(output).font(.system(size: 17, weight: .medium, design: .monospaced))
+                                        .frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
+                                }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityIdentifier("keyboard.key.\(key)")
+                            }
+                            if index == 2 { deleteKey(compact: compact, width: geometry.size.width < 350 ? 38 : 44) }
+                        }
+                    }
+                    HStack(spacing: gap) {
+                        Button { layout = layout == .letters ? .numbers : .letters; shift.reset() } label: {
+                            Text(layout == .letters ? "123" : "ABC").font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .frame(width: 42, height: compact ? 34 : 42)
+                        }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityIdentifier("keyboard.layout")
+                        nextKeyboard.frame(width: 38, height: compact ? 34 : 42).mumlaSurface(radius: 5)
+                        Button { onKey(" ") } label: {
+                            Text("mumla").font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
+                        }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(mText("Mellanslag", "Space")).accessibilityIdentifier("keyboard.space")
+                        Button { onKey(".") } label: {
+                            Text(".").font(.system(size: 18, design: .monospaced)).frame(width: 30, height: compact ? 34 : 42)
+                        }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(mText("Punkt", "Period"))
+                        Button(action: onReturn) {
+                            Text(returnTitle).font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .lineLimit(1).minimumScaleFactor(0.7).frame(width: 54, height: compact ? 34 : 42)
+                        }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(returnTitle == "↵" ? mText("Retur", "Return") : returnTitle)
+                            .accessibilityIdentifier("keyboard.return")
+                    }
                 }
             }
             .padding(.horizontal, 6).padding(.vertical, compact ? 6 : 9)
@@ -130,8 +138,30 @@ public struct MumlaKeyboardView: View {
         .background(MumlaStyle.panel).foregroundStyle(MumlaStyle.ink)
         .preferredColorScheme(MumlaAppearance(rawValue: snapshot.appearance)?.colorScheme)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .onChange(of: fullAccess && active) { _, ready in if ready { showActivationRequirement = false } }
         .onChange(of: recording) { _, active in if active { MumlaFeedback.recordStart() } else { MumlaFeedback.recordStop() } }
-        .onDisappear { deleteTask?.cancel(); deleteTask = nil }
+        .onDisappear { deleteTask?.cancel(); deleteTask = nil; showActivationRequirement = false }
+    }
+
+    private func activationRequirement(compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+            Text(!fullAccess
+                ? mText("Aktivera Full åtkomst för Mumla under Inställningar → Allmänt → Tangentbord → Tangentbord.", "Enable Full Access for Mumla in Settings → General → Keyboard → Keyboards.")
+                : [notice ?? snapshot.error,
+                   mText("Öppna Mumla, tryck på tangentbordsikonen och välj Starta session. Gå sedan tillbaka hit.", "Open Mumla, tap the keyboard icon and choose Start session. Then return here.")]
+                    .compactMap { $0 }.joined(separator: "\n\n"))
+                .font(.system(size: compact ? 11 : 13, design: .monospaced))
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("keyboard.activationMessage")
+            Spacer(minLength: 0)
+            HStack {
+                nextKeyboard.frame(width: 38, height: 36).mumlaSurface(radius: 5)
+                Spacer()
+                tool("xmark", label: mText("Stäng", "Close")) { showActivationRequirement = false }
+                    .accessibilityIdentifier("keyboard.activationClose")
+            }
+        }.padding(12).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .mumlaRecess(radius: 7)
     }
 
     private func lcd(compact: Bool) -> some View {
@@ -159,6 +189,9 @@ public struct MumlaKeyboardView: View {
     }
     private var status: String {
         if !fullAccess { return mText("FULL ÅTKOMST", "FULL ACCESS") }
+        if !active && snapshot.sessionID != nil && snapshot.phase != .inactive {
+            return snapshot.expiresAt <= Date() ? mText("SESSIONEN ÄR SLUT", "SESSION EXPIRED") : mText("ANSLUTNING BRUTEN", "CONNECTION LOST")
+        }
         if !active { return mText("INGEN SESSION", "NO SESSION") }
         switch snapshot.phase {
         case .recording: return "REC"

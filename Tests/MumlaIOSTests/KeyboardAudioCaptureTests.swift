@@ -4,6 +4,18 @@ import XCTest
 
 @MainActor
 final class KeyboardAudioCaptureTests: XCTestCase {
+    func testKeyboardSessionAllowsOtherAppsAudioWithoutActivatingMicrophone() throws {
+        let audio = AVAudioSession.sharedInstance()
+        let category = audio.category, mode = audio.mode, options = audio.categoryOptions
+        defer { try? audio.setCategory(category, mode: mode, options: options) }
+
+        try KeyboardAudioCapture().configureAudioSession()
+
+        XCTAssertEqual(audio.category, .playAndRecord)
+        XCTAssertEqual(audio.mode, .measurement)
+        XCTAssertTrue(audio.categoryOptions.contains(.mixWithOthers))
+    }
+
     func testAudioTapCanBeCreatedAndCalledOnAudioQueue() async {
         let capture = KeyboardAudioCapture()
         let delivered = await withCheckedContinuation { continuation in
