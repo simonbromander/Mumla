@@ -25,7 +25,7 @@ final class KeyboardAudioCapture: @unchecked Sendable {
         let format = input.outputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else { throw MicrophoneError.unavailable }
         self.format = format
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in self?.capture(buffer) }
+        input.installTap(onBus: 0, bufferSize: 1024, format: format, block: makeInputTap())
         tapInstalled = true
         engine.prepare()
         do { try engine.start() }
@@ -72,7 +72,12 @@ final class KeyboardAudioCapture: @unchecked Sendable {
     var inputLevel: Double { lock.withLock { level } }
     @MainActor var isRunning: Bool { engine.isRunning }
 
-    private func capture(_ buffer: AVAudioPCMBuffer) {
+    // AVAudioEngine calls this on its audio queue, outside the main actor.
+    nonisolated func makeInputTap() -> @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void {
+        { [weak self] buffer, _ in self?.capture(buffer) }
+    }
+
+    private nonisolated func capture(_ buffer: AVAudioPCMBuffer) {
         var energy: Float = 0
         if let channel = buffer.floatChannelData?.pointee, buffer.frameLength > 0 {
             for index in 0..<Int(buffer.frameLength) { energy += channel[index] * channel[index] }

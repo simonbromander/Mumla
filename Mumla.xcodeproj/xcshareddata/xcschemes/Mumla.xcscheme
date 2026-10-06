@@ -44,6 +44,17 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "F0BC92DF48E9B30C71E5BECC"
+               BuildableName = "MumlaIOSTests.xctest"
+               BlueprintName = "MumlaIOSTests"
+               ReferencedContainer = "container:Mumla.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "437EA56A822C97529DC23F62"
                BuildableName = "MumlaUITests.xctest"
                BlueprintName = "MumlaUITests"

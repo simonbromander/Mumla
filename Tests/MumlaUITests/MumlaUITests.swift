@@ -9,7 +9,8 @@ final class MumlaUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
         configureMumlaKeyboard(fullAccess: true)
-        // Changing extension access can restart the host without its test arguments.
+        // A permissions change can relaunch the host without its fixture arguments.
+        app.terminate()
         app.launch()
         defer { restoreSystemKeyboard(app) }
         selectMumlaKeyboard(app)
@@ -41,6 +42,7 @@ final class MumlaUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.textViews["keyboard.hostField"].waitForExistence(timeout: 10))
         configureMumlaKeyboard(fullAccess: false)
+        app.terminate()
         app.launch()
         defer { restoreSystemKeyboard(app) }
         selectMumlaKeyboard(app)

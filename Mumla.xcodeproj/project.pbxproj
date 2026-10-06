@@ -71,6 +71,7 @@
 		D57564011157DE5A651A0B00 /* MumlaKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 791F70BF1C779A4CF3E87870 /* MumlaKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D6BA2CFD675261088FA2F5C2 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = DCCF805E83C2E642E16A02D7 /* MumlaAudio */; };
 		E1A659AA19BCEB3C4566EE59 /* MumlaAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 021BC8B02CA8F42D521D39E4 /* MumlaAudio */; };
+		E96A6626ADB312ADEBB76BE2 /* KeyboardAudioCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9222E27C9A685214FBE17749 /* KeyboardAudioCaptureTests.swift */; };
 		F6BB33EB8DA3043C0153E813 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92571BD96423422D811E989B /* Assets.xcassets */; };
 		F78A2C4346174E97A1701275 /* MacStorageDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */; };
 		FCB324B1695DC0C9876A6350 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */; };
@@ -85,6 +86,13 @@
 			remoteInfo = MumlaKeyboard;
 		};
 		7F31C730CC34A340BDF44903 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C67C509A4F6F34DDB8C4594 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C8A7C6C1CFBEB957E9A70E84;
+			remoteInfo = Mumla;
+		};
+		9EDDF0AB61CA68E8E8423692 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3C67C509A4F6F34DDB8C4594 /* Project object */;
 			proxyType = 1;
@@ -134,12 +142,14 @@
 		4F7F84A3491DB7F273F94E53 /* MumlaMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A3A2CDBEC82B9925A49C8C4 /* Mumla */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Mumla; path = .; sourceTree = SOURCE_ROOT; };
 		5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		68ACD3D29BE320734D8C94AC /* MumlaIOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MumlaIOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaHomeView.swift; sourceTree = "<group>"; };
 		739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyEventSource.swift; sourceTree = "<group>"; };
 		749B69E10CE6D1D7FC443EBA /* PillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillView.swift; sourceTree = "<group>"; };
 		791F70BF1C779A4CF3E87870 /* MumlaKeyboard.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = MumlaKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		898B56239AD94246CC0FF25C /* PillWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillWindowController.swift; sourceTree = "<group>"; };
 		8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaMacApp.swift; sourceTree = "<group>"; };
+		9222E27C9A685214FBE17749 /* KeyboardAudioCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardAudioCaptureTests.swift; sourceTree = "<group>"; };
 		92571BD96423422D811E989B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextInserter.swift; sourceTree = "<group>"; };
 		A26F840006A86E01CDD6438C /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
@@ -216,10 +226,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0163110246DC1E9FE05BC011 /* MumlaIOSTests */ = {
+			isa = PBXGroup;
+			children = (
+				9222E27C9A685214FBE17749 /* KeyboardAudioCaptureTests.swift */,
+			);
+			name = MumlaIOSTests;
+			path = Tests/MumlaIOSTests;
+			sourceTree = "<group>";
+		};
 		19420A6CEF8F15B4641F4DA6 = {
 			isa = PBXGroup;
 			children = (
 				610D592A6678EA7B4E19E086 /* Mumla */,
+				0163110246DC1E9FE05BC011 /* MumlaIOSTests */,
 				437297EA5282792F931055B0 /* MumlaKeyboard */,
 				657B700994A04EE67A400192 /* MumlaMac */,
 				52CCEF403C28F8BFB947B1D4 /* MumlaUITests */,
@@ -284,6 +304,7 @@
 			isa = PBXGroup;
 			children = (
 				0D7DC48BF893D41E14900954 /* Mumla.app */,
+				68ACD3D29BE320734D8C94AC /* MumlaIOSTests.xctest */,
 				791F70BF1C779A4CF3E87870 /* MumlaKeyboard.appex */,
 				4F7F84A3491DB7F273F94E53 /* MumlaMac.app */,
 				44E58014013CC8E21640D766 /* MumlaMacDirect.app */,
@@ -485,6 +506,24 @@
 			productReference = 44E58014013CC8E21640D766 /* MumlaMacDirect.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F0BC92DF48E9B30C71E5BECC /* MumlaIOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B32D684D3C3C39B5F381DAC5 /* Build configuration list for PBXNativeTarget "MumlaIOSTests" */;
+			buildPhases = (
+				8835A5E3E6CC38818DCFD4FE /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D527929CCA1BB16065024084 /* PBXTargetDependency */,
+			);
+			name = MumlaIOSTests;
+			packageProductDependencies = (
+			);
+			productName = MumlaIOSTests;
+			productReference = 68ACD3D29BE320734D8C94AC /* MumlaIOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -519,6 +558,10 @@
 						DevelopmentTeam = PF2PWR4YG4;
 						ProvisioningStyle = Manual;
 					};
+					F0BC92DF48E9B30C71E5BECC = {
+						DevelopmentTeam = PF2PWR4YG4;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 1D6437E8F0C4AB2CC9962038 /* Build configuration list for PBXProject "Mumla" */;
@@ -540,6 +583,7 @@
 			projectRoot = "";
 			targets = (
 				C8A7C6C1CFBEB957E9A70E84 /* Mumla */,
+				F0BC92DF48E9B30C71E5BECC /* MumlaIOSTests */,
 				8E7A10A7CA10C460A1FF55C0 /* MumlaKeyboard */,
 				45A5202F9C883FE1B67273FE /* MumlaMac */,
 				CFCEC58692639870835ABD2F /* MumlaMacDirect */,
@@ -627,6 +671,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8835A5E3E6CC38818DCFD4FE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E96A6626ADB312ADEBB76BE2 /* KeyboardAudioCaptureTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8F64F9DB488E969158C15170 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -680,6 +732,11 @@
 			target = 8E7A10A7CA10C460A1FF55C0 /* MumlaKeyboard */;
 			targetProxy = 79E170A47082154AA85546E0 /* PBXContainerItemProxy */;
 		};
+		D527929CCA1BB16065024084 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C8A7C6C1CFBEB957E9A70E84 /* Mumla */;
+			targetProxy = 9EDDF0AB61CA68E8E8423692 /* PBXContainerItemProxy */;
+		};
 		FC496B0862910B4FF31C3CDA /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = C7C4FD593979683E8896F3EC /* MumlaWidgets */;
@@ -721,6 +778,23 @@
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		1A690BD3BFEC7E411583E399 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app.iostests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mumla.app/Mumla";
 			};
 			name = Release;
 		};
@@ -806,6 +880,23 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MUMLA_DIRECT_UPDATES";
 			};
 			name = Direct;
+		};
+		58C4D4DE2806EAE0229E144C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app.iostests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mumla.app/Mumla";
+			};
+			name = Debug;
 		};
 		59CA09B71C37FDB51B566ADE /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -924,7 +1015,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1012,7 +1103,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1116,6 +1207,23 @@
 			};
 			name = Debug;
 		};
+		C71C3C6170CF313240DEC3D5 /* Direct */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mumla.app.iostests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mumla.app/Mumla";
+			};
+			name = Direct;
+		};
 		CDCB1C05076CA340789877F4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1151,7 +1259,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1290,6 +1398,16 @@
 				BF1D0354ADFFB7352AF4E965 /* Debug */,
 				02D0730170630C882E58B321 /* Direct */,
 				0C9CA1230D1B9E8469C52448 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B32D684D3C3C39B5F381DAC5 /* Build configuration list for PBXNativeTarget "MumlaIOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				58C4D4DE2806EAE0229E144C /* Debug */,
+				C71C3C6170CF313240DEC3D5 /* Direct */,
+				1A690BD3BFEC7E411583E399 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

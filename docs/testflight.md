@@ -57,6 +57,37 @@ signed archive, verify the extension identifiers and App Group capability:
   Unsigned device builds, Simulator tests and fixtures do not prove background
   audio, Neural Engine transcription or physical haptics.
 
+### Keyboard Audio Callback Regression: 2026-10-06
+
+- Device incident `E552FCE6-7D58-4FC9-86CC-57DB5E65739C` is from iOS build 28.
+  Its image UUID `0991E59F-D827-33FD-BF34-74E7451421AE` matches the archived
+  dSYM. The crashing frame resolves to the tap closure in
+  `KeyboardAudioCapture.startSession()`.
+- The closure inherited the main actor from `startSession()`, but AVAudioEngine
+  invokes it on its audio queue. The shipped callback calls
+  `swift_task_isCurrentExecutor` and `swift_task_reportUnexpectedExecutor`;
+  the device trapped at the executor check before processing the buffer.
+- The tap factory is now explicitly `nonisolated` and returns an `@Sendable`
+  closure. Capture processing remains synchronous on the audio queue, with
+  writer/error/meter state protected by the existing lock. Engine and audio
+  session lifecycle operations remain on the main actor. No executor checks
+  were disabled and no buffers are dispatched asynchronously to the UI actor.
+- The new hosted `MumlaIOSTests` suite invokes the production callback with PCM
+  buffers from a background queue, constructs it off-main, checks empty/loud
+  buffers and verifies safe late invocation after capture deallocation.
+  A negative control with a main-actor factory fails Swift 6 compilation.
+- Hosted and keyboard UI tests need normal Simulator entitlements. Use
+  `CODE_SIGN_IDENTITY=-`, not `CODE_SIGNING_ALLOWED=NO`: the latter removes the
+  simulated App Group entitlement and prevents the session fixture from sharing
+  data with the keyboard. The unsigned Release preflight remains valid as a
+  compilation check, not an App Group runtime check.
+- After a keyboard permission change, the UI tests explicitly terminate and
+  relaunch the host with fixture arguments. This is test isolation only, not a
+  production permission workaround.
+- The submitted build 28 IPA, dSYM and original callback disassembly are
+  preserved under `.build/ReleaseAuditIOS28-20261006/`. Physical-iPhone session
+  startup, recording and background behavior still need retesting on build 29.
+
 ### iOS Build 28 Preparation: 2026-10-05
 
 - Core tests: 130 passed. Compact iPhone Simulator: all 16 UI tests passed,

@@ -19,7 +19,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "1.0.1"
-    CURRENT_PROJECT_VERSION: "28"
+    CURRENT_PROJECT_VERSION: "29"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: PF2PWR4YG4
     TARGETED_DEVICE_FAMILY: "1,2"
@@ -100,6 +100,19 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.mumla.app.uitests
         GENERATE_INFOPLIST_FILE: YES
         TEST_TARGET_NAME: Mumla
+  MumlaIOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/MumlaIOSTests
+    dependencies:
+      - target: Mumla
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mumla.app.iostests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Mumla.app/Mumla"
+        BUNDLE_LOADER: "$(TEST_HOST)"
   MumlaMac:
     templates:
       - MacApp
@@ -158,6 +171,7 @@ schemes:
     test:
       config: Debug
       targets:
+        - MumlaIOSTests
         - MumlaUITests
   MumlaMac:
     build:
