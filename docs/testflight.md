@@ -6,6 +6,43 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
+## Verified iOS Release 29: 2026-10-06
+
+- Keyboard audio crash hotfix, iOS `1.0.1 (29)`, source commit
+  `41d00ce2198e22d30f9e103ea87edf9bbd998ec3`.
+- Fixes the main-actor isolation mismatch in the microphone tap reported in
+  build 28. The signed Release callback was inspected against the original
+  binary: build 28 contains the main-actor executor assertions, while build 29
+  contains no actor-isolation calls in its audio callback. Executor checks were
+  not disabled. See the regression analysis below.
+- Passed 132 core/Mac tests, 31 release-helper tests (74 assertions), and all
+  21 hosted/compact-iPhone tests: 4 real PCM callback regressions plus 17 UI
+  tests. The final signed Simulator run has zero failures. Initial unsigned UI
+  runs lacked the simulated App Group entitlement; they are not the final
+  acceptance evidence. The Release preflight and signed archive/export passed.
+- The archived app and exported IPA signatures passed. Main app, keyboard and
+  widget have matching `1.0.1 (29)` versions, the expected team/certificate,
+  signed and provisioned `group.com.mumla.app`, and `get-task-allow=false`.
+  Neither extension links FluidAudio or has microphone/network entitlements.
+- App Store Connect accepted the upload at `2026-10-06T05:42:01Z`; processing
+  completed at `2026-10-06T05:44:14Z`.
+- App `6759602919`, build ID `8b782324-6428-41b8-82fb-dccb1b6e9576`, verified
+  `VALID` and `IN_BETA_TESTING` at `2026-10-06T05:45:22Z`. Existing `Test` and
+  `Friends` groups both contain the build. No audience changes, external beta
+  review or App Store release submission were made.
+- Swedish and English notes from `fastlane/testflight/ios-1.0.1-29.json` were
+  published and read back at `2026-10-06T05:44:34Z`.
+- IPA SHA-256:
+  `7a3cf81bcc6283aa179e341b1a4582a695ea36d62f2ecb96a963c7bb4683011d`.
+- Preserved IPA, dSYM, signing and callback audits:
+  `.build/ReleaseAuditIOS29-20261006/`. Final test evidence is
+  `.build/keyboard-hotfix-signed-tests-20261006.xcresult`; release logs are
+  `.build/ios29-*-20261006.log`.
+- Physical-iPhone acceptance is still pending, especially session startup on
+  the reported iOS 27.2 beta, actual recording, background transitions and
+  haptics. This remains an experimental internal keyboard beta. No Mac release
+  was built or uploaded in this run.
+
 ## Verified iOS Release 28: 2026-10-06
 
 - iOS `1.0.1 (28)`, source commit
