@@ -130,8 +130,8 @@ Every Phase 0 run should produce:
   `ModelCache/markstrom-pianissimo-sv-coreml-compiled`.
 - FluidAudio load smoke: passed. Cold debug CLI load observed at 38,084 ms;
   later warm load observed at 154 ms.
-- Transcription smoke clip:
-  `/Users/bob/projects/_references/pianissimo-examples/repro/counting-sv.wav`,
+- Transcription smoke clip from the public `pianissimo-examples` reference:
+  `repro/counting-sv.wav`,
   12.22 seconds, 16 kHz mono WAV.
 - Transcript:
   `1. Stockholm är Sveriges huvudstad. 2. Göteborg ligger på västkusten. 3. Malmö ligger i Skåne. 4. Uppsala har ett gammalt universitet.`

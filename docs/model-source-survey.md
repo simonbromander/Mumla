@@ -56,11 +56,11 @@ Checked on 2026-09-24.
   - Useful as a conversion reference and non-Apple comparison path.
   - API snapshot SHA: `72c38267654dadd538bceac7a851de00fb55f11a`.
 
-## Local Reference Repos
+## Reference Code
 
-- `/Users/bob/projects/_references/kb-ios`
-  - Old Mumla/KBWhisper app; identity/reference only.
-- `/Users/bob/projects/_references/pianissimo-cli`
+- Previous Mumla implementation
+  - Apple identity and release continuity only; private repository details omitted.
+- Klang's `pianissimo-cli`
   - Klang's offline CLI and worker setup.
-- `/Users/bob/projects/_references/pianissimo-examples`
+- Klang's `pianissimo-examples`
   - Minimal local NeMo transcription example and audio-format notes.

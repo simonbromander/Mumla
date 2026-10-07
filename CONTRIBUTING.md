@@ -60,6 +60,13 @@ model caches, device backups, real transcripts, or private recordings. Use synth
 fixtures and redact diagnostics/screenshots. Do not attach full crash logs without
 checking paths, identifiers, and user content.
 
+Use portable, repository-relative paths in documentation. Remove local account
+names, machine identifiers, and private repository details from shared logs and
+screenshots. Before committing, configure this checkout with your public GitHub
+username and a GitHub-provided noreply email address; see
+[GitHub's commit email instructions](https://docs.github.com/en/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address).
+Use repository-local Git settings so other projects keep their own identity.
+
 With [Gitleaks](https://github.com/gitleaks/gitleaks) installed:
 
 ```bash

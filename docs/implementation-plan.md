@@ -7,11 +7,10 @@ Status: active plan, updated 2026-09-28.
 The app name is Mumla. The PRD used Viska as a working name; all product, code,
 and bundle-facing names in this rebuild use Mumla.
 
-This is a clean-room rebuild. The old `simonbromander/kb-ios` repository is
-reference-only for Apple identifiers, release lessons, and old product context.
-The old architecture was an iOS-first cloud transcription product using Modal,
-KB-Whisper, Whisper, StoreKit quota, and optional AI formatting. The new product
-is local-first, macOS-first, and privacy-led.
+This is a clean-room rebuild. The previous Mumla implementation is reference-only
+for Apple identifiers and release continuity; private repository details are not
+part of the public plan. The new product is local-first, macOS-first, and
+privacy-led. Do not inherit cloud transcription, quotas, or account architecture.
 
 ## Preserved From Old Mumla
 
