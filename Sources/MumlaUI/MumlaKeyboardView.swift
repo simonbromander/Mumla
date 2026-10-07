@@ -272,7 +272,7 @@ public struct MumlaKeyboardView: View {
             Text(!fullAccess
                 ? mText("Aktivera Full åtkomst för Mumla under Inställningar → Allmänt → Tangentbord → Tangentbord.", "Enable Full Access for Mumla in Settings → General → Keyboard → Keyboards.")
                 : [notice ?? snapshot.error,
-                   mText("Öppna Mumla, tryck på tangentbordsikonen och välj Starta session. Gå sedan tillbaka hit.", "Open Mumla, tap the keyboard icon and choose Start session. Then return here.")]
+                   mText("Öppna Mumla, tryck på tangentbordsikonen och välj Starta session. Eller använd Mumlas widget eller genväg. Gå sedan tillbaka hit.", "Open Mumla, tap the keyboard icon and choose Start session. Or use Mumla's widget or shortcut. Then return here.")]
                     .compactMap { $0 }.joined(separator: "\n\n"))
                 .font(.system(size: compact ? 11 : 13, design: .monospaced))
                 .fixedSize(horizontal: false, vertical: true)

@@ -30,6 +30,10 @@ public struct MumlaAboutView: View {
                     credit("FluidAudio", owner: "Fluid Inference", license: "Apache 2.0",
                            detail: mText("Swift-biblioteket som kör CoreML-modellen lokalt på Apple-enheter.", "The Swift library that runs the CoreML model locally on Apple devices."),
                            source: "https://github.com/FluidInference/FluidAudio", licenseURL: "https://www.apache.org/licenses/LICENSE-2.0")
+                    Text("Apple Foundation Models").font(.system(.headline, design: .monospaced)).accessibilityAddTraits(.isHeader)
+                    Text(mText("Valfri textformatering med Apples lokala systemmodell. Kräver en kompatibel enhet med Apple Intelligence. Modellen tillhandahålls av operativsystemet och distribueras inte med Mumla.", "Optional text formatting with Apple's on-device system model. Requires a compatible device with Apple Intelligence. The model is provided by the operating system and isn't distributed with Mumla."))
+                        .font(.system(.callout, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    Divider()
                     if Bundle.main.object(forInfoDictionaryKey: "MumlaDistribution") as? String == "direct" {
                         credit("Sparkle", owner: "Sparkle Project", license: "MIT / BSD",
                                detail: mText("Kontrollerar och installerar signerade Mac-uppdateringar när du ber om det. Ingen systemprofilering.", "Checks and installs signed Mac updates when requested. No system profiling."),

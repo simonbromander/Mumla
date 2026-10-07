@@ -40,6 +40,8 @@ targetTemplates:
         product: MumlaAudio
       - package: MumlaKit
         product: MumlaUI
+      - package: MumlaKit
+        product: MumlaFormatting
     settings:
       base:
         PRODUCT_NAME: Mumla
@@ -148,6 +150,8 @@ targets:
         product: MumlaAudio
       - package: MumlaKit
         product: MumlaUI
+      - package: MumlaKit
+        product: MumlaFormatting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mumla.app

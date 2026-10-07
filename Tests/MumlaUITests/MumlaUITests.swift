@@ -3,6 +3,67 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testFormattingUnavailableKeepsTranscriptAndDoesNotOfferApply() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-formatting", "-AppleLanguages", "(sv)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+        app.buttons["transcript.format"].tap()
+        XCTAssertTrue(app.staticTexts["format.status"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["format.status"].label, "Apple Intelligence är avstängt")
+        XCTAssertEqual(app.staticTexts["format.preview"].label, "hej Simon vi ses klockan 14:30")
+        XCTAssertFalse(app.buttons["format.apply"].isEnabled)
+        capture("60-formatting-unavailable", app: app)
+        app.buttons["format.close"].tap()
+        XCTAssertEqual(app.textViews["transcript.text"].value as? String, "hej Simon vi ses klockan 14:30")
+    }
+
+    func testFormattingPreviewRequiresAcceptanceAndCanRestoreOriginal() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-formatting", "--formatting-success-fixture", "-AppleLanguages", "(sv)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+        app.buttons["transcript.format"].tap()
+        XCTAssertTrue(app.staticTexts["format.preview"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["format.preview"].label, "Hej Simon. Vi ses klockan 14:30.")
+        app.buttons["format.original"].tap()
+        XCTAssertEqual(app.staticTexts["format.preview"].label, "hej Simon vi ses klockan 14:30")
+        app.buttons["format.formatted"].tap()
+        capture("61-formatting-preview-fixture", app: app)
+        app.buttons["format.close"].tap()
+        XCTAssertEqual(app.textViews["transcript.text"].value as? String, "hej Simon vi ses klockan 14:30")
+        app.buttons["transcript.format"].tap()
+        XCTAssertTrue(app.buttons["format.apply"].waitForExistence(timeout: 5))
+        app.buttons["format.apply"].tap()
+        XCTAssertTrue(app.buttons["transcript.restore"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.textViews["transcript.text"].value as? String, "Hej Simon. Vi ses klockan 14:30.")
+        app.buttons["transcript.restore"].tap()
+        XCTAssertEqual(app.textViews["transcript.text"].value as? String, "hej Simon vi ses klockan 14:30")
+        XCTAssertFalse(app.buttons["transcript.restore"].exists)
+    }
+
+    func testFormattingLargeTextControlsFitDarkMode() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-formatting", "--formatting-success-fixture", "-mumla.appearance", "dark", "-AppleLanguages", "(sv)", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+        app.buttons["transcript.format"].tap()
+        XCTAssertTrue(app.buttons["format.apply"].waitForExistence(timeout: 5))
+        for identifier in ["format.close", "format.retry", "format.apply"] {
+            let button = app.buttons[identifier]
+            XCTAssertTrue(button.isHittable, identifier)
+            XCTAssertGreaterThanOrEqual(button.frame.minX, app.frame.minX)
+            XCTAssertLessThanOrEqual(button.frame.maxX, app.frame.maxX)
+            XCTAssertGreaterThanOrEqual(button.frame.height, 44)
+            XCTAssertLessThanOrEqual(button.frame.height, 60)
+        }
+        XCTAssertFalse(app.buttons["format.retry"].frame.intersects(app.buttons["format.apply"].frame))
+        capture("62-formatting-large-text-dark", app: app)
+    }
+
     func testKeyboardEverydayTypingInRealExtension() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--keyboard-host", "-AppleLanguages", "(en)"]
@@ -367,6 +428,47 @@ final class MumlaUITests: XCTestCase {
         app.buttons["Klart"].tap()
         app.buttons["Inställningar"].tap()
         XCTAssertTrue(app.buttons["settings.keyboard"].waitForExistence(timeout: 3))
+    }
+
+    func testKeyboardSessionDurationChoicePersistsWithoutStartingMicrophone() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["keyboard.setup"].waitForExistence(timeout: 10))
+        app.buttons["keyboard.setup"].tap()
+        let hour = app.buttons["keyboard.duration.60"]
+        XCTAssertTrue(hour.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["keyboard.duration.15"].exists)
+        let twoHours = app.buttons["keyboard.duration.120"]
+        twoHours.tap()
+        XCTAssertTrue(twoHours.isSelected)
+        XCTAssertFalse(app.buttons["keyboard.session"].isEnabled)
+        capture("51-keyboard-long-session", app: app)
+        app.terminate()
+        app.launch()
+        app.buttons["keyboard.setup"].tap()
+        XCTAssertTrue(twoHours.waitForExistence(timeout: 3))
+        XCTAssertTrue(twoHours.isSelected)
+        hour.tap()
+        XCTAssertTrue(hour.isSelected)
+    }
+
+    func testKeyboardStartLinkOpensSetupAndKeepsMissingModelGate() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["keyboard.setup"].waitForExistence(timeout: 10))
+        app.open(URL(string: "mumla://keyboard/start")!)
+        let start = app.buttons["keyboard.session"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertFalse(start.isEnabled)
+        XCTAssertTrue(app.buttons["keyboard.duration.60"].exists)
+        capture("52-keyboard-start-link", app: app)
+        app.buttons["Done"].tap()
+        app.open(URL(string: "mumla://keyboard")!)
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertEqual(start.label, "Start session")
+        XCTAssertFalse(start.isEnabled)
     }
 
     func testKeyboardControlsFitPortraitAndLandscape() {

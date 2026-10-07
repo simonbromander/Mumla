@@ -355,6 +355,15 @@ final class AppCoordinator: ObservableObject {
         }
     }
 
+    func applyFormatting(_ record: DictationRecord, text: String) throws {
+        history = try historyStore.applyFormatting(recordID: record.id, expectedText: record.text, formattedText: text)
+    }
+
+    func restoreOriginal(_ record: DictationRecord) {
+        do { history = try historyStore.restoreOriginal(recordID: record.id, expectedText: record.text) }
+        catch { showError(error.localizedDescription) }
+    }
+
     func addDictionaryEntry(original: String, replacement: String) {
         do {
             dictionaryEntries = try dictionaryStore.add(original: original, replacement: replacement)

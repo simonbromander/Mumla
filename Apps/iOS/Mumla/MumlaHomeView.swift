@@ -6,6 +6,7 @@ struct MumlaHomeView: View {
     @ObservedObject var session: DictationSession
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
+    @ObservedObject private var keyboardLauncher = KeyboardSessionLauncher.shared
     @State private var tab = HomeTab.dictate
     @State private var pressedTab: HomeTab?
     @State private var showSettings = false
@@ -66,9 +67,31 @@ struct MumlaHomeView: View {
         } message: { Text(mText("Det här klippet har inget sparat transkript än.", "This clip does not have a saved transcript yet.")) }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background && session.state == .recording { Task { await session.finish() } }
-            if phase == .active { session.refreshPendingAudio() }
+            if phase == .active {
+                session.refreshPendingAudio()
+                session.prepareKeyboardModel()
+                activateKeyboardIfRequested()
+            }
         }
-        .onOpenURL { url in if url.scheme == "mumla" && url.host == "keyboard" { showKeyboard = true } }
+        .task {
+            session.prepareKeyboardModel()
+            activateKeyboardIfRequested()
+        }
+        .onChange(of: keyboardLauncher.requestID) { _, _ in activateKeyboardIfRequested() }
+        .onOpenURL { url in
+            guard let destination = KeyboardSessionDestination(url: url) else { return }
+            showKeyboard = true
+            if destination == .start { keyboardLauncher.requestStart() }
+        }
+    }
+
+    private func activateKeyboardIfRequested() {
+        guard keyboardLauncher.consumeStart(isForeground: scenePhase == .active && UIApplication.shared.applicationState == .active) else { return }
+        showSettings = false
+        showAddWord = false
+        session.selectedRecord = nil
+        showKeyboard = true
+        Task { await session.startKeyboardSession() }
     }
 
     private var dictate: some View {

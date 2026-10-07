@@ -6,6 +6,7 @@ struct KeyboardSetupSheet: View {
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
     @State private var showDiscardAudio = false
+    @AppStorage(KeyboardSessionDuration.preferenceKey) private var sessionMinutes = KeyboardSessionDuration.defaultValue.rawValue
     var body: some View {
         VStack(spacing: 0) {
             MumlaPanelHeader(mText("Mumla-tangentbord", "Mumla keyboard"), closeLabel: mText("Klart", "Done")) { dismiss() }
@@ -24,13 +25,32 @@ struct KeyboardSetupSheet: View {
                              ? mText("Stanna i Mumla tills sessionen är redo. Första starten kan ta längre tid.", "Stay in Mumla until the session is ready. The first start may take longer.")
                              : session.keyboardSnapshot.isAlive()
                              ? mText("Gå tillbaka till din app. Mikrofonknappen är redo i Mumla-tangentbordet.", "Return to your app. The microphone key is ready in the Mumla keyboard.")
-                             : mText("Starta en 15-minuterssession nedan.", "Start a 15-minute session below."))
+                             : session.isPreparingModel
+                             ? mText("Språkmodellen förbereds. Mikrofonen är av tills du startar sessionen.", "Preparing the language model. The microphone is off until you start the session.")
+                             : mText("Starta en session nedan.", "Start a session below."))
                             .font(.system(.footnote, design: .monospaced)).fixedSize(horizontal: false, vertical: true)
                     }
                     .foregroundStyle(MumlaStyle.lcdInk).padding(16).frame(maxWidth: .infinity, alignment: .leading)
                     .background(MumlaStyle.lcd).clipShape(RoundedRectangle(cornerRadius: 5))
                     .padding(4).mumlaRecess(radius: 8)
                     .accessibilityElement(children: .combine).accessibilityIdentifier("keyboard.preparation")
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(mText("Sessionstid", "Session duration")).font(.system(.subheadline, design: .monospaced))
+                        HStack(spacing: 5) {
+                            ForEach(KeyboardSessionDuration.allCases, id: \.rawValue) { duration in
+                                Button {
+                                    sessionMinutes = duration.rawValue
+                                    MumlaFeedback.latch()
+                                } label: {
+                                    Text(durationTitle(duration)).font(.system(.subheadline, design: .monospaced))
+                                        .frame(maxWidth: .infinity)
+                                }.buttonStyle(MumlaStereoKeyStyle(isLatched: selectedDuration == duration, height: 48))
+                                    .accessibilityIdentifier("keyboard.duration.\(duration.rawValue)")
+                                    .accessibilityAddTraits(selectedDuration == duration ? .isSelected : [])
+                            }
+                        }.padding(4).mumlaRecess(radius: 7)
+                            .disabled(session.keyboardSnapshot.sessionID != nil || session.isStartingKeyboard)
+                    }
                     Text(mText("Diktera där du skriver.", "Dictate where you write."))
                         .font(.system(.title2, design: .monospaced).weight(.semibold))
                     VStack(alignment: .leading, spacing: 16) {
@@ -44,7 +64,7 @@ struct KeyboardSetupSheet: View {
                         Text(session.keyboardSnapshot.expiresAt, style: .time)
                             .font(.system(.headline, design: .monospaced)).accessibilityLabel(mText("Sessionen slutar", "Session ends"))
                     } else {
-                        Text(mText("Sessionen varar i 15 minuter. iOS kräver att den startas i Mumla. Vanlig textinmatning fungerar även utan Full åtkomst.", "The session lasts 15 minutes. iOS requires starting it in Mumla. Regular typing works without Full Access."))
+                        Text(mText("Mikrofonen hålls aktiv under vald sessionstid, vilket använder batteri. Låsning eller ett samtal avslutar sessionen. Vanlig textinmatning fungerar även utan Full åtkomst.", "The microphone stays active for the selected duration, using battery. Locking or a call ends the session. Regular typing works without Full Access."))
                             .font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                     }
                     if !session.modelReady {
@@ -115,6 +135,14 @@ struct KeyboardSetupSheet: View {
             Button(mText("Radera", "Discard"), role: .destructive) { session.discardPendingAudio() }
             Button(mText("Avbryt", "Cancel"), role: .cancel) {}
         } message: { Text(mText("Det här klippet har inget sparat transkript än.", "This clip does not have a saved transcript yet.")) }
+    }
+    private var selectedDuration: KeyboardSessionDuration { .init(storedMinutes: sessionMinutes) }
+    private func durationTitle(_ duration: KeyboardSessionDuration) -> String {
+        switch duration {
+        case .fifteenMinutes: "15 MIN"
+        case .oneHour: "1 H"
+        case .twoHours: "2 H"
+        }
     }
     private func step(_ number: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 14) {

@@ -31,10 +31,10 @@ final class KeyboardDictationSession {
         self.store = store; self.transcribe = transcribe; self.changed = changed; self.canRetry = canRetry
     }
 
-    func start() async throws {
+    func start(duration: KeyboardSessionDuration = .defaultValue) async throws {
         guard snapshot.sessionID == nil else { return }
         snapshot = .init(); snapshot.sessionID = UUID(); snapshot.phase = .preparing
-        snapshot.expiresAt = Date().addingTimeInterval(15 * 60)
+        snapshot.expiresAt = duration.expiration(from: Date())
         do {
             try store.clearResult(); try store.pruneClaims()
             publish()
@@ -119,7 +119,7 @@ final class KeyboardDictationSession {
     private func tick() {
         guard snapshot.sessionID != nil else { return }
         let now = Date()
-        if now >= snapshot.expiresAt { end(reason: mText("Sessionens 15 minuter är slut.", "The 15-minute session expired.")) }
+        if now >= snapshot.expiresAt { end(reason: mText("Sessionstiden är slut.", "The session expired.")) }
         guard snapshot.sessionID != nil else { return }
         if snapshot.phase == .recording, let start = snapshot.recordingStartedAt,
            now.timeIntervalSince(start) >= 600 { finish() }

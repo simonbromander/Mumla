@@ -21,6 +21,8 @@ final class DictationSession: ObservableObject {
     @Published private(set) var keyboardSnapshot = KeyboardSessionSnapshot()
     @Published private(set) var isStartingKeyboard = false
     @Published private(set) var keyboardPreparation: KeyboardPreparation?
+    @Published private(set) var isPreparingModel = false
+    @Published private(set) var modelIsWarm = false
     @Published var error: String?
     @Published var selectedRecord: DictationRecord?
     @Published var copiedID: UUID?
@@ -33,7 +35,9 @@ final class DictationSession: ObservableObject {
     private var transcriber: LocalPianissimoTranscriber?
     private var meterTask: Task<Void, Never>?
     private var unloadTask: Task<Void, Never>?
+    private var preparationTask: Task<Void, Never>?
     private var interruptionObserver: NSObjectProtocol?
+    private var memoryObserver: NSObjectProtocol?
     private var keyboardSession: KeyboardDictationSession?
 
     init() {
@@ -65,6 +69,9 @@ final class DictationSession: ObservableObject {
             }
             if CommandLine.arguments.contains("--seed-correction") {
                 try? historyStore.append(DictationRecord(text: "Kubernetis fungerar. Vi använder Kubernetis varje dag.", language: .swedish))
+            }
+            if CommandLine.arguments.contains("--seed-formatting") {
+                try? historyStore.append(DictationRecord(text: "hej Simon vi ses klockan 14:30", language: .swedish))
             }
         } else {
             historyStore = .defaultStore()
@@ -112,6 +119,11 @@ final class DictationSession: ObservableObject {
                 if self?.state == .recording { await self?.finish() }
             }
         }
+        memoryObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.unloadModelIfIdle() }
+        }
     }
 
     var downloadSize: String {
@@ -129,6 +141,7 @@ final class DictationSession: ObservableObject {
                 await MainActor.run { self?.progress = update }
             }
             modelReady = true
+            prepareKeyboardModel()
         } catch { self.error = error.localizedDescription }
     }
 
@@ -220,7 +233,8 @@ final class DictationSession: ObservableObject {
     }
 
     func startKeyboardSession() async {
-        guard state == .idle, modelReady, !hasPendingAudio, !keyboardSnapshot.isAlive(), !isStartingKeyboard else { return }
+        guard UIApplication.shared.applicationState == .active, state == .idle, modelReady,
+              !hasPendingAudio, keyboardSnapshot.sessionID == nil, !isStartingKeyboard else { return }
         isStartingKeyboard = true
         keyboardPreparation = .permission
         error = nil
@@ -244,6 +258,7 @@ final class DictationSession: ObservableObject {
                     mText("Språkmodellen saknas. Hämta svenska igen.", "The language model is missing. Download Swedish again.")])
             }
             try await transcriber.warmUp()
+            modelIsWarm = true
             try Task.checkCancellation()
             guard UIApplication.shared.applicationState == .active else {
                 throw NSError(domain: "MumlaKeyboard", code: 3, userInfo: [NSLocalizedDescriptionKey:
@@ -274,19 +289,53 @@ final class DictationSession: ObservableObject {
                     }
                 }
             }
-            try await keyboardSession?.start()
+            let duration = KeyboardSessionDuration(storedMinutes: UserDefaults.standard.integer(forKey: KeyboardSessionDuration.preferenceKey))
+            try await keyboardSession?.start(duration: duration)
             MumlaFeedback.latch()
         } catch { self.error = error.localizedDescription; scheduleUnload() }
     }
 
     func endKeyboardSession() { keyboardSession?.end(); scheduleUnload() }
 
+    func prepareKeyboardModel() {
+        #if DEBUG
+        if CommandLine.arguments.contains("--ui-testing") { return }
+        #endif
+        guard UIApplication.shared.applicationState == .active, modelReady, state == .idle,
+              preparationTask == nil, !isStartingKeyboard, keyboardSnapshot.sessionID == nil else { return }
+        if modelIsWarm { scheduleUnload(); return }
+        if transcriber == nil, let directory = ModelPathResolver.resolveCompiledPianissimoModel() {
+            transcriber = LocalPianissimoTranscriber(modelDirectory: directory)
+        }
+        guard let transcriber else { return }
+        unloadTask?.cancel()
+        isPreparingModel = true
+        preparationTask = Task { [weak self] in
+            do {
+                try await transcriber.warmUp()
+                try Task.checkCancellation()
+                guard let self, self.transcriber === transcriber else { return }
+                self.modelIsWarm = true
+            } catch {
+                // An explicit start reports load failures; preparation never opens a mic or an alert.
+            }
+            guard let self, self.transcriber === transcriber else { return }
+            self.isPreparingModel = false
+            self.preparationTask = nil
+            self.scheduleUnload()
+        }
+    }
+
     var keyboardPreparationTitle: String {
         switch keyboardPreparation {
         case .permission: mText("MIKROFONÅTKOMST", "MICROPHONE ACCESS")
         case .model: mText("LADDAR SVENSKA", "LOADING SWEDISH")
         case .microphone: mText("STARTAR MIKROFON", "ARMING MICROPHONE")
-        case nil: keyboardSnapshot.isAlive() ? mText("SESSION REDO", "SESSION READY") : mText("INGEN SESSION", "NO SESSION")
+        case nil:
+            if keyboardSnapshot.isAlive() { mText("SESSION REDO", "SESSION READY") }
+            else if isPreparingModel { mText("LADDAR SVENSKA", "LOADING SWEDISH") }
+            else if modelIsWarm { mText("SVENSKA REDO", "SWEDISH READY") }
+            else { mText("INGEN SESSION", "NO SESSION") }
         }
     }
 
@@ -343,6 +392,20 @@ final class DictationSession: ObservableObject {
         }
     }
 
+    func applyFormatting(_ record: DictationRecord, text: String) throws {
+        history = try historyStore.applyFormatting(recordID: record.id, expectedText: record.text, formattedText: text)
+        copiedID = nil
+        MumlaFeedback.success()
+    }
+
+    func restoreOriginal(_ record: DictationRecord) {
+        do {
+            history = try historyStore.restoreOriginal(recordID: record.id, expectedText: record.text)
+            copiedID = nil
+            MumlaFeedback.success()
+        } catch { self.error = error.localizedDescription }
+    }
+
     func deleteWord(_ entry: DictionaryEntry) {
         do { dictionary = try dictionaryStore.delete(id: entry.id) }
         catch { self.error = error.localizedDescription }
@@ -365,8 +428,15 @@ final class DictationSession: ObservableObject {
         unloadTask?.cancel()
         unloadTask = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(600)) } catch { return }
-            guard self?.keyboardSnapshot.isAlive() != true else { return }
-            self?.transcriber = nil
+            self?.unloadModelIfIdle()
         }
+    }
+    private func unloadModelIfIdle() {
+        guard state == .idle, keyboardSnapshot.sessionID == nil, !isStartingKeyboard else { return }
+        preparationTask?.cancel()
+        preparationTask = nil
+        isPreparingModel = false
+        modelIsWarm = false
+        transcriber = nil
     }
 }

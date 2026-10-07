@@ -25,6 +25,40 @@ final class KeyboardSessionTests: XCTestCase {
         XCTAssertFalse(snapshot.isAlive(at: now))
     }
 
+    func testSessionDurationDefaultsToOneHourAndRejectsUnboundedPreferences() {
+        XCTAssertEqual(KeyboardSessionDuration.defaultValue, .oneHour)
+        for invalid in [0, -1, 16, 900, Int.max] {
+            XCTAssertEqual(KeyboardSessionDuration(storedMinutes: invalid), .oneHour)
+        }
+        for duration in KeyboardSessionDuration.allCases {
+            XCTAssertEqual(KeyboardSessionDuration(storedMinutes: duration.rawValue), duration)
+            XCTAssertEqual(duration.expiration(from: now).timeIntervalSince(now), Double(duration.rawValue * 60))
+        }
+    }
+
+    func testLongSessionStillNeedsHeartbeatAndExpiresAtSelectedDeadline() {
+        for duration in [KeyboardSessionDuration.oneHour, .twoHours] {
+            var snapshot = active()
+            snapshot.expiresAt = duration.expiration(from: now)
+            let later = now.addingTimeInterval(16 * 60)
+            snapshot.heartbeat = later
+            XCTAssertTrue(snapshot.isAlive(at: later))
+            XCTAssertFalse(snapshot.isAlive(at: later.addingTimeInterval(5)))
+            snapshot.heartbeat = snapshot.expiresAt
+            XCTAssertFalse(snapshot.isAlive(at: snapshot.expiresAt))
+        }
+    }
+
+    func testKeyboardLinksDistinguishNavigationFromExplicitActivation() throws {
+        XCTAssertEqual(KeyboardSessionDestination(url: try XCTUnwrap(URL(string: "mumla://keyboard"))), .setup)
+        XCTAssertEqual(KeyboardSessionDestination(url: KeyboardSessionDestination.startURL), .start)
+        for invalid in ["https://keyboard/start", "mumla://history/start", "mumla://keyboard/unknown",
+                        "mumla://keyboard/start?minutes=99999", "mumla://keyboard/start#activate",
+                        "mumla://user@keyboard/start", "mumla://keyboard:42/start"] {
+            XCTAssertNil(KeyboardSessionDestination(url: try XCTUnwrap(URL(string: invalid))))
+        }
+    }
+
     func testCommandsRejectWrongSessionAgeVersionAndReplay() throws {
         var snapshot = active()
         var command = KeyboardSessionCommand(sessionID: try XCTUnwrap(snapshot.sessionID), action: .start, createdAt: now)

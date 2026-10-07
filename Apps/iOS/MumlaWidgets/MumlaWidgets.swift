@@ -1,12 +1,68 @@
 import ActivityKit
 import AppIntents
+import MumlaCore
 import MumlaUI
 import SwiftUI
 import WidgetKit
 
 @main
 struct MumlaWidgets: WidgetBundle {
-    var body: some Widget { MumlaKeyboardLiveActivity() }
+    var body: some Widget {
+        MumlaKeyboardLiveActivity()
+        MumlaKeyboardLauncherWidget()
+    }
+}
+
+private struct KeyboardLauncherEntry: TimelineEntry { let date: Date }
+
+private struct KeyboardLauncherProvider: TimelineProvider {
+    func placeholder(in context: Context) -> KeyboardLauncherEntry { .init(date: Date()) }
+    func getSnapshot(in context: Context, completion: @escaping (KeyboardLauncherEntry) -> Void) {
+        completion(.init(date: Date()))
+    }
+    func getTimeline(in context: Context, completion: @escaping (Timeline<KeyboardLauncherEntry>) -> Void) {
+        completion(Timeline(entries: [.init(date: Date())], policy: .never))
+    }
+}
+
+struct MumlaKeyboardLauncherWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "MumlaKeyboardLauncher", provider: KeyboardLauncherProvider()) { _ in
+            KeyboardLauncherWidgetView()
+                .widgetURL(KeyboardSessionDestination.startURL)
+                .containerBackground(for: .widget) { MumlaStyle.background }
+        }
+        .configurationDisplayName(mText("Mumla-tangentbord", "Mumla keyboard"))
+        .description(mText("Starta en dikteringssession i Mumla.", "Start a dictation session in Mumla."))
+        .supportedFamilies([.systemSmall, .accessoryRectangular, .accessoryCircular])
+    }
+}
+
+private struct KeyboardLauncherWidgetView: View {
+    @Environment(\.widgetFamily) private var family
+    var body: some View {
+        Group {
+            if family == .systemSmall {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("mumla / K01").font(.system(size: 14, weight: .semibold, design: .monospaced))
+                    Spacer(minLength: 0)
+                    Image(systemName: "keyboard").font(.system(size: 28)).foregroundStyle(MumlaStyle.accent)
+                    Text(mText("Starta session", "Start session"))
+                        .font(.system(.subheadline, design: .monospaced)).lineLimit(2)
+                }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .foregroundStyle(MumlaStyle.ink)
+            } else if family == .accessoryCircular {
+                Image(systemName: "keyboard").font(.system(.title2)).widgetAccentable()
+            } else {
+                Label {
+                    VStack(alignment: .leading) {
+                        Text("mumla").font(.system(.headline, design: .monospaced))
+                        Text(mText("Starta tangentbord", "Start keyboard")).font(.system(.caption, design: .monospaced))
+                    }
+                } icon: { Image(systemName: "keyboard") }
+            }
+        }.accessibilityLabel(mText("Starta Mumla-tangentbord", "Start Mumla keyboard"))
+    }
 }
 
 struct MumlaKeyboardLiveActivity: Widget {

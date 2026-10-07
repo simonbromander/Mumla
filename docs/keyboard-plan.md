@@ -1,7 +1,34 @@
 # Mumla Keyboard
 
 Status: experimental internal beta; physical-iPhone acceptance is pending.
-The App Group is assigned to the app and both extensions. Updated 2026-10-06.
+The App Group is assigned to the app and both extensions. Updated 2026-10-07.
+
+## Session Startup Update: 2026-10-07
+
+- Offer 15-minute, one-hour and two-hour armed sessions; default to one hour.
+  Persist the choice locally and apply it only to the next session. Keep the
+  ten-minute clip limit and all interruption, lock and protected-file guards.
+- Prepare the installed Swedish model when Mumla becomes active, before the
+  session-start tap. Coalesce concurrent model loads, retry failed loads and
+  retain the ten-minute idle unload. Preparation never activates the microphone.
+- Provide a foreground Start Mumla keyboard App Shortcut (also usable through
+  the system Shortcuts control and Action Button) and a Home/Lock Screen widget.
+  An explicit start link may arm the session only while Mumla is foregrounded.
+  Ordinary keyboard links and launches must never start audio automatically.
+- Apple guideline 4.4.1 forbids keyboard extensions from launching apps other
+  than Settings. NSExtensionContext.open documents Today/iMessage support, not
+  keyboard support. Do not ship a runtime bypass or claim the Flow app hop is
+  supported. This remains an Apple API/App Review clarification, not a completed
+  direct-keyboard launch feature.
+- Verify duration defaults/expiry, one-shot foreground activation, model-load
+  coalescing/retry/cancellation, setup persistence and compact layouts. Run the
+  audio callback regressions and an extension-safe Release build. Cold/warm
+  startup latency and background continuity still require a physical iPhone.
+
+References:
+https://developer.apple.com/app-store/review/guidelines/#extensions
+https://developer.apple.com/documentation/appintents/appintent/openappwhenrun
+https://developer.apple.com/documentation/widgetkit/creating-controls-to-perform-actions-across-the-system
 
 ## Activation Update: 2026-10-06
 
@@ -58,7 +85,7 @@ orange mechanical recording key, real microphone meter, haptics, Swedish
 letters, shift/caps, numbers/symbols, repeating delete, space, return and the
 system keyboard switcher. No model or microphone access in the extension.
 
-The containing app owns an explicitly started, 15-minute microphone session.
+The containing app owns an explicitly started, time-limited microphone session.
 Only clips started with the keyboard's recording key are written to disk.
 Audio stays local and the existing Pianissimo, normalizer, dictionary and
 history pipeline handles transcription. Save history before publishing text.

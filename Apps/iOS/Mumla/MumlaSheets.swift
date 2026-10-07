@@ -1,4 +1,5 @@
 import MumlaCore
+import MumlaFormatting
 import MumlaUI
 import SwiftUI
 
@@ -75,6 +76,7 @@ struct TranscriptSheet: View {
     var record: DictationRecord
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
+    @State private var formattingRecord: DictationRecord?
     private var currentRecord: DictationRecord { session.history.first(where: { $0.id == record.id }) ?? record }
 
     var body: some View {
@@ -91,8 +93,14 @@ struct TranscriptSheet: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HStack(spacing: 16) {
-                Text(session.copiedID == record.id ? mText("Kopierat", "Copied") : "")
-                    .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
+                if currentRecord.originalText != nil {
+                    MumlaIconButton("arrow.uturn.backward", label: mText("Återställ original", "Restore original")) {
+                        session.restoreOriginal(currentRecord)
+                    }.accessibilityIdentifier("transcript.restore")
+                }
+                MumlaIconButton("text.badge.checkmark", label: mText("Formatera text", "Format text")) {
+                    formattingRecord = currentRecord
+                }.accessibilityIdentifier("transcript.format")
                 Spacer()
                 ShareLink(item: currentRecord.text) {
                     Image(systemName: "square.and.arrow.up")
@@ -107,6 +115,25 @@ struct TranscriptSheet: View {
         .background { MumlaBackdrop() }.tint(MumlaStyle.accent)
         .presentationBackground(MumlaStyle.background)
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .sheet(item: $formattingRecord) { snapshot in
+            TranscriptFormattingView(record: snapshot, formatter: transcriptFormatter) { text in
+                try session.applyFormatting(snapshot, text: text)
+            }
+        }
+    }
+
+    private var transcriptFormatter: LocalTranscriptFormatter {
+        #if DEBUG
+        if CommandLine.arguments.contains("--ui-testing") {
+            if CommandLine.arguments.contains("--formatting-success-fixture") {
+                return LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _ in
+                    "Hej Simon. Vi ses klockan 14:30."
+                })
+            }
+            return LocalTranscriptFormatter(availability: { _ in .intelligenceDisabled }, generate: { text, _ in text })
+        }
+        #endif
+        return .apple
     }
 }
 

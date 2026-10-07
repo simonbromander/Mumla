@@ -6,6 +6,7 @@ public struct DictationRecord: Codable, Equatable, Identifiable, Sendable {
     public var text: String
     public var language: MumlaLanguage
     public var durationMilliseconds: Double?
+    public var originalText: String?
 
     public var compactPreview: String {
         let words = text.split(whereSeparator: \.isWhitespace)
@@ -24,6 +25,7 @@ public struct DictationRecord: Codable, Equatable, Identifiable, Sendable {
         self.text = text
         self.language = language
         self.durationMilliseconds = durationMilliseconds
+        self.originalText = nil
     }
 }
 
@@ -125,6 +127,37 @@ public final class DictationHistoryStore: @unchecked Sendable {
                 throw error
             }
             return (records, entries)
+        }
+    }
+
+    @discardableResult
+    public func applyFormatting(recordID: UUID, expectedText: String, formattedText: String) throws -> [DictationRecord] {
+        try lock.withLock {
+            var records = try JSONDecoder().decode([DictationRecord].self, from: Data(contentsOf: fileURL))
+            guard let index = records.firstIndex(where: { $0.id == recordID }),
+                  records[index].text == expectedText,
+                  TranscriptFormattingPolicy.accepts(original: expectedText, formatted: formattedText) else {
+                throw TranscriptCorrectionError.transcriptChanged
+            }
+            if records[index].originalText == nil { records[index].originalText = expectedText }
+            records[index].text = formattedText
+            try JSONEncoder.prettyMumla.encode(records).write(to: fileURL, options: .atomic)
+            return records
+        }
+    }
+
+    @discardableResult
+    public func restoreOriginal(recordID: UUID, expectedText: String) throws -> [DictationRecord] {
+        try lock.withLock {
+            var records = try JSONDecoder().decode([DictationRecord].self, from: Data(contentsOf: fileURL))
+            guard let index = records.firstIndex(where: { $0.id == recordID }),
+                  records[index].text == expectedText, let original = records[index].originalText else {
+                throw TranscriptCorrectionError.transcriptChanged
+            }
+            records[index].text = original
+            records[index].originalText = nil
+            try JSONEncoder.prettyMumla.encode(records).write(to: fileURL, options: .atomic)
+            return records
         }
     }
 

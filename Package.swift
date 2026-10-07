@@ -12,6 +12,7 @@ let package = Package(
         .library(name: "MumlaCore", targets: ["MumlaCore"]),
         .library(name: "MumlaAudio", targets: ["MumlaAudio"]),
         .library(name: "MumlaUI", targets: ["MumlaUI"]),
+        .library(name: "MumlaFormatting", targets: ["MumlaFormatting"]),
         .executable(name: "mumla-mac", targets: ["MumlaMac"]),
         .executable(name: "mumla-phase0", targets: ["MumlaPhase0CLI"]),
         .executable(name: "mumla-model-probe", targets: ["MumlaModelProbe"])
@@ -23,6 +24,7 @@ let package = Package(
     targets: [
         .target(name: "MumlaCore"),
         .target(name: "MumlaUI", dependencies: ["MumlaCore"], resources: [.process("Resources")]),
+        .target(name: "MumlaFormatting", dependencies: ["MumlaCore", "MumlaUI"]),
         .target(
             name: "MumlaAudio",
             dependencies: [
@@ -36,6 +38,7 @@ let package = Package(
                 "MumlaCore",
                 "MumlaAudio",
                 "MumlaUI",
+                "MumlaFormatting",
                 .product(name: "Sparkle", package: "Sparkle", condition: .when(platforms: [.macOS]))
             ],
             swiftSettings: [.define("MUMLA_DIRECT_UPDATES", .when(platforms: [.macOS]))]
@@ -52,6 +55,7 @@ let package = Package(
             ]
         ),
         .testTarget(name: "MumlaMacTests", dependencies: ["MumlaMac", "MumlaCore", "MumlaAudio", "MumlaUI"]),
+        .testTarget(name: "MumlaFormattingTests", dependencies: ["MumlaFormatting", "MumlaCore"]),
         .testTarget(
             name: "MumlaCoreTests",
             dependencies: ["MumlaCore"],

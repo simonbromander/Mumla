@@ -1,6 +1,7 @@
 import AppKit
 import MumlaAudio
 import MumlaCore
+import MumlaFormatting
 import MumlaUI
 import SwiftUI
 
@@ -15,6 +16,7 @@ struct MainView: View {
     @State private var selectedRecord: DictationRecord?
     @State private var copied = false
     @State private var showAbout = false
+    @State private var formattingRecord: DictationRecord?
 
     init(coordinator: AppCoordinator, updater: MacUpdateController = MacUpdateController(), initialSection: String = "dictate") {
         self.coordinator = coordinator
@@ -69,27 +71,43 @@ struct MainView: View {
         .onAppear { if coordinator.settingsOpenRequest != nil { selection = .settings } }
         .sheet(isPresented: $coordinator.isOnboardingVisible) { OnboardingView(coordinator: coordinator) }
         .sheet(item: $selectedRecord) { record in
+            let current = coordinator.history.first(where: { $0.id == record.id }) ?? record
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
                     Text(record.createdAt.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(MumlaStyle.secondary)
                     Spacer()
                     MumlaIconButton("xmark", label: mText("Stäng", "Close")) { selectedRecord = nil }
                 }
-                ScrollView { Text(record.text).font(.system(size: 18, design: .monospaced)).lineSpacing(6).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(18) }.mumlaRecess(radius: 8)
+                ScrollView { Text(current.text).font(.system(size: 18, design: .monospaced)).lineSpacing(6).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(18) }.mumlaRecess(radius: 8)
                 HStack {
+                    if current.originalText != nil {
+                        MumlaIconButton("arrow.uturn.backward", label: mText("Återställ original", "Restore original")) {
+                            coordinator.restoreOriginal(current)
+                            copied = false
+                        }
+                    }
+                    MumlaIconButton("text.badge.checkmark", label: mText("Formatera text", "Format text")) {
+                        formattingRecord = current
+                    }
                     Text(copied ? mText("Kopierat", "Copied") : "").font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
                     Spacer()
-                    ShareLink(item: record.text) { Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44) }
+                    ShareLink(item: current.text) { Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44) }
                         .accessibilityLabel(mText("Dela", "Share")).help(mText("Dela", "Share"))
                     Button {
                         NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(record.text, forType: .string)
+                        NSPasteboard.general.setString(current.text, forType: .string)
                         copied = true
                     } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc").frame(width: 44, height: 44) }
                         .accessibilityLabel(mText("Kopiera", "Copy")).help(mText("Kopiera", "Copy"))
                 }.buttonStyle(MumlaKeyStyle())
             }.padding(28).frame(width: 540, height: 400).background { MumlaBackdrop() }
                 .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+                .sheet(item: $formattingRecord) { snapshot in
+                    TranscriptFormattingView(record: snapshot) { text in
+                        try coordinator.applyFormatting(snapshot, text: text)
+                        copied = false
+                    }
+                }
         }
     }
 
