@@ -167,6 +167,7 @@ final class AppCoordinator: ObservableObject {
             "Microphone: \(microphone)",
             "Listener: \(hotkeyMonitorStatus)",
             "Gesture: \(hotkeyGestureStage.rawValue)",
+            "Paste: \(inserter.lastOutcome.rawValue)",
             "Model installed: \(modelDirectory != nil)",
             "Working: \(isBusyForAppUpdate)"
         ].joined(separator: "\n")

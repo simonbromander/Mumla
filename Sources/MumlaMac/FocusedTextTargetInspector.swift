@@ -91,7 +91,7 @@ enum FocusedTextTargetInspector {
             return .secureText
         }
 
-        if isEditableTextRole(role) {
+        if isEditableTextRole(role) || role == "AXGroup" || role == "AXWebArea" {
             var enabled: CFTypeRef?
             if AXUIElementCopyAttributeValue(element, kAXEnabledAttribute as CFString, &enabled) == .success,
                let enabled = enabled as? Bool, !enabled { return .nonText }
@@ -130,7 +130,9 @@ enum FocusedTextTargetInspector {
     }
 
     static func acceptsPaste(role: String?, enabled: Bool?, editable: Bool?) -> Bool {
-        isEditableTextRole(role) && enabled != false && editable != false
+        guard enabled != false, editable != false else { return false }
+        if isEditableTextRole(role) { return true }
+        return editable == true && (role == "AXGroup" || role == "AXWebArea")
     }
 
     private static func isEditableTextRole(_ role: String?) -> Bool {
@@ -154,19 +156,26 @@ enum FocusedTextTargetInspector {
     private static func textValue(from element: AXUIElement) -> String? {
         var value: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &value)
-        guard result == .success else {
-            return nil
+        if result == .success {
+            if let text = value as? String { return text }
+            if let attributedText = value as? NSAttributedString { return attributedText.string }
         }
 
-        if let text = value as? String {
-            return text
-        }
-
-        if let attributedText = value as? NSAttributedString {
-            return attributedText.string
-        }
-
-        return nil
+        // Rich editors can expose text-range APIs without exposing AXValue.
+        var countValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXNumberOfCharactersAttribute as CFString, &countValue) == .success,
+              let countValue, CFGetTypeID(countValue) == CFNumberGetTypeID(),
+              let count = countValue as? Int, count >= 0, count <= 1_000_000 else { return nil }
+        var range = CFRange(location: 0, length: count)
+        guard let parameter = AXValueCreate(.cfRange, &range) else { return nil }
+        guard !IsSecureEventInputEnabled(), AccessibilityPermission.isTrusted,
+              let current = focusedElement(), CFEqual(current, element),
+              inspect(element: current) == .editableText else { return nil }
+        var textValue: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(
+            element, kAXStringForRangeParameterizedAttribute as CFString, parameter, &textValue
+        ) == .success else { return nil }
+        return textValue as? String
     }
 }
 

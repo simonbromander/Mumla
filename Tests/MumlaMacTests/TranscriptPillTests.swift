@@ -37,6 +37,7 @@ final class TranscriptPillTests: XCTestCase {
         let copied = board.string(forType: .string) ?? ""
         XCTAssertTrue(copied.contains("Gesture: holdStarted"))
         XCTAssertTrue(copied.contains("Input Monitoring:"))
+        XCTAssertTrue(copied.contains("Paste: notAttempted"))
         XCTAssertFalse(copied.contains("private transcript"))
         XCTAssertFalse(copied.contains(directory.path))
     }

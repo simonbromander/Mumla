@@ -18,18 +18,31 @@ in this MVP and its unused restricted entitlements are not added to this build.
 - Capture the editable target before recording and showing the nonactivating pill.
 - Reject secure input, disabled fields, and fields explicitly marked read-only.
   Browser/Electron fields do not need Accessibility value setters to accept paste.
+- Accept focused group/web-area editors only when explicitly marked editable.
+  Read text through the Accessibility text-range API when `AXValue` is absent;
+  reject ranges larger than one million characters and recheck focus/security.
+- Wait up to 300 ms for physical modifiers to release before reading the field
+  or staging the clipboard. Cancel safely if focus, permission or secure input
+  changes, or the insertion task is cancelled.
 - Stage the transcript on the clipboard, then send one PID-targeted Cmd+V using
   a private event source, only while the original field remains focused.
 - Poll for up to 800 ms for the expected field update instead of checking once
-  after 200 ms. A text-only editor without a cursor range can confirm an exact
-  insertion; a changed/opaque field is not assumed to be a successful paste.
+  after 200 ms. An editor without a cursor range, or with a stale collapsed
+  range, can confirm an exact insertion with the rest of its text unchanged.
+  Normalize line endings only; selection replacements still require the exact
+  expected update. A changed/opaque field is not assumed to be a successful paste.
 - Restore every original clipboard item/type after success or failure, unless
   the user copied something newer. No clipboard write occurs before validation.
+  If the clipboard changes after staging but before dispatch, cancel rather
+  than paste the user's newer clipboard contents into the destination.
 - On confirmed insertion, dismiss the pill without a transcript/copy dialog.
   A blocked or unconfirmed paste retains the transcript in the existing pill.
   The transcript is copied only when the user presses Copy. Never retry an
   unconfirmed paste automatically because the first attempt may have landed.
 - Save every dictation in history before attempting insertion.
+- Copied keyboard diagnostics include `Paste: <outcome>` to distinguish target,
+  permission, modifier, dispatch and verification failures without collecting
+  field content, transcript text or application titles.
 
 ## Existing Data
 
@@ -282,3 +295,24 @@ the pill never steals focus and each attempt is saved in history exactly once.
 - Evidence: `.build/DirectMac/build-audit-36.json`, `.build/direct36-build.log`,
   `.build/direct36-notarize.log`, `.build/direct36-feed-prepare.json`,
   `.build/direct36-public-verify.json` and `.build/direct36-live-appcast.xml`.
+
+## Auto-Paste Reliability Source Update: 2026-10-07
+
+- Added support for explicitly editable group/web-area inputs and the public
+  Accessibility text-range API fallback. Read-only terminal output is not
+  treated as an editable input merely because it is a text area.
+- Added physical-modifier release checks before field reads, clipboard staging
+  and dispatch. Focus/security/cancellation failures do not trigger a retry.
+- Paste verification tolerates stale collapsed cursor ranges and CRLF/LF
+  conversion while still requiring one exact insertion or selection replacement.
+  Posting an event alone does not dismiss the fallback pill.
+- Regression tests reproduced the target-classification and verification gaps
+  before the implementation changed. The expanded tests cover clipboard
+  preservation, cancellation, focus changes, secure input and opaque targets.
+- All 155 Swift package tests passed, including 33 focused Mac paste/clipboard/
+  transcript-pill tests. No physical cross-app result is inferred from mocks.
+- The universal unsigned Mac compile check succeeded. Live Claude Code acceptance
+  is still pending: the testing Mac is locked and the user's Claude Code host
+  (terminal, VS Code or desktop) has not yet been identified.
+- This is a source update, not a new signed/notarized download. Existing GitHub
+  build 36 does not acquire these changes until a new direct release is published.
