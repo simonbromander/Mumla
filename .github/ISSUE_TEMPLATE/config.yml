@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security or privacy vulnerability privately
+    url: https://github.com/simonbromander/Mumla/security/advisories/new
+    about: Do not disclose vulnerabilities or user content in public issues.

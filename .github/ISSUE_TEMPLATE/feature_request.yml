@@ -1,0 +1,28 @@
+name: Feature or improvement
+description: Discuss a focused improvement before implementing it.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the real workflow and what is difficult today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Include affected platforms and how this preserves on-device privacy and simplicity.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: How should we verify it?
+      description: Tests, accessibility checks, or physical-device acceptance that would establish the improvement.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or trade-offs

@@ -1,0 +1,13 @@
+title = "Mumla secret scanning"
+
+[extend]
+useDefault = true
+
+# These are public Hugging Face Git revisions, not API credentials.
+[[allowlists]]
+description = "Verified public model revisions in the source survey"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(^|/)docs/model-source-survey\.md$''']
+regexTarget = "secret"
+regexes = ['''^(8f1f6d8f8bd7482a5ea1d2bfaf6ef5be61597138|7dd20fe6b1797d35f5e3307e8b1732d9a178edfe|106fa163a138a0db6737e0c50494269e07f508d0|74b386f56bf7178a540ec4bc7c3acfc81efdd9ad|72c38267654dadd538bceac7a851de00fb55f11a)$''']

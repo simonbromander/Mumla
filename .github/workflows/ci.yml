@@ -1,0 +1,65 @@
+name: Contributor CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contributor-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: Full-history secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install checksum-pinned Gitleaks
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --location --silent --show-error --output gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          printf '%s  %s\n' 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb gitleaks.tar.gz | sha256sum --check
+          tar -xzf gitleaks.tar.gz gitleaks
+      - name: Scan all fetched history
+        run: '"${{ runner.temp }}/gitleaks" git --log-opts="--all" --ignore-gitleaks-allow --redact --no-banner .'
+
+  native:
+    name: Swift tests and native builds
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Swift package tests
+        run: swift test
+      - name: Release-helper unit tests (no signing or uploads)
+        run: /usr/bin/ruby -e 'Dir.glob("fastlane/tests/*_test.rb").sort.each { |path| require File.expand_path(path) }'
+      - name: Build iOS app and extensions without signing
+        run: |
+          xcodebuild -project Mumla.xcodeproj -scheme Mumla -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/CI-iOS \
+            CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= build
+      - name: Build direct Mac app without signing
+        run: |
+          xcodebuild -project Mumla.xcodeproj -scheme MumlaMacDirect -configuration Debug \
+            -destination 'platform=macOS' -derivedDataPath .build/CI-Mac \
+            CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= build

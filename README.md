@@ -1,98 +1,108 @@
 # Mumla
 
-Mumla is a native, on-device dictation app for macOS and iOS. Its recorder-inspired
-interface pairs a recessed sage display with tactile graphite or white controls
-and iPhone haptic feedback. Swedish dictation and an iOS keyboard are implemented;
-English routing, meetings and private iCloud sync remain planned work.
+Private, Swedish-first dictation for macOS and iOS. Native Swift apps, on-device
+speech recognition, and a tactile, recorder-inspired interface.
 
-This repo intentionally starts clean. The old `kb-ios` repo is kept locally as a
-reference at `/Users/bob/projects/_references/kb-ios`, but this implementation
-does not inherit its Modal backend, StoreKit quota, paywall, or cloud ASR flow.
+[Website](https://mumla.app) | [Mac betas](https://github.com/simonbromander/Mumla/releases)
+| [Contributing](CONTRIBUTING.md) | [Development](docs/development.md)
 
-## Preserved Identity
+## What Works Today
 
-- iOS bundle ID: `com.mumla.app`
-- App group: `group.com.mumla.app`
-- iCloud container: `iCloud.com.mumla.app`
-- Developer team observed in the old project: `PF2PWR4YG4`
+- Swedish dictation with Pianissimo running locally through CoreML and FluidAudio.
+- A Mac menu-bar recorder, configurable hold/double-tap hotkey, clipboard-preserving
+  paste, and a manual-copy fallback when insertion cannot be confirmed.
+- iPhone/iPad recording, local history, transcript copy/share, and a replacement dictionary.
+- An iOS keyboard with Swedish/English typing assistance and an explicit dictation-session flow.
+- Matching tactile controls, iPhone haptics, and System / Light / Dark appearance.
 
-Both Xcode apps use `com.mumla.app` for TestFlight under the existing App Store
-Connect record. The local macOS development bundle retains `com.mumla.mac`.
-The unrestricted Mac app is also intended for Developer ID distribution;
-cross-app hotkeys and Accessibility behavior must be validated separately in
-the sandboxed TestFlight edition.
+**This is an early-stage app.** English speech recognition, automatic model routing,
+meeting capture, and iCloud sync are not implemented yet. Swedish/English keyboard
+typing assistance is not English speech recognition. The accuracy and latency
+targets still need evaluation on real, consented recordings.
 
-## Native Apps
+Audio and transcripts are not sent to a transcription service. Model downloads
+and user-requested Mac update checks use the network; there is no analytics backend.
+Models are downloaded after installation, not committed or bundled in this repo.
+
+The full Mac hotkey/paste workflow uses the direct-download build and requires
+Microphone, Input Monitoring, and Accessibility permissions. The sandboxed Mac
+App Store/TestFlight variant has different restrictions; open source does not
+bypass macOS security. See [Mac distribution](docs/mac-app-store-compatibility.md).
+
+## Build And Test
+
+Use a Mac with **Xcode 26 or later**, its command-line tools, and Swift 6.
+The apps target macOS 14+ and iOS 17+. Apple silicon is recommended for model work.
+XcodeGen is needed only to regenerate the checked-in Xcode project.
 
 ```bash
-xcodegen generate
+git clone https://github.com/simonbromander/Mumla.git
+cd Mumla
+swift test
+ruby -e 'Dir.glob("fastlane/tests/*_test.rb").sort.each { |path| require File.expand_path(path) }'
 open Mumla.xcodeproj
 ```
 
-Choose `Mumla` for iOS or `MumlaMac` for macOS. Both use the local `MumlaCore`,
-`MumlaAudio`, and `MumlaUI` packages. Download the Swedish model in the app before
-recording. iOS supports recording, on-device transcription, history, copy/share,
-a persistent replacement dictionary and the Mumla keyboard.
+Choose `Mumla` for iOS, `MumlaMacDirect` for the full Mac workflow, or `MumlaMac`
+for the sandboxed Mac variant. No release certificates or App Store Connect
+credentials are needed for package tests or Simulator builds.
 
-For the keyboard, add Mumla under iOS Settings > General > Keyboard > Keyboards
-and enable Full Access for local App Group communication. Open Mumla's keyboard
-setup, start a 15-minute session, switch back to your app and select Mumla with
-the globe key. Recording and transcription stay in the containing app; the
-extension inserts text directly, without the clipboard. Normal typing works
-without Full Access. The model-backed background session and haptics still need
-physical-iPhone acceptance. See [the keyboard plan](docs/keyboard-plan.md).
+[The development guide](docs/development.md) contains signing-free build commands,
+Simulator tests, model setup, and instructions for using your own signing identities
+on a physical iPhone. Do not change the official bundle IDs or signing settings in
+a contribution.
 
-See [the design system](docs/design-system.md) and
-[TestFlight release instructions](docs/testflight.md).
+## iOS Keyboard
 
-## Phase 0
+Add Mumla in Settings > General > Keyboard > Keyboards. Full Access is required
+for **local App Group communication**, not cloud transcription; normal typing
+works without it. Download the model, explicitly start a 15-minute session in
+Mumla, return to your writing app, and select Mumla with the globe key.
 
-The first deliverable is the spike that decides whether the product is worth
-building:
+The containing app owns the microphone and transcription; the keyboard inserts
+the result directly without the clipboard. iOS does not provide a supported
+automatic app-and-back hop. Background audio, real keyboard handoff, and haptics
+need physical-device testing, separate from Simulator checks.
 
-- Convert or obtain a CoreML Pianissimo Swedish model compatible with FluidAudio.
-- Benchmark WER and delay on the owner's real dictation clips.
-- Verify automatic Swedish/English routing.
-- Decide fp16 vs int8 with real accuracy and load-time numbers.
+## Architecture
 
-Run the current harness:
+| Directory | Responsibility |
+| --- | --- |
+| `Sources/MumlaCore` | Shared contracts, local storage, dictionary, hotkey gestures, keyboard protocol, evaluation |
+| `Sources/MumlaAudio` | Microphone capture, verified model installation, local transcription |
+| `Sources/MumlaUI` | Shared recorder controls, appearance, keyboard UI, licensing notices |
+| `Sources/MumlaMac` | Menu bar, global hotkey, Accessibility, paste, floating recorder, direct updates |
+| `Apps/iOS` | iOS app, custom keyboard extension, Live Activity |
+| `Tests` | Package, native hosted, and UI tests |
+| `Configuration` | Pinned model revisions, sizes, and SHA-256 checksums |
 
-```bash
-swift test
-swift run mumla-phase0 validate Evaluation/phase0-manifest.example.json
-swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/phase0-predictions.example.json
-swift run mumla-phase0 score Evaluation/phase0-manifest.example.json Evaluation/phase0-predictions.example.json --json
-python3 scripts/resolve_hf_artifact_manifest.py Configuration/model-artifacts.markstrom-pianissimo-coreml.template.json Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json
-python3 scripts/download_hf_artifact.py Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json ModelCache/markstrom-pianissimo-sv-coreml
-swift run mumla-phase0 verify-model Configuration/model-artifacts.markstrom-pianissimo-coreml.resolved.json ModelCache/markstrom-pianissimo-sv-coreml
-python3 scripts/stage_coreml_artifact.py ModelCache/markstrom-pianissimo-sv-coreml ModelCache/markstrom-pianissimo-sv-coreml-compiled --force
-swift run mumla-model-probe load ModelCache/markstrom-pianissimo-sv-coreml-compiled
-swift run mumla-model-probe transcribe ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/audio.wav --language sv
-swift run mumla-model-probe transcribe ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/audio.wav --language sv --json --json-output /tmp/mumla-predictions.json
-swift run mumla-model-probe transcribe-manifest ModelCache/markstrom-pianissimo-sv-coreml-compiled /path/to/phase0-manifest.json --json-output /tmp/mumla-predictions.json --language expected
-```
+This is a fresh implementation, not the old Mumla cloud architecture.
+There is no cloud transcription fallback, account system, or paywall backend.
 
-See [docs/implementation-plan.md](docs/implementation-plan.md) and
-[docs/phase-0-evaluation.md](docs/phase-0-evaluation.md).
+## Contribute
 
-## macOS App
+Bug reports, accessibility improvements, native-platform fixes, Swedish quality
+work, and design polish are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md),
+then open an [issue](https://github.com/simonbromander/Mumla/issues) or a focused PR.
+For vulnerabilities, use [private reporting](SECURITY.md), not public issues.
 
-Run the development menu-bar app:
+- [Implementation plan](docs/implementation-plan.md)
+- [Design system](docs/design-system.md) and [light appearance](docs/light-appearance.md)
+- [Keyboard architecture and acceptance checks](docs/keyboard-plan.md)
+- [Phase 0 evaluation](docs/phase-0-evaluation.md)
+- [Maintainer release runbook](docs/testflight.md)
 
-```bash
-swift run mumla-mac
-```
+The example `.wav` files are text placeholders for manifest-validation tests,
+not speech recordings. Private evaluation audio must stay outside Git.
 
-Build a local `.app` bundle:
+## License And Credits
 
-```bash
-./scripts/build_macos_app_bundle.sh
-open .build/debug/Mumla.app
-```
+Mumla's original code and assets are available under the [MIT License](LICENSE).
+Third-party components and downloaded model weights retain their own licenses:
+FluidAudio uses Apache 2.0; Sparkle includes MIT/BSD and other notices; Pianissimo,
+its CoreML conversion, and the NVIDIA Parakeet base model use CC BY 4.0.
+See [third-party notices](THIRD_PARTY_NOTICES.md). The model licenses are not replaced
+by Mumla's MIT license.
 
-During development the app looks for a compiled local Pianissimo model at
-`ModelCache/markstrom-pianissimo-sv-coreml-compiled` in the repo, or at
-`~/Library/Application Support/Mumla/Models/markstrom-pianissimo-sv-coreml-compiled`.
-If no compiled model exists, the Settings window and menu bar include a
-download action. The app downloads the pinned CoreML artifact, verifies SHA-256
-checksums, then compiles the `.mlpackage` files into Application Support.
+Forks are welcome. Use your own signing identities and make it clear that your
+build is not an official Mumla release.
