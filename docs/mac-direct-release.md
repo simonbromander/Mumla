@@ -1,5 +1,32 @@
 # Full-Capability Mac Distribution
 
+## Local Text Beta: 2026-10-08
+
+- Universal direct `1.0.1 (37)` is published as a GitHub prerelease in Mumla
+  and Mumla-Releases. App source is `8cdfff858e50fa12b1e3f451a57e931c957febfa`;
+  the iOS-only final text-wrapping adjustment does not change this Mac binary.
+- Adds optional local formatting and separate summary previews, editable style
+  preferences, delayed paste acknowledgement dismissal, Paste Last Transcript
+  and the ten most recent transcripts. Generation never runs in the hotkey path.
+- 190 shared/Mac tests completed, zero failures, one live-model test skipped.
+  All 31 release-helper tests passed. Real target-app acceptance and Swedish
+  model output quality are separate, still-pending checks.
+- Developer ID signature, arm64/x86_64, hardened runtime and microphone-only
+  entitlements verified. Notarization
+  `6986cd27-3629-442c-9153-ec8469834676` was Accepted; ticket stapled and
+  validated, Gatekeeper passed. No App Sandbox or debugger entitlement.
+- ZIP size: 23,202,334 bytes. SHA-256:
+  `ce523361eae99668c7caa4e776b586e6844d9acff8b7df9741e2208fc39fbf4a`.
+- Public anonymous ZIP downloads and Ed25519 signatures passed before feed
+  publication. Feed commit `4a6f11f`; the live feed is byte-identical to the
+  verified staging feed and all enclosures (37, 36, 35) passed signature checks.
+  Live in-app installation/relaunch is not claimed by these checks.
+- Local evidence: `.build/direct37-build.log`, `.build/direct37-notarize.log`,
+  `.build/direct37-feed-prepare.json`, `.build/direct37-public-verify.json` and
+  `.build/direct37-live-public-verify.json`. No logs or signing material published.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-37).
+  iOS build 32 is a separate TestFlight beta; sandboxed Mac TestFlight remains 29.
+
 ## Why It Is Separate
 
 The dictation workflow inspects the focused field in another app, sends Cmd+V,

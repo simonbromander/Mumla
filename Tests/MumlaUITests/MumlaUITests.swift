@@ -20,7 +20,11 @@ final class MumlaUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["transcript.saved-summary"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.textViews["transcript.text"].value as? String, "hej Simon vi ses klockan 14:30")
         XCTAssertEqual(app.staticTexts["transcript.saved-summary"].label, "Vi ses klockan 14:30.")
-        XCTAssertGreaterThan(app.textViews["transcript.text"].frame.height, 50)
+        if app.frame.width <= 400 {
+            XCTAssertGreaterThan(app.textViews["transcript.text"].frame.height, 50)
+        } else {
+            XCTAssertGreaterThan(app.textViews["transcript.text"].frame.height, 20)
+        }
         capture("64-summary-saved", app: app)
     }
 

@@ -6,6 +6,41 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
 
+## Verified iOS Release 32: 2026-10-08
+
+- iOS `1.0.1 (32)`, app source `8cdfff858e50fa12b1e3f451a57e931c957febfa`.
+- Optional local formatting and separate summary previews with explicit
+  acceptance, original restoration, and editable local style preferences.
+  Includes the keyboard open-app attempt, prewarming and 15/60/120-minute
+  session choices. Correctable transcript text wraps on compact screens.
+- 190 shared/Mac tests completed with zero failures and one opt-in live-model
+  test skipped; 31 release-helper tests passed. Hosted iOS tests and focused
+  formatting/summary/preferences UI cases passed on phone and iPad. Screenshots
+  were inspected. Fixtures do not establish real model quality or audio handoff.
+- Final archive and extracted IPA signatures, profiles and signed entitlements
+  verified for app, keyboard and widget: matching version/build, expected team,
+  App Group and `get-task-allow=false`. Text-model runtime is not linked into
+  either extension. Existing distribution profiles were reused.
+- App Store Connect accepted upload at `2026-10-08T08:43:06Z`; processing
+  completed at `2026-10-08T08:45:21Z`. Build
+  `c9416845-a503-4481-b9a7-f2d1978e8db9` was `VALID` and `IN_BETA_TESTING` at
+  `2026-10-08T08:46:23Z`. Existing Test and Friends groups include the build.
+  No audience changes, external beta review or public App Store submission.
+- Swedish/English testing notes were published and read back at
+  `2026-10-08T08:46:25Z` from `fastlane/testflight/ios-1.0.1-32.json`.
+- IPA SHA-256:
+  `84a610de95d06070e4ab64885b617273de9874470284fc953faf2ee810eb16bc`.
+  Local evidence: `.build/ios32-build-final.log`, `.build/ios32-upload.log`,
+  `.build/ios32-archive-audit.json`, `.build/ios32-ipa-audit.json`,
+  `.build/ReleaseAuditIOS32-20261008/`,
+  `.build/LocalTextReleaseFinal-20261008.xcresult` and
+  `.build/LocalTextIPadFinal-20261008.xcresult`.
+- Apple Intelligence must be compatible, enabled and ready. Real Swedish
+  summaries, latency and physical-device behavior remain unverified. Summaries
+  stay experimental, with human review, and never replace or auto-paste over
+  the original transcript. Swedish dictation only; meetings, English ASR and
+  iCloud sync remain unimplemented. Mac direct build 37 is a separate beta.
+
 ## Verified iOS Release 31: 2026-10-06
 
 - iOS `1.0.1 (31)`, source commit
