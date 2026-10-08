@@ -50,6 +50,7 @@ final class AppCoordinator: ObservableObject {
     private var elapsedTimer: Timer?
     private var modelInstallTask: Task<Void, Never>? { didSet { refreshUpdateActivity() } }
     private var hidePillTask: Task<Void, Never>?
+    private var pasteVerificationTask: Task<Void, Never>?
     private var pendingStartID: UUID? { didSet { refreshUpdateActivity() } }
     private var inFlightOperations = 0 { didSet { refreshUpdateActivity() } }
     private var insertionTarget: FocusedTextTargetSnapshot?
@@ -62,7 +63,8 @@ final class AppCoordinator: ObservableObject {
         dictionaryStore: DictionaryStore,
         settingsStore: AppSettingsStore,
         modelDirectory: URL?,
-        pasteboard: NSPasteboard = .general
+        pasteboard: NSPasteboard = .general,
+        inserter: ClipboardTextInserter? = nil
     ) {
         self.recorder = recorder
         self.transcriber = transcriber
@@ -72,7 +74,7 @@ final class AppCoordinator: ObservableObject {
         self.settingsStore = settingsStore
         self.modelDirectory = modelDirectory
         self.pasteboard = pasteboard
-        self.inserter = ClipboardTextInserter(pasteboard: pasteboard)
+        self.inserter = inserter ?? ClipboardTextInserter(pasteboard: pasteboard)
     }
 
     func bootstrap() {
@@ -267,9 +269,18 @@ final class AppCoordinator: ObservableObject {
     }
 
     func pasteRecord(_ record: DictationRecord) {
-        guard !isInstallingAppUpdate, activeMode == nil, pendingStartID == nil, inFlightOperations == 0, pillState != .transcribing else { return }
+        guard canPasteFromHistory else { return }
+        pasteRecord(record, target: FocusedTextTargetInspector.captureEditableTarget())
+    }
+
+    var canPasteFromHistory: Bool {
+        !isInstallingAppUpdate && activeMode == nil && pendingStartID == nil && inFlightOperations == 0 && pillState != .transcribing
+    }
+
+    func pasteRecord(_ record: DictationRecord, target: FocusedTextTargetSnapshot?) {
+        guard canPasteFromHistory else { return }
+        pasteVerificationTask?.cancel()
         editObserver.cancel()
-        let target = FocusedTextTargetInspector.captureEditableTarget()
         hidePillTask?.cancel()
         pillState = .transcribing
         showPill?()
@@ -289,12 +300,14 @@ final class AppCoordinator: ObservableObject {
 
     func dismissPill() {
         guard activeMode == nil, pillState != .transcribing else { return }
+        pasteVerificationTask?.cancel()
         hidePillTask?.cancel()
         pillState = .hidden
         hidePill?()
     }
 
     func presentInsertion(_ result: ClipboardInsertionResult, record: DictationRecord) {
+        pasteVerificationTask?.cancel()
         switch result {
         case .inserted:
             hidePillTask?.cancel()
@@ -307,6 +320,11 @@ final class AppCoordinator: ObservableObject {
             hidePillTask?.cancel()
             pillState = .transcript(record, copied: copied)
             statusText = "Transcript ready"
+            pasteVerificationTask = Task { [weak self] in
+                guard let self, await self.inserter.confirmPendingInsertion(record.text), !Task.isCancelled,
+                      case let .transcript(current, _) = self.pillState, current.id == record.id else { return }
+                self.presentInsertion(.inserted, record: record)
+            }
         case .blockedSecureField:
             hidePillTask?.cancel()
             pillState = .transcript(record, copied: false)
@@ -556,6 +574,7 @@ final class AppCoordinator: ObservableObject {
 
     private func startDictation(mode: RecordingMode) async {
         guard !isInstallingAppUpdate, activeMode == nil, pendingStartID == nil, inFlightOperations == 0, pillState != .transcribing else { return }
+        pasteVerificationTask?.cancel()
         hidePillTask?.cancel()
         editObserver.cancel()
 

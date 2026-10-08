@@ -55,6 +55,58 @@ final class AutoPasteTests: XCTestCase {
         XCTAssertEqual(board.string(forType: .string), "Previous clipboard")
     }
 
+    func testDelayedAccessibilityAcknowledgementConfirmsWithoutAnotherPasteOrClipboardWrite() async {
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally() }
+        board.setString("Previous clipboard", forType: .string)
+        let system = PasteSystem(board: board)
+        system.applyOnRead = 20
+        let service = inserter(system, board)
+        assertManualCopy(await service.insert("Hej Mumla", target: target))
+        XCTAssertEqual(service.lastOutcome, .unconfirmed)
+        XCTAssertEqual(board.string(forType: .string), "Previous clipboard")
+        let restoredCount = board.changeCount
+        let confirmed = await service.confirmPendingInsertion("Hej Mumla")
+        XCTAssertTrue(confirmed)
+        XCTAssertEqual(service.lastOutcome, .confirmed)
+        XCTAssertEqual(system.postCount, 1)
+        XCTAssertEqual(board.changeCount, restoredCount)
+    }
+
+    func testLateVerificationStopsOnFocusChangeOrSecureInput() async {
+        for secure in [false, true] {
+            let board = NSPasteboard.withUniqueName()
+            defer { board.releaseGlobally() }
+            board.setString("Previous clipboard", forType: .string)
+            let system = PasteSystem(board: board)
+            system.applyOnRead = 20
+            let service = inserter(system, board)
+            assertManualCopy(await service.insert("Hej Mumla", target: target))
+            let reads = system.readCount
+            if secure { system.isSecureInput = true } else { system.focused = false }
+            let confirmed = await service.confirmPendingInsertion("Hej Mumla")
+            XCTAssertFalse(confirmed)
+            XCTAssertEqual(system.readCount, reads)
+            XCTAssertEqual(system.postCount, 1)
+            XCTAssertEqual(board.string(forType: .string), "Previous clipboard")
+        }
+    }
+
+    func testUnreadableAndFailedPasteNeverAcquireLateConfirmation() async {
+        for readable in [false, true] {
+            let board = NSPasteboard.withUniqueName()
+            defer { board.releaseGlobally() }
+            let system = PasteSystem(board: board)
+            system.valueReadable = readable
+            system.applyOnRead = nil
+            let service = inserter(system, board)
+            assertManualCopy(await service.insert("Hej Mumla", target: target))
+            let confirmed = await service.confirmPendingInsertion("Hej Mumla")
+            XCTAssertFalse(confirmed)
+            XCTAssertEqual(system.postCount, 1)
+        }
+    }
+
     func testNewUserClipboardIsPreservedWhilePasteIsConfirmed() async {
         let board = NSPasteboard.withUniqueName()
         defer { board.releaseGlobally() }
@@ -267,7 +319,8 @@ final class AutoPasteTests: XCTestCase {
 
     private func inserter(_ system: PasteSystem, _ board: NSPasteboard) -> ClipboardTextInserter {
         ClipboardTextInserter(system: system, pasteboard: board, verificationDelays: Array(repeating: .zero, count: 16),
-                             modifierReleaseDelays: Array(repeating: .zero, count: 4))
+                             modifierReleaseDelays: Array(repeating: .zero, count: 4),
+                             lateVerificationDelays: Array(repeating: .zero, count: 8))
     }
 
     private func assertManualCopy(_ result: ClipboardInsertionResult, file: StaticString = #filePath, line: UInt = #line) {

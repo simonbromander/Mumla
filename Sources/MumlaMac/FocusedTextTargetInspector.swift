@@ -11,11 +11,11 @@ enum FocusedTextTarget {
 }
 
 enum FocusedTextTargetInspector {
-    static func captureEditableTarget() -> FocusedTextTargetSnapshot? {
+    static func captureEditableTarget(processID: pid_t? = nil) -> FocusedTextTargetSnapshot? {
         guard !IsSecureEventInputEnabled(), AccessibilityPermission.isTrusted,
-              let element = focusedElement(), inspect(element: element) == .editableText else { return nil }
+              let element = focusedElement(processID: processID), inspect(element: element) == .editableText else { return nil }
         var pid: pid_t = 0
-        guard AXUIElementGetPid(element, &pid) == .success else { return nil }
+        guard AXUIElementGetPid(element, &pid) == .success, processID == nil || processID == pid else { return nil }
         return FocusedTextTargetSnapshot(element: element, processID: pid)
     }
 
@@ -108,9 +108,9 @@ enum FocusedTextTargetInspector {
         return .nonText
     }
 
-    private static func focusedElement() -> AXUIElement? {
+    private static func focusedElement(processID: pid_t? = nil) -> AXUIElement? {
         guard !IsSecureEventInputEnabled() else { return nil }
-        let systemWide = AXUIElementCreateSystemWide()
+        let systemWide = processID.map(AXUIElementCreateApplication) ?? AXUIElementCreateSystemWide()
         var focusedValue: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(
             systemWide,

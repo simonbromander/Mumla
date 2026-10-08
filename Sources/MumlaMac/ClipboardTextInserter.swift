@@ -8,19 +8,24 @@ final class ClipboardTextInserter {
     private let pasteboard: NSPasteboard
     private let verificationDelays: [Duration]
     private let modifierReleaseDelays: [Duration]
+    private let lateVerificationDelays: [Duration]
+    private var pendingVerification: PendingVerification?
     private(set) var lastOutcome = TextInsertionOutcome.notAttempted
 
     init(system: any TextInsertionSystem = MacTextInsertionSystem(), pasteboard: NSPasteboard = .general,
          verificationDelays: [Duration] = Array(repeating: .milliseconds(50), count: 16),
-         modifierReleaseDelays: [Duration] = Array(repeating: .milliseconds(25), count: 12)) {
+         modifierReleaseDelays: [Duration] = Array(repeating: .milliseconds(25), count: 12),
+         lateVerificationDelays: [Duration] = Array(repeating: .milliseconds(100), count: 50)) {
         self.system = system
         self.pasteboard = pasteboard
         self.verificationDelays = verificationDelays
         self.modifierReleaseDelays = modifierReleaseDelays
+        self.lateVerificationDelays = lateVerificationDelays
     }
 
     func insert(_ text: String, target: FocusedTextTargetSnapshot?) async -> ClipboardInsertionResult {
         lastOutcome = .notAttempted
+        pendingVerification = nil
         guard !text.isEmpty else { return manualCopy(.emptyText) }
         if let failure = preflight(target) { return failure }
         guard let target else { return manualCopy(.targetUnavailable) }
@@ -59,7 +64,37 @@ final class ClipboardTextInserter {
                 return .inserted
             }
         }
-        return manualCopy(before == nil ? .textUnavailable : .unconfirmed)
+        let result = manualCopy(before == nil ? .textUnavailable : .unconfirmed)
+        if let before {
+            pendingVerification = PendingVerification(text: text, before: before, selectedRange: selectedRange, target: target)
+        }
+        return result
+    }
+
+    func confirmPendingInsertion(_ text: String) async -> Bool {
+        guard let pending = pendingVerification, pending.text == text else { return false }
+        defer { if pendingVerification?.id == pending.id { pendingVerification = nil } }
+        // The clipboard has already been restored. Only observe; never send a second paste.
+        for delay in lateVerificationDelays {
+            do { try await Task.sleep(for: delay) } catch { return false }
+            guard pendingVerification?.id == pending.id, !Task.isCancelled,
+                  !system.isSecureInput, system.isFocused(pending.target) else { return false }
+            let after = system.value(for: pending.target)
+            guard !system.isSecureInput, system.isFocused(pending.target) else { return false }
+            if Self.verifiesInsertion(text, before: pending.before, after: after, selectedRange: pending.selectedRange) {
+                lastOutcome = .confirmed
+                return true
+            }
+        }
+        return false
+    }
+
+    private struct PendingVerification {
+        let id = UUID()
+        let text: String
+        let before: String
+        let selectedRange: NSRange?
+        let target: FocusedTextTargetSnapshot
     }
 
     private func preflight(_ target: FocusedTextTargetSnapshot?) -> ClipboardInsertionResult? {

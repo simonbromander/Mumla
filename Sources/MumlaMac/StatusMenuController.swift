@@ -4,28 +4,44 @@ import MumlaCore
 import MumlaUI
 
 @MainActor
-final class StatusMenuController {
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+final class StatusMenuController: NSObject, NSMenuDelegate {
+    private let statusItem: NSStatusItem
     private let coordinator: AppCoordinator
     private let updater: MacUpdateController
     private var cancellables: Set<AnyCancellable> = []
+    private var menuTarget: FocusedTextTargetSnapshot?
+    private let captureTarget: @MainActor () -> FocusedTextTargetSnapshot?
 
-    init(coordinator: AppCoordinator, updater: MacUpdateController) {
+    init(coordinator: AppCoordinator, updater: MacUpdateController, statusItem: NSStatusItem? = nil,
+         captureTarget: @escaping @MainActor () -> FocusedTextTargetSnapshot? = {
+             guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier else { return nil }
+             return FocusedTextTargetInspector.captureEditableTarget(processID: pid)
+         }) {
         self.coordinator = coordinator
         self.updater = updater
+        self.statusItem = statusItem ?? NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        self.captureTarget = captureTarget
+        super.init()
         MumlaAppearance.stored().applyNativeAppearance()
-        if let button = statusItem.button {
+        if let button = self.statusItem.button {
             button.image = NSImage(systemSymbolName: "mic.circle.fill", accessibilityDescription: "Mumla")
             button.imagePosition = .imageOnly
         }
         rebuildMenu()
         coordinator.$history
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
         coordinator.$languageMode
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
         coordinator.$statusText
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
+        coordinator.$isBusyForAppUpdate
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
         coordinator.$hotkeyMonitorStatus
@@ -48,6 +64,7 @@ final class StatusMenuController {
 
     private func rebuildMenu() {
         let menu = NSMenu()
+        menu.delegate = self
 
         let status = NSMenuItem(title: coordinator.statusText, action: nil, keyEquivalent: "")
         status.isEnabled = false
@@ -89,19 +106,28 @@ final class StatusMenuController {
         appearanceItem.submenu = appearanceMenu
         menu.addItem(appearanceItem)
 
+        let pasteLast = menuItem(mText("Klistra in senaste transkript", "Paste Last Transcript"), action: #selector(pasteLastTranscript))
+        pasteLast.identifier = .init("history.pasteLast")
+        pasteLast.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: nil)
+        pasteLast.isEnabled = !coordinator.history.isEmpty && coordinator.canPasteFromHistory
+        menu.addItem(pasteLast)
+
         let historyMenu = NSMenu()
+        historyMenu.autoenablesItems = false
         for record in coordinator.history.prefix(10) {
-            let title = record.text.replacingOccurrences(of: "\n", with: " ")
-            let item = menuItem(String(title.prefix(64)), action: #selector(pasteHistory(_:)))
+            let title = record.text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+            let item = menuItem(String(title.prefix(64)) + (title.count > 64 ? "…" : ""), action: #selector(pasteHistory(_:)))
             item.representedObject = record.id.uuidString
+            item.isEnabled = coordinator.canPasteFromHistory
             historyMenu.addItem(item)
         }
         if coordinator.history.isEmpty {
-            let empty = NSMenuItem(title: "No recent dictations", action: nil, keyEquivalent: "")
+            let empty = NSMenuItem(title: mText("Inga transkript än", "No recent transcripts"), action: nil, keyEquivalent: "")
             empty.isEnabled = false
             historyMenu.addItem(empty)
         }
-        let historyItem = NSMenuItem(title: "Recent Dictations", action: nil, keyEquivalent: "")
+        let historyItem = NSMenuItem(title: mText("Senaste transkript", "Recent Transcripts"), action: nil, keyEquivalent: "")
+        historyItem.identifier = .init("history.recent")
         historyItem.submenu = historyMenu
         menu.addItem(historyItem)
 
@@ -157,7 +183,27 @@ final class StatusMenuController {
             let id = UUID(uuidString: rawID),
             let record = coordinator.history.first(where: { $0.id == id })
         else { return }
-        coordinator.pasteRecord(record)
+        pasteAfterMenuCloses(record)
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        menuTarget = captureTarget()
+    }
+
+    @objc private func pasteLastTranscript() {
+        guard let record = coordinator.history.first else { return }
+        pasteAfterMenuCloses(record)
+    }
+
+    private func pasteAfterMenuCloses(_ record: DictationRecord) {
+        let target = menuTarget
+        Task { @MainActor [weak coordinator] in
+            // Default-mode work waits until menu tracking has relinquished keyboard focus.
+            await withCheckedContinuation { continuation in
+                RunLoop.main.perform(inModes: [.default]) { continuation.resume() }
+            }
+            coordinator?.pasteRecord(record, target: target)
+        }
     }
 
     @objc private func selectAppearance(_ sender: NSMenuItem) {
