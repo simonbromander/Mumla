@@ -10,6 +10,7 @@ struct MumlaSettingsSheet: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var showAbout = false
     @State private var showKeyboard = false
+    @State private var showTextPreferences = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,6 +36,8 @@ struct MumlaSettingsSheet: View {
                     }
                     action(mText("Mumla-tangentbord", "Mumla keyboard"), symbol: "keyboard") { showKeyboard = true }
                         .accessibilityIdentifier("settings.keyboard")
+                    action(mText("Textpreferenser", "Text preferences"), symbol: "text.badge.star") { showTextPreferences = true }
+                        .accessibilityIdentifier("settings.text-preferences")
                     Divider().padding(.vertical, 4)
                     sectionTitle(mText("Om Mumla", "About Mumla"))
                     readout("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
@@ -49,6 +52,7 @@ struct MumlaSettingsSheet: View {
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .sheet(isPresented: $showAbout) { MumlaAboutView() }
         .sheet(isPresented: $showKeyboard) { KeyboardSetupSheet(session: session) }
+        .sheet(isPresented: $showTextPreferences) { LocalTextPreferencesView() }
     }
 
     private func sectionTitle(_ title: String) -> some View {
@@ -76,7 +80,7 @@ struct TranscriptSheet: View {
     var record: DictationRecord
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
-    @State private var formattingRecord: DictationRecord?
+    @State private var textRequest: TranscriptTextRequest?
     private var currentRecord: DictationRecord { session.history.first(where: { $0.id == record.id }) ?? record }
 
     var body: some View {
@@ -88,6 +92,7 @@ struct TranscriptSheet: View {
                         .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                     CorrectableTranscript(record: currentRecord, session: session)
                         .padding(20).mumlaRecess(radius: 8)
+                    if let summary = currentRecord.summary { SavedSummaryView(summary) }
                 }.padding(24)
             }
         }
@@ -99,8 +104,11 @@ struct TranscriptSheet: View {
                     }.accessibilityIdentifier("transcript.restore")
                 }
                 MumlaIconButton("text.badge.checkmark", label: mText("Formatera text", "Format text")) {
-                    formattingRecord = currentRecord
+                    textRequest = TranscriptTextRequest(record: currentRecord, action: .format)
                 }.accessibilityIdentifier("transcript.format")
+                MumlaIconButton("text.alignleft", label: mText("Sammanfatta", "Summarize")) {
+                    textRequest = TranscriptTextRequest(record: currentRecord, action: .summary)
+                }.accessibilityIdentifier("transcript.summarize")
                 Spacer()
                 ShareLink(item: currentRecord.text) {
                     Image(systemName: "square.and.arrow.up")
@@ -115,9 +123,10 @@ struct TranscriptSheet: View {
         .background { MumlaBackdrop() }.tint(MumlaStyle.accent)
         .presentationBackground(MumlaStyle.background)
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
-        .sheet(item: $formattingRecord) { snapshot in
-            TranscriptFormattingView(record: snapshot, formatter: transcriptFormatter) { text in
-                try session.applyFormatting(snapshot, text: text)
+        .sheet(item: $textRequest) { request in
+            TranscriptFormattingView(record: request.record, action: request.action, formatter: transcriptFormatter, summarizer: transcriptSummarizer) { text in
+                if request.action == .format { try session.applyFormatting(request.record, text: text) }
+                else { try session.applySummary(request.record, text: text) }
             }
         }
     }
@@ -126,11 +135,23 @@ struct TranscriptSheet: View {
         #if DEBUG
         if CommandLine.arguments.contains("--ui-testing") {
             if CommandLine.arguments.contains("--formatting-success-fixture") {
-                return LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _ in
+                return LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _, _ in
                     "Hej Simon. Vi ses klockan 14:30."
                 })
             }
-            return LocalTranscriptFormatter(availability: { _ in .intelligenceDisabled }, generate: { text, _ in text })
+            return LocalTranscriptFormatter(availability: { _ in .intelligenceDisabled }, generate: { text, _, _ in text })
+        }
+        #endif
+        return .apple
+    }
+
+    private var transcriptSummarizer: LocalTranscriptSummarizer {
+        #if DEBUG
+        if CommandLine.arguments.contains("--ui-testing") {
+            if CommandLine.arguments.contains("--summary-success-fixture") {
+                return LocalTranscriptSummarizer(availability: { _ in .available }, generate: { _, _, _ in "Vi ses klockan 14:30." })
+            }
+            return LocalTranscriptSummarizer(availability: { _ in .intelligenceDisabled }, generate: { _, _, _ in "" })
         }
         #endif
         return .apple

@@ -7,6 +7,7 @@ public struct DictationRecord: Codable, Equatable, Identifiable, Sendable {
     public var language: MumlaLanguage
     public var durationMilliseconds: Double?
     public var originalText: String?
+    public var summary: String?
 
     public var compactPreview: String {
         let words = text.split(whereSeparator: \.isWhitespace)
@@ -26,6 +27,7 @@ public struct DictationRecord: Codable, Equatable, Identifiable, Sendable {
         self.language = language
         self.durationMilliseconds = durationMilliseconds
         self.originalText = nil
+        self.summary = nil
     }
 }
 
@@ -115,6 +117,7 @@ public final class DictationHistoryStore: @unchecked Sendable {
                 throw TranscriptCorrectionError.transcriptChanged
             }
             records[index].text = try selection.replacing(with: replacement)
+            records[index].summary = nil
             let data = try JSONEncoder.prettyMumla.encode(records)
             let previousDictionary = try dictionary.load()
             let entries = try dictionary.add(original: selection.original, replacement: replacement)
@@ -141,6 +144,7 @@ public final class DictationHistoryStore: @unchecked Sendable {
             }
             if records[index].originalText == nil { records[index].originalText = expectedText }
             records[index].text = formattedText
+            records[index].summary = nil
             try JSONEncoder.prettyMumla.encode(records).write(to: fileURL, options: .atomic)
             return records
         }
@@ -156,6 +160,21 @@ public final class DictationHistoryStore: @unchecked Sendable {
             }
             records[index].text = original
             records[index].originalText = nil
+            records[index].summary = nil
+            try JSONEncoder.prettyMumla.encode(records).write(to: fileURL, options: .atomic)
+            return records
+        }
+    }
+
+    @discardableResult
+    public func applySummary(recordID: UUID, expectedText: String, summary: String) throws -> [DictationRecord] {
+        try lock.withLock {
+            var records = try JSONDecoder().decode([DictationRecord].self, from: Data(contentsOf: fileURL))
+            guard let index = records.firstIndex(where: { $0.id == recordID }),
+                  records[index].text == expectedText, LocalTextPreferences.acceptsSummary(summary) else {
+                throw TranscriptCorrectionError.transcriptChanged
+            }
+            records[index].summary = summary.trimmingCharacters(in: .whitespacesAndNewlines)
             try JSONEncoder.prettyMumla.encode(records).write(to: fileURL, options: .atomic)
             return records
         }

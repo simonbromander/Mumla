@@ -16,7 +16,8 @@ struct MainView: View {
     @State private var selectedRecord: DictationRecord?
     @State private var copied = false
     @State private var showAbout = false
-    @State private var formattingRecord: DictationRecord?
+    @State private var textRequest: TranscriptTextRequest?
+    @State private var showTextPreferences = false
 
     init(coordinator: AppCoordinator, updater: MacUpdateController = MacUpdateController(), initialSection: String = "dictate") {
         self.coordinator = coordinator
@@ -67,6 +68,7 @@ struct MainView: View {
         .mumlaAppearance()
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .sheet(isPresented: $showAbout) { MumlaAboutView().frame(width: 580, height: 520) }
+        .sheet(isPresented: $showTextPreferences) { LocalTextPreferencesView() }
         .onChange(of: coordinator.settingsOpenRequest) { _, _ in selection = .settings }
         .onAppear { if coordinator.settingsOpenRequest != nil { selection = .settings } }
         .sheet(isPresented: $coordinator.isOnboardingVisible) { OnboardingView(coordinator: coordinator) }
@@ -78,7 +80,12 @@ struct MainView: View {
                     Spacer()
                     MumlaIconButton("xmark", label: mText("Stäng", "Close")) { selectedRecord = nil }
                 }
-                ScrollView { Text(current.text).font(.system(size: 18, design: .monospaced)).lineSpacing(6).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(18) }.mumlaRecess(radius: 8)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text(current.text).font(.system(size: 18, design: .monospaced)).lineSpacing(6).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                        if let summary = current.summary { Divider(); SavedSummaryView(summary) }
+                    }.padding(18)
+                }.mumlaRecess(radius: 8)
                 HStack {
                     if current.originalText != nil {
                         MumlaIconButton("arrow.uturn.backward", label: mText("Återställ original", "Restore original")) {
@@ -87,7 +94,10 @@ struct MainView: View {
                         }
                     }
                     MumlaIconButton("text.badge.checkmark", label: mText("Formatera text", "Format text")) {
-                        formattingRecord = current
+                        textRequest = TranscriptTextRequest(record: current, action: .format)
+                    }
+                    MumlaIconButton("text.alignleft", label: mText("Sammanfatta", "Summarize")) {
+                        textRequest = TranscriptTextRequest(record: current, action: .summary)
                     }
                     Text(copied ? mText("Kopierat", "Copied") : "").font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
                     Spacer()
@@ -102,9 +112,10 @@ struct MainView: View {
                 }.buttonStyle(MumlaKeyStyle())
             }.padding(28).frame(width: 540, height: 400).background { MumlaBackdrop() }
                 .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
-                .sheet(item: $formattingRecord) { snapshot in
-                    TranscriptFormattingView(record: snapshot) { text in
-                        try coordinator.applyFormatting(snapshot, text: text)
+                .sheet(item: $textRequest) { request in
+                    TranscriptFormattingView(record: request.record, action: request.action) { text in
+                        if request.action == .format { try coordinator.applyFormatting(request.record, text: text) }
+                        else { try coordinator.applySummary(request.record, text: text) }
                         copied = false
                     }
                 }
@@ -359,6 +370,11 @@ struct MainView: View {
                 if coordinator.isInstallingModel { MumlaDownloadGauge(fraction: coordinator.modelInstallProgress.fraction).padding(.top, 16) }
                 settingRow(mText("Om Mumla", "About Mumla"), symbol: "info.circle") {
                     Button { showAbout = true } label: { Label(mText("Modeller och licenser", "Models and licenses"), systemImage: "doc.text").padding(12) }
+                }
+                settingRow(mText("Textpreferenser", "Text preferences"), symbol: "text.badge.star") {
+                    Button { showTextPreferences = true } label: {
+                        Label(mText("Anpassa", "Customize"), systemImage: "slider.horizontal.3").padding(12)
+                    }.accessibilityIdentifier("settings.text-preferences")
                 }
                 if updater.isAvailable {
                     settingRow(mText("Uppdateringar", "Updates"), symbol: "arrow.triangle.2.circlepath") {

@@ -7,7 +7,7 @@ final class LocalTranscriptFormatterTests: XCTestCase, @unchecked Sendable {
     func testSwedishFormattingPreservesWordsNamesAndNumbers() async {
         let input = "hej Simon vi ses i Örnsköldsvik klockan 14:30 det kostar 3,5 miljoner SEK"
         let output = "Hej Simon, vi ses i Örnsköldsvik klockan 14:30. Det kostar 3,5 miljoner SEK."
-        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, language in
+        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, language, _ in
             XCTAssertEqual(language, .swedish)
             return output
         })
@@ -19,7 +19,7 @@ final class LocalTranscriptFormatterTests: XCTestCase, @unchecked Sendable {
 
     func testUnavailableDoesNotInvokeModel() async {
         for availability in [FormattingAvailability.systemTooOld, .deviceNotEligible, .intelligenceDisabled, .modelNotReady, .unsupportedLanguage] {
-            let formatter = LocalTranscriptFormatter(availability: { _ in availability }, generate: { _, _ in
+            let formatter = LocalTranscriptFormatter(availability: { _ in availability }, generate: { _, _, _ in
                 XCTFail("Unavailable models must not run")
                 return "changed"
             })
@@ -32,19 +32,19 @@ final class LocalTranscriptFormatterTests: XCTestCase, @unchecked Sendable {
     func testFailuresAndUnsafeOutputsKeepOriginal() async {
         let input = "vi betalar 3,5 miljoner till Simon"
         for output in ["Vi betalar 35 miljoner till Simon.", "Vi betalar 3,5 miljoner till Sara.", "Sammanfattning: Vi betalar 3,5 miljoner till Simon.", "Vi betalar inte 3,5 miljoner till Simon.", "", "Simon får 3,5 miljoner."] {
-            let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _ in output })
+            let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _, _ in output })
             let result = await formatter.format(input, language: .swedish, foreground: true)
             XCTAssertEqual(result.text, input)
             XCTAssertEqual(result.status, .unsafeOutput)
         }
-        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _ in throw CocoaError(.fileReadUnknown) })
+        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _, _ in throw CocoaError(.fileReadUnknown) })
         let result = await formatter.format(input, language: .swedish, foreground: true)
         XCTAssertEqual(result.text, input)
         XCTAssertEqual(result.status, .failed)
     }
 
     func testLongAndBackgroundTextNeverInvokesModel() async {
-        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _ in
+        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _, _ in
             XCTFail("Must not run")
             return ""
         })
@@ -59,7 +59,7 @@ final class LocalTranscriptFormatterTests: XCTestCase, @unchecked Sendable {
 
     func testCancellationDiscardsLateResult() async {
         let started = expectation(description: "Generation started")
-        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _ in
+        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _, _ in
             started.fulfill()
             try? await Task.sleep(for: .milliseconds(100))
             return "Hello."
@@ -73,7 +73,7 @@ final class LocalTranscriptFormatterTests: XCTestCase, @unchecked Sendable {
     }
 
     func testUnchangedOutputIsNotAnAcceptedEdit() async {
-        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { text, _ in text })
+        let formatter = LocalTranscriptFormatter(availability: { _ in .available }, generate: { text, _, _ in text })
         let result = await formatter.format("Hello.", language: .english, foreground: true)
         XCTAssertEqual(result.status, .unchanged)
     }

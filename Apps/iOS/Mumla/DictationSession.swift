@@ -398,6 +398,10 @@ final class DictationSession: ObservableObject {
         MumlaFeedback.success()
     }
 
+    func applySummary(_ record: DictationRecord, text: String) throws {
+        history = try historyStore.applySummary(recordID: record.id, expectedText: record.text, summary: text)
+    }
+
     func restoreOriginal(_ record: DictationRecord) {
         do {
             history = try historyStore.restoreOriginal(recordID: record.id, expectedText: record.text)

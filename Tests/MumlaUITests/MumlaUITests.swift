@@ -3,6 +3,57 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testSummaryPreviewSavesSeparatelyWithoutReplacingTranscript() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-formatting", "--summary-success-fixture", "-AppleLanguages", "(sv)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+        app.buttons["transcript.summarize"].tap()
+        XCTAssertTrue(app.staticTexts["format.preview"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["format.preview"].label, "Vi ses klockan 14:30.")
+        app.buttons["format.original"].tap()
+        XCTAssertEqual(app.staticTexts["format.preview"].label, "hej Simon vi ses klockan 14:30")
+        app.buttons["format.formatted"].tap()
+        capture("63-summary-preview", app: app)
+        app.buttons["format.apply"].tap()
+        XCTAssertTrue(app.staticTexts["transcript.saved-summary"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.textViews["transcript.text"].value as? String, "hej Simon vi ses klockan 14:30")
+        XCTAssertEqual(app.staticTexts["transcript.saved-summary"].label, "Vi ses klockan 14:30.")
+        XCTAssertGreaterThan(app.textViews["transcript.text"].frame.height, 50)
+        capture("64-summary-saved", app: app)
+    }
+
+    func testTextPreferencesSaveCancelAndReset() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 10))
+        app.buttons["Settings"].tap()
+        let preferences = app.buttons["settings.text-preferences"]
+        for _ in 0..<4 where !preferences.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        preferences.tap()
+        let editor = app.textViews["text-preferences.formatting"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        app.buttons["text-preferences.reset"].tap()
+        editor.tap(); editor.typeText("Short paragraphs")
+        app.buttons["text-preferences.save"].tap()
+        preferences.tap()
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertEqual(editor.value as? String, "Short paragraphs")
+        capture("65-text-preferences", app: app)
+        app.buttons["text-preferences.reset"].tap()
+        app.buttons["text-preferences.cancel"].tap()
+        preferences.tap()
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertEqual(editor.value as? String, "Short paragraphs")
+        app.buttons["text-preferences.reset"].tap()
+        app.buttons["text-preferences.save"].tap()
+        preferences.tap()
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertEqual(editor.value as? String, "")
+    }
+
     func testFormattingUnavailableKeepsTranscriptAndDoesNotOfferApply() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-formatting", "-AppleLanguages", "(sv)"]

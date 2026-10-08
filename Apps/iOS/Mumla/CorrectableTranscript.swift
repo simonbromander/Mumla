@@ -60,9 +60,8 @@ private struct SelectableTranscriptText: UIViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
         guard let width = proposal.width, width > 0 else { return nil }
-        uiView.textContainer.size = CGSize(width: width, height: .greatestFiniteMagnitude)
-        uiView.layoutManager.ensureLayout(for: uiView.textContainer)
-        return CGSize(width: width, height: ceil(uiView.layoutManager.usedRect(for: uiView.textContainer).height))
+        let size = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: ceil(size.height))
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }

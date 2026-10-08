@@ -188,6 +188,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         menuTarget = captureTarget()
+        // Publication is deferred to the run loop; opening must use the current busy state.
+        menu.items.first { $0.identifier?.rawValue == "history.pasteLast" }?.isEnabled = !coordinator.history.isEmpty && coordinator.canPasteFromHistory
+        menu.items.first { $0.identifier?.rawValue == "history.recent" }?.submenu?.items.forEach {
+            $0.isEnabled = $0.representedObject != nil && coordinator.canPasteFromHistory
+        }
     }
 
     @objc private func pasteLastTranscript() {

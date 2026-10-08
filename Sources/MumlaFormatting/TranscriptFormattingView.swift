@@ -2,10 +2,29 @@ import MumlaCore
 import MumlaUI
 import SwiftUI
 
+public enum TranscriptTextAction: String, Identifiable {
+    case format, summary
+    public var id: Self { self }
+}
+
+public struct TranscriptTextRequest: Identifiable {
+    public let record: DictationRecord
+    public let action: TranscriptTextAction
+    public var id: UUID { record.id }
+    public init(record: DictationRecord, action: TranscriptTextAction) {
+        self.record = record
+        self.action = action
+    }
+}
+
 public struct TranscriptFormattingView: View {
     private let record: DictationRecord
+    private let action: TranscriptTextAction
     private let formatter: LocalTranscriptFormatter
+    private let summarizer: LocalTranscriptSummarizer
     private let apply: @MainActor (String) throws -> Void
+    @AppStorage(LocalTextPreferences.formattingKey) private var formattingPrompt = ""
+    @AppStorage(LocalTextPreferences.summaryKey) private var summaryPrompt = ""
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -14,16 +33,19 @@ public struct TranscriptFormattingView: View {
     @State private var saveFailed = false
     @State private var attempt = 0
 
-    public init(record: DictationRecord, formatter: LocalTranscriptFormatter = .apple,
+    public init(record: DictationRecord, action: TranscriptTextAction = .format, formatter: LocalTranscriptFormatter = .apple,
+                summarizer: LocalTranscriptSummarizer = .apple,
                 apply: @escaping @MainActor (String) throws -> Void) {
         self.record = record
+        self.action = action
         self.formatter = formatter
+        self.summarizer = summarizer
         self.apply = apply
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            MumlaPanelHeader(mText("Formatera text", "Format text"), closeLabel: mText("Avbryt", "Cancel"), closeIdentifier: "format.close") { dismiss() }
+            MumlaPanelHeader(action == .format ? mText("Formatera text", "Format text") : mText("Sammanfattning", "Summary"), closeLabel: mText("Avbryt", "Cancel"), closeIdentifier: "format.close") { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     let modeLayout = typeSize.isAccessibilitySize
@@ -34,12 +56,12 @@ public struct TranscriptFormattingView: View {
                     }
                     HStack(spacing: 10) {
                         if result == nil { ProgressView().controlSize(.small) }
-                        else { Image(systemName: result?.status == .formatted ? "checkmark" : "info.circle") }
+                        else { Image(systemName: canApply ? "checkmark" : "info.circle") }
                         Text(status).font(.system(.callout, design: .monospaced))
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("format.status")
                     }.foregroundStyle(MumlaStyle.secondary)
-                    Text(showOriginal ? record.text : result?.text ?? record.text)
+                    Text(preview)
                         .font(.system(.body, design: .monospaced)).lineSpacing(6).textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading).padding(20).mumlaRecess(radius: 8)
                         .accessibilityIdentifier("format.preview")
@@ -58,10 +80,10 @@ public struct TranscriptFormattingView: View {
                     MumlaIconButton("arrow.clockwise", label: mText("Försök igen", "Retry")) { attempt += 1 }
                         .disabled(result == nil).accessibilityIdentifier("format.retry")
                     MumlaIconButton("checkmark", label: mText("Använd förslag", "Use suggestion")) {
-                        guard let result, result.status == .formatted else { return }
+                        guard let result, canApply else { return }
                         do { try apply(result.text); dismiss() }
                         catch { saveFailed = true }
-                    }.disabled(result?.status != .formatted || scenePhase != .active)
+                    }.disabled(!canApply || scenePhase != .active)
                         .accessibilityIdentifier("format.apply")
                 }
             }.padding(24).background(MumlaStyle.background).overlay(alignment: .top) { Divider() }
@@ -72,7 +94,12 @@ public struct TranscriptFormattingView: View {
         .task(id: Request(attempt: attempt, phase: scenePhase)) {
             result = nil
             saveFailed = false
-            let response = await formatter.format(record.text, language: record.language, foreground: scenePhase == .active)
+            let response: FormattingResult
+            if action == .format {
+                response = await formatter.format(record.text, language: record.language, foreground: scenePhase == .active, stylePrompt: formattingPrompt)
+            } else {
+                response = await summarizer.summarize(record.text, language: record.language, foreground: scenePhase == .active, stylePrompt: summaryPrompt)
+            }
             guard !Task.isCancelled else { return }
             result = response
         }
@@ -86,6 +113,15 @@ public struct TranscriptFormattingView: View {
         let phase: ScenePhase
     }
 
+    private var canApply: Bool {
+        result?.status == (action == .format ? .formatted : .summarized)
+    }
+
+    private var preview: String {
+        if showOriginal { return record.text }
+        return result?.text ?? (action == .format ? record.text : "")
+    }
+
     private func modeKey(_ title: String, original: Bool) -> some View {
         Button { showOriginal = original } label: {
             Text(title).font(.system(.caption, design: .monospaced)).lineLimit(1).minimumScaleFactor(0.8)
@@ -97,13 +133,15 @@ public struct TranscriptFormattingView: View {
 
     private var status: String {
         if saveFailed { return mText("Kunde inte spara. Originalet är kvar.", "Couldn't save. Keeping the original.") }
-        guard let result else { return mText("Formaterar…", "Formatting…") }
+        guard let result else { return action == .format ? mText("Formaterar…", "Formatting…") : mText("Sammanfattar…", "Summarizing…") }
         switch result.status {
         case .formatted: return mText("Förslag klart", "Preview ready")
+        case .summarized: return mText("Kontrollera förslaget före användning", "Review the suggestion before using it")
         case .unchanged: return mText("Inga ändringar", "No changes")
         case .tooLong: return mText("Texten är för lång för försöksversionen", "This text is too long for the trial")
-        case .unsafeOutput: return mText("Förslaget ändrade innehållet. Originalet är kvar.", "The suggestion changed the content. Keeping the original.")
-        case .failed: return mText("Kunde inte formatera. Originalet är kvar.", "Couldn't format. Keeping the original.")
+        case .unsafeOutput:
+            return action == .format ? mText("Förslaget ändrade innehållet. Originalet är kvar.", "The suggestion changed the content. Keeping the original.") : mText("Kunde inte skapa ett giltigt förslag", "Couldn't create a valid suggestion")
+        case .failed: return mText("Kunde inte skapa förslag. Originalet är kvar.", "Couldn't create a suggestion. Keeping the original.")
         case .cancelled: return mText("Avbrutet", "Cancelled")
         case .background: return mText("Pausat", "Paused")
         case .unavailable(let reason):

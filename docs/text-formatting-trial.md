@@ -7,6 +7,19 @@ Foundation Models runtime. It previews punctuation, sentence casing and paragrap
 breaks. Nothing is changed until the user accepts. The original is retained for
 undo. Dictation, auto-paste and background keyboard sessions are unchanged.
 
+Settings now offers Text preferences: optional formatting and summary style
+prompts, up to 500 characters each, stored on this device. Save commits the draft;
+Cancel discards it; Reset clears the draft to the built-in defaults. User style
+guidance cannot disable formatting's deterministic preservation checks.
+
+An explicit Summary action uses the same local runtime, with a separate preview
+and acceptance path. Accepted summaries are saved separately in history and can
+be copied or shared independently. They are cleared when the source text changes.
+Summary input is limited to 6,000 characters; output to 1,500. Inputs are never
+silently truncated. Summary factuality is not guaranteed by code: review names,
+dates, commitments and Swedish quality before accepting. This beta does not
+claim the meeting-summary quality exit gate has been met.
+
 ## Boundaries
 
 - No cloud fallback, extra downloaded model, analytics or transcript logging.
