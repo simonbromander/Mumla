@@ -9,8 +9,7 @@ public final class MicrophoneRecorder: NSObject, @unchecked Sendable {
     private var recorder: AVAudioRecorder?
     private var outputURL: URL?
     #if os(macOS)
-    private var engine: AVAudioEngine?
-    private var engineWriter: EngineFileWriter?
+    private var deviceCapture: DeviceInputCapture?
     #endif
 
     private static var fileSettings: [String: Any] { [
@@ -46,7 +45,7 @@ public final class MicrophoneRecorder: NSObject, @unchecked Sendable {
             throw MicrophoneRecorderError.alreadyRecording
         }
         #if os(macOS)
-        if engine != nil {
+        if deviceCapture != nil {
             throw MicrophoneRecorderError.alreadyRecording
         }
         #endif
@@ -59,7 +58,7 @@ public final class MicrophoneRecorder: NSObject, @unchecked Sendable {
         #if os(macOS)
         if let inputDeviceUID, let deviceID = AudioInputDevices.deviceID(forUID: inputDeviceUID) {
             do {
-                try startEngine(deviceID: deviceID, url: url)
+                try startDeviceCapture(deviceID: deviceID, url: url)
                 self.outputURL = url
                 return url
             } catch {
@@ -85,7 +84,7 @@ public final class MicrophoneRecorder: NSObject, @unchecked Sendable {
             throw MicrophoneRecorderError.notRecording
         }
         #if os(macOS)
-        stopEngine()
+        stopDeviceCapture()
         #endif
         recorder?.stop()
         self.recorder = nil
@@ -95,7 +94,7 @@ public final class MicrophoneRecorder: NSObject, @unchecked Sendable {
 
     public func inputLevel() -> Double {
         #if os(macOS)
-        if let engineWriter { return engineWriter.level }
+        if let deviceCapture { return deviceCapture.level }
         #endif
         guard let recorder, recorder.isRecording else { return 0 }
         recorder.updateMeters()
@@ -105,7 +104,7 @@ public final class MicrophoneRecorder: NSObject, @unchecked Sendable {
     public func cancel() {
         let url = outputURL
         #if os(macOS)
-        stopEngine()
+        stopDeviceCapture()
         #endif
         recorder?.stop()
         recorder?.deleteRecording()
@@ -120,54 +119,142 @@ public final class MicrophoneRecorder: NSObject, @unchecked Sendable {
 
 #if os(macOS)
 private extension MicrophoneRecorder {
-    func startEngine(deviceID: AudioDeviceID, url: URL) throws {
-        let engine = AVAudioEngine()
-        let input = engine.inputNode
-        guard let unit = input.audioUnit else { throw MicrophoneRecorderError.failedToStart }
-        var device = deviceID
-        // Binds only Mumla's input to this device; the system default input stays as it is.
-        let status = AudioUnitSetProperty(
-            unit,
-            kAudioOutputUnitProperty_CurrentDevice,
-            kAudioUnitScope_Global,
-            0,
-            &device,
-            UInt32(MemoryLayout<AudioDeviceID>.size)
-        )
-        guard status == noErr else { throw MicrophoneRecorderError.failedToStart }
-
-        let inputFormat = input.outputFormat(forBus: 0)
-        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0,
-              let writer = try EngineFileWriter(url: url, inputFormat: inputFormat, settings: Self.fileSettings)
-        else { throw MicrophoneRecorderError.failedToStart }
-
-        input.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { buffer, _ in
-            writer.write(buffer)
-        }
-        engine.prepare()
-        do {
-            try engine.start()
-        } catch {
-            input.removeTap(onBus: 0)
-            writer.finish()
-            throw error
-        }
-        self.engine = engine
-        self.engineWriter = writer
+    func startDeviceCapture(deviceID: AudioDeviceID, url: URL) throws {
+        let capture = try DeviceInputCapture(deviceID: deviceID, url: url, settings: Self.fileSettings)
+        try capture.start()
+        self.deviceCapture = capture
     }
 
-    func stopEngine() {
-        guard let engine else { return }
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
-        engineWriter?.finish()
-        self.engine = nil
-        self.engineWriter = nil
+    func stopDeviceCapture() {
+        deviceCapture?.stop()
+        deviceCapture = nil
     }
 }
 
-/// Converts tapped device audio to 16 kHz mono and writes it to the recording file.
-private final class EngineFileWriter: @unchecked Sendable {
+/// Records one input device through an input-only AUHAL unit. Unlike AVAudioEngine, which builds
+/// an aggregate of the system default input and output before it can be rebound, this never opens
+/// any other device, so Bluetooth headphones playing music stay in their high-quality mode.
+private final class DeviceInputCapture: @unchecked Sendable {
+    private let unit: AudioUnit
+    private let writer: DeviceFileWriter
+    private let renderBuffer: AVAudioPCMBuffer
+    private let writeQueue = DispatchQueue(label: "se.mumla.device-input-writer")
+    private var running = false
+
+    init(deviceID: AudioDeviceID, url: URL, settings: [String: Any]) throws {
+        var description = AudioComponentDescription(
+            componentType: kAudioUnitType_Output,
+            componentSubType: kAudioUnitSubType_HALOutput,
+            componentManufacturer: kAudioUnitManufacturer_Apple,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        )
+        var instance: AudioUnit?
+        guard let component = AudioComponentFindNext(nil, &description),
+              AudioComponentInstanceNew(component, &instance) == noErr,
+              let unit = instance
+        else { throw MicrophoneRecorderError.failedToStart }
+
+        do {
+            var enable: UInt32 = 1
+            var disable: UInt32 = 0
+            var device = deviceID
+            try Self.check(AudioUnitSetProperty(unit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, 1, &enable, UInt32(MemoryLayout<UInt32>.size)))
+            try Self.check(AudioUnitSetProperty(unit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, 0, &disable, UInt32(MemoryLayout<UInt32>.size)))
+            try Self.check(AudioUnitSetProperty(unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &device, UInt32(MemoryLayout<AudioDeviceID>.size)))
+
+            var deviceFormat = AudioStreamBasicDescription()
+            var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+            try Self.check(AudioUnitGetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 1, &deviceFormat, &size))
+            guard deviceFormat.mSampleRate > 0, deviceFormat.mChannelsPerFrame > 0,
+                  let clientFormat = AVAudioFormat(
+                      commonFormat: .pcmFormatFloat32,
+                      sampleRate: deviceFormat.mSampleRate,
+                      channels: deviceFormat.mChannelsPerFrame,
+                      interleaved: false
+                  )
+            else { throw MicrophoneRecorderError.failedToStart }
+            try Self.check(AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1, clientFormat.streamDescription, UInt32(MemoryLayout<AudioStreamBasicDescription>.size)))
+
+            var maxFrames: UInt32 = 0
+            size = UInt32(MemoryLayout<UInt32>.size)
+            try Self.check(AudioUnitGetProperty(unit, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, 0, &maxFrames, &size))
+            guard let renderBuffer = AVAudioPCMBuffer(pcmFormat: clientFormat, frameCapacity: max(maxFrames, 4096)),
+                  let writer = try DeviceFileWriter(url: url, inputFormat: clientFormat, settings: settings)
+            else { throw MicrophoneRecorderError.failedToStart }
+            self.unit = unit
+            self.writer = writer
+            self.renderBuffer = renderBuffer
+        } catch {
+            AudioComponentInstanceDispose(unit)
+            throw error
+        }
+    }
+
+    deinit {
+        AudioComponentInstanceDispose(unit)
+    }
+
+    var level: Double { writer.level }
+
+    func start() throws {
+        var callback = AURenderCallbackStruct(
+            inputProc: { refCon, flags, timeStamp, _, frameCount, _ in
+                Unmanaged<DeviceInputCapture>.fromOpaque(refCon).takeUnretainedValue()
+                    .render(flags: flags, timeStamp: timeStamp, frameCount: frameCount)
+            },
+            inputProcRefCon: Unmanaged.passUnretained(self).toOpaque()
+        )
+        do {
+            try Self.check(AudioUnitSetProperty(unit, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, 0, &callback, UInt32(MemoryLayout<AURenderCallbackStruct>.size)))
+            try Self.check(AudioUnitInitialize(unit))
+            try Self.check(AudioOutputUnitStart(unit))
+            running = true
+        } catch {
+            AudioUnitUninitialize(unit)
+            writer.finish()
+            throw error
+        }
+    }
+
+    /// Stops the device and closes the file once every captured buffer has been written.
+    func stop() {
+        guard running else { return }
+        running = false
+        AudioOutputUnitStop(unit)
+        AudioUnitUninitialize(unit)
+        writeQueue.sync { writer.finish() }
+    }
+
+    private func render(
+        flags: UnsafeMutablePointer<AudioUnitRenderActionFlags>,
+        timeStamp: UnsafePointer<AudioTimeStamp>,
+        frameCount: UInt32
+    ) -> OSStatus {
+        guard frameCount <= renderBuffer.frameCapacity else { return kAudioUnitErr_TooManyFramesToProcess }
+        renderBuffer.frameLength = frameCount
+        let status = AudioUnitRender(unit, flags, timeStamp, 1, frameCount, renderBuffer.mutableAudioBufferList)
+        guard status == noErr,
+              let copy = AVAudioPCMBuffer(pcmFormat: renderBuffer.format, frameCapacity: frameCount),
+              let source = renderBuffer.floatChannelData,
+              let destination = copy.floatChannelData
+        else { return status }
+        copy.frameLength = frameCount
+        for channel in 0..<Int(renderBuffer.format.channelCount) {
+            destination[channel].update(from: source[channel], count: Int(frameCount))
+        }
+        // Conversion and file writes stay off the real-time I/O thread.
+        writeQueue.async { [writer] in writer.write(copy) }
+        return noErr
+    }
+
+    private static func check(_ status: OSStatus) throws {
+        guard status == noErr else { throw MicrophoneRecorderError.failedToStart }
+    }
+}
+
+/// Converts captured device audio to 16 kHz mono and writes it to the recording file.
+private final class DeviceFileWriter: @unchecked Sendable {
     private let lock = NSLock()
     private let converter: AVAudioConverter
     private let targetFormat: AVAudioFormat
@@ -219,7 +306,7 @@ private final class EngineFileWriter: @unchecked Sendable {
         currentLevel = min(1, max(0, pow(10, Double(decibels) / 30)))
     }
 
-    /// Closes the file; later tap callbacks are ignored.
+    /// Closes the file; later writes are ignored.
     func finish() {
         lock.lock()
         defer { lock.unlock() }
