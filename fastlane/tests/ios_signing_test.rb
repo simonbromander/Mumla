@@ -50,6 +50,35 @@ class IOSSigningTest < Minitest::Test
     assert_raises(MumlaIOSSigning::Error) { validate }
   end
 
+  def test_watch_distribution_does_not_require_the_phone_app_group
+    identifier = MumlaIOSSigning::TARGETS.fetch("MumlaWatch")
+    @profile["Entitlements"]["application-identifier"] = "#{TEAM}.#{identifier}"
+    @profile["Entitlements"].delete("com.apple.security.application-groups")
+    assert_equal "test-profile", validate(identifier: identifier)
+    @profile["Platform"] = ["watchOS"]
+    assert_equal "test-profile", validate(identifier: identifier)
+    @profile["Platform"] = ["OSX"]
+    assert_raises(MumlaIOSSigning::Error) { validate(identifier: identifier) }
+  end
+
+  def test_watch_platform_does_not_authorize_a_phone_extension
+    @profile["Platform"] = ["watchOS"]
+    assert_raises(MumlaIOSSigning::Error) { validate }
+  end
+
+  def test_watch_still_requires_the_expected_distribution_certificate
+    identifier = MumlaIOSSigning::TARGETS.fetch("MumlaWatch")
+    @profile["Entitlements"]["application-identifier"] = "#{TEAM}.#{identifier}"
+    @profile["DeveloperCertificates"] = ["other-certificate"]
+    assert_raises(MumlaIOSSigning::Error) { validate(identifier: identifier) }
+  end
+
+  def test_unknown_target_is_not_accepted
+    identifier = "com.mumla.app.unexpected"
+    @profile["Entitlements"]["application-identifier"] = "#{TEAM}.#{identifier}"
+    assert_raises(MumlaIOSSigning::Error) { validate(identifier: identifier) }
+  end
+
   def test_wrong_team_fails
     @profile["TeamIdentifier"] = ["OTHERTEAM"]
     assert_raises(MumlaIOSSigning::Error) { validate }

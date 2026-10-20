@@ -7,7 +7,8 @@ module MumlaIOSSigning
   TARGETS = {
     "Mumla" => "com.mumla.app",
     "MumlaKeyboard" => "com.mumla.app.keyboard",
-    "MumlaWidgets" => "com.mumla.app.widgets"
+    "MumlaWidgets" => "com.mumla.app.widgets",
+    "MumlaWatch" => "com.mumla.app.watchkitapp"
   }.freeze
   APP_GROUP = "group.com.mumla.app"
 
@@ -21,11 +22,13 @@ module MumlaIOSSigning
   end
 
   def validate_profile(profile, identifier:, team_id:, fingerprint:, at: Time.now)
+    raise Error, "Unexpected release identifier #{identifier}." unless TARGETS.value?(identifier)
+    watch = identifier == TARGETS.fetch("MumlaWatch")
     entitlements = profile.fetch("Entitlements")
     expiry = profile.fetch("ExpirationDate")
     expiry = expiry.to_time if expiry.respond_to?(:to_time)
     valid = expiry > at &&
-      Array(profile["Platform"]).include?("iOS") &&
+      (Array(profile["Platform"]).include?("iOS") || (watch && Array(profile["Platform"]).include?("watchOS"))) &&
       Array(profile["TeamIdentifier"]) == [team_id] &&
       entitlements["application-identifier"] == "#{team_id}.#{identifier}" &&
       entitlements["com.apple.developer.team-identifier"] == team_id &&
@@ -36,7 +39,7 @@ module MumlaIOSSigning
         Digest::SHA1.hexdigest(der.respond_to?(:string) ? der.string : der).upcase == fingerprint
       end
     raise Error, "Invalid App Store profile or certificate for #{identifier}." unless valid
-    unless Array(entitlements["com.apple.security.application-groups"]).include?(APP_GROUP)
+    unless watch || Array(entitlements["com.apple.security.application-groups"]).include?(APP_GROUP)
       raise Error, "Assign #{APP_GROUP} to #{identifier} in Apple Developer, then regenerate its profile."
     end
     if identifier == TARGETS.fetch("Mumla")

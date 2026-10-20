@@ -745,7 +745,6 @@
 				};
 			};
 			buildConfigurationList = 1D6437E8F0C4AB2CC9962038 /* Build configuration list for PBXProject "Mumla" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -760,6 +759,7 @@
 				8B932B82DC184EEFAE8445ED /* XCLocalSwiftPackageReference "." */,
 			);
 			preferredProjectObjectVersion = 77;
+			productRefGroup = 6519C290311E8BDCCE3A84D3 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -1131,7 +1131,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "Apps/macOS/Mumla/Info-Direct.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1173,7 +1173,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "Apps/macOS/Mumla/Info-Direct.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1281,7 +1281,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 34;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1384,7 +1384,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 34;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1573,7 +1573,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 34;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PF2PWR4YG4;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1644,7 +1644,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "Apps/macOS/Mumla/Info-Direct.plist";
 				LD_RUNPATH_SEARCH_PATHS = (

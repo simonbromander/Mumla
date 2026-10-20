@@ -69,7 +69,7 @@ class IOSBuildSettingsTest < Minitest::Test
   def test_release_does_not_override_every_targets_bundle_identity
     refute @settings.any? { |setting| setting.start_with?("PRODUCT_BUNDLE_IDENTIFIER=") }
     project = YAML.safe_load(File.read(File.expand_path("../../project.yml", __dir__)))
-    expected = { "Mumla" => "com.mumla.app", "MumlaKeyboard" => "com.mumla.app.keyboard", "MumlaWidgets" => "com.mumla.app.widgets" }
+    expected = { "Mumla" => "com.mumla.app", "MumlaKeyboard" => "com.mumla.app.keyboard", "MumlaWidgets" => "com.mumla.app.widgets", "MumlaWatch" => "com.mumla.app.watchkitapp" }
     expected.each do |target, identifier|
       assert_equal identifier, project.dig("targets", target, "settings", "base", "PRODUCT_BUNDLE_IDENTIFIER")
     end
@@ -106,7 +106,7 @@ class IOSBuildSettingsTest < Minitest::Test
         end
       end
     end
-    requests = @actions.profile_requests.last(3)
+    requests = @actions.profile_requests.last(MumlaIOSSigning::TARGETS.length)
     assert_equal ["com.mumla.app.keyboard"], requests.select { |request| request.fetch(:force) }.map { |request| request.fetch(:app_identifier) }
   end
 end
