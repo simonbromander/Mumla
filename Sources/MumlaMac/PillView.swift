@@ -4,11 +4,11 @@ import SwiftUI
 
 struct PillView: View {
     @ObservedObject var coordinator: AppCoordinator
-    static let width: CGFloat = 480
+    static let width: CGFloat = 380
     static let cornerRadius: CGFloat = 14
     static func height(for state: PillState) -> CGFloat {
-        if case .transcript = state { return 248 }
-        return 124
+        if case .transcript = state { return 208 }
+        return 92
     }
 
     var body: some View {
@@ -19,9 +19,9 @@ struct PillView: View {
                 recorder
             }
         }
-        .padding(12)
+        .padding(8)
         .frame(width: Self.width, height: Self.height(for: coordinator.pillState))
-        .mumlaSurface(radius: Self.cornerRadius)
+        .mumlaSurface(radius: Self.cornerRadius, opacity: 0.88)
         .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
         .mumlaAppearance()
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
@@ -29,8 +29,8 @@ struct PillView: View {
     }
 
     private var recorder: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 12) {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 7) {
                     MumlaRecordingLight(recording: recording)
                     Text(title).font(.system(size: 12, weight: .semibold, design: .monospaced)).lineLimit(2)
@@ -42,7 +42,7 @@ struct PillView: View {
                 }
                 if recording {
                     MumlaWaveform(samples: coordinator.waveformSamples, active: true, ink: MumlaStyle.lcdInk)
-                        .frame(height: 26)
+                        .frame(height: 18)
                 } else if case let .preparing(progress) = coordinator.pillState {
                     MumlaDownloadGauge(fraction: progress)
                 } else {
@@ -51,12 +51,14 @@ struct PillView: View {
                 }
             }
             .foregroundStyle(MumlaStyle.lcdInk)
-            .padding(14).frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(RoundedRectangle(cornerRadius: 7).fill(
                 LinearGradient(colors: [MumlaStyle.lcd, MumlaStyle.lcdEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
                     .shadow(.inner(color: .black.opacity(0.45), radius: 4, y: 2))
             ))
-            VStack(spacing: 8) {
+            .mumlaDisplayLens()
+            HStack(spacing: 6) {
                 if recording {
                     MumlaIconButton("stop.fill", label: mText("Stoppa", "Stop")) { Task { await coordinator.finishDictation() } }
                     MumlaIconButton("xmark", label: mText("Avbryt", "Cancel")) { coordinator.cancelDictation() }
@@ -68,7 +70,7 @@ struct PillView: View {
     }
 
     private func transcript(_ record: DictationRecord, copied: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 Label(mText("Texten är klar", "Transcript ready"), systemImage: "text.alignleft")
                     .font(.system(size: 12, weight: .medium, design: .monospaced)).foregroundStyle(MumlaStyle.accent)

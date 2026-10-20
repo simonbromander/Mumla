@@ -135,11 +135,11 @@ struct TranscriptSheet: View {
         #if DEBUG
         if CommandLine.arguments.contains("--ui-testing") {
             if CommandLine.arguments.contains("--formatting-success-fixture") {
-                return LocalTranscriptFormatter(availability: { _ in .available }, generate: { _, _, _ in
+                return LocalTranscriptFormatter(availability: { _ in .available }, generate: { _ in
                     "Hej Simon. Vi ses klockan 14:30."
                 })
             }
-            return LocalTranscriptFormatter(availability: { _ in .intelligenceDisabled }, generate: { text, _, _ in text })
+            return LocalTranscriptFormatter(availability: { _ in .intelligenceDisabled }, generate: { request in request.text })
         }
         #endif
         return .apple
@@ -149,9 +149,9 @@ struct TranscriptSheet: View {
         #if DEBUG
         if CommandLine.arguments.contains("--ui-testing") {
             if CommandLine.arguments.contains("--summary-success-fixture") {
-                return LocalTranscriptSummarizer(availability: { _ in .available }, generate: { _, _, _ in "Vi ses klockan 14:30." })
+                return LocalTranscriptSummarizer(availability: { _ in .available }, generate: { _ in "Vi ses klockan 14:30." })
             }
-            return LocalTranscriptSummarizer(availability: { _ in .intelligenceDisabled }, generate: { _, _, _ in "" })
+            return LocalTranscriptSummarizer(availability: { _ in .intelligenceDisabled }, generate: { _ in "" })
         }
         #endif
         return .apple

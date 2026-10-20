@@ -14,16 +14,11 @@ public enum AppleTextLanguageRecognizer {
         recognizer.processString(trimmed)
 
         let hypotheses = recognizer.languageHypotheses(withMaximum: maximumHypotheses)
-        let best = hypotheses
-            .compactMap { language, confidence -> LanguageDetectionResult? in
-                guard let mumlaLanguage = MumlaLanguage(naturalLanguage: language) else {
-                    return nil
-                }
-                return LanguageDetectionResult(language: mumlaLanguage, confidence: confidence)
-            }
-            .max { lhs, rhs in lhs.confidence < rhs.confidence }
-
-        return best
+        // Never promote a secondary supported language over the dominant language.
+        guard let dominant = recognizer.dominantLanguage,
+              let language = MumlaLanguage(naturalLanguage: dominant),
+              let confidence = hypotheses[dominant] else { return nil }
+        return LanguageDetectionResult(language: language, confidence: confidence)
     }
 }
 

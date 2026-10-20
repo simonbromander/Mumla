@@ -14,5 +14,18 @@ final class AppleTextLanguageRecognizerTests: XCTestCase {
 
         XCTAssertEqual(result?.language, .english)
     }
+
+    func testUnsupportedDominantLanguageDoesNotBecomeEnglishOrSwedish() {
+        for text in [
+            "Ceci est une phrase française avec des mots clairement français et une conversation très intéressante.",
+            "Dies ist ein deutscher Satz mit eindeutig deutschen Wörtern und einem ausführlichen Gespräch."
+        ] {
+            XCTAssertNil(AppleTextLanguageRecognizer.detect(text))
+        }
+    }
+
+    func testEmptyTextHasNoLanguage() {
+        XCTAssertNil(AppleTextLanguageRecognizer.detect(" \n"))
+    }
 }
 #endif

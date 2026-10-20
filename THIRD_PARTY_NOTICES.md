@@ -26,6 +26,24 @@ Model weights are not included in the Git repository. Retain attribution, source
 links, license links, and notices of modifications when redistributing models.
 Upstream evaluation numbers do not establish Mumla's product accuracy.
 
+## Local Text Model
+
+On Apple Silicon Macs, Qwen3.5 4B runs locally through MLX after an explicit model
+download. The [Qwen Team's model](https://huggingface.co/Qwen/Qwen3.5-4B) and
+[MLX Community 4-bit conversion](https://huggingface.co/mlx-community/Qwen3.5-4B-MLX-4bit)
+use Apache 2.0. The conversion quantizes weights; Mumla does not retrain them.
+The model revision, byte counts, and SHA-256 hashes are pinned in
+`Sources/MumlaFormatting/QwenModelArtifact.swift`. Model weights are not committed.
+
+[MLX Swift](https://github.com/ml-explore/mlx-swift),
+[MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm), and their embedded MLX
+runtime use MIT licenses, with additional upstream notices. Tokenization uses
+[Swift Transformers](https://github.com/huggingface/swift-transformers), Apache 2.0.
+Full model, runtime, and transitive dependency notices are retained in
+[Qwen runtime notices](Sources/MumlaUI/Resources/Qwen-runtime-notices.txt) and
+the Mac app's About > Licenses surface. iOS continues to use Apple's local
+system model, supplied separately by the operating system on eligible devices.
+
 ## Runtime And Mac Updates
 
 - [FluidAudio](https://github.com/FluidInference/FluidAudio), by Fluid Inference:

@@ -32,6 +32,9 @@ public struct TranscriptFormattingView: View {
     @State private var showOriginal = false
     @State private var saveFailed = false
     @State private var attempt = 0
+    @State private var precedingText = ""
+    @State private var generatedContext = ""
+    @State private var contextExpanded = false
 
     public init(record: DictationRecord, action: TranscriptTextAction = .format, formatter: LocalTranscriptFormatter = .apple,
                 summarizer: LocalTranscriptSummarizer = .apple,
@@ -48,6 +51,9 @@ public struct TranscriptFormattingView: View {
             MumlaPanelHeader(action == .format ? mText("Formatera text", "Format text") : mText("Sammanfattning", "Summary"), closeLabel: mText("Avbryt", "Cancel"), closeIdentifier: "format.close") { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    if action == .format {
+                        conversationContext
+                    }
                     let modeLayout = typeSize.isAccessibilitySize
                         ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
                     modeLayout {
@@ -94,18 +100,55 @@ public struct TranscriptFormattingView: View {
         .task(id: Request(attempt: attempt, phase: scenePhase)) {
             result = nil
             saveFailed = false
+            let context = LocalTextPreferences.boundedContext(precedingText)
             let response: FormattingResult
             if action == .format {
-                response = await formatter.format(record.text, language: record.language, foreground: scenePhase == .active, stylePrompt: formattingPrompt)
+                response = await formatter.format(record.text, language: record.language, foreground: scenePhase == .active,
+                                                  stylePrompt: formattingPrompt, precedingText: context)
             } else {
-                response = await summarizer.summarize(record.text, language: record.language, foreground: scenePhase == .active, stylePrompt: summaryPrompt)
+                response = await summarizer.summarize(record.text, language: record.language, foreground: scenePhase == .active,
+                                                      stylePrompt: summaryPrompt)
             }
             guard !Task.isCancelled else { return }
+            generatedContext = context
             result = response
         }
         #if os(macOS)
         .frame(width: 580, height: 540)
         #endif
+    }
+
+    private var conversationContext: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button { contextExpanded.toggle() } label: {
+                HStack {
+                    Text(mText("Kontext (valfritt)", "Context (optional)"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: contextExpanded ? "chevron.down" : "chevron.right")
+                }.frame(minHeight: 44).contentShape(Rectangle())
+            }.buttonStyle(.plain).accessibilityIdentifier("format.context-section")
+                .font(.system(.caption, design: .monospaced))
+                .accessibilityValue(contextExpanded ? mText("Utökat", "Expanded") : mText("Minimerat", "Collapsed"))
+            if contextExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(mText("Lägg till relevanta meddelanden, högst 600 tecken. Kontexten används bara i denna förhandsvisning.",
+                               "Add relevant messages, up to 600 characters. The context stays in this preview."))
+                        .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    TextEditor(text: $precedingText).scrollContentBackground(.hidden)
+                        .frame(minHeight: 80).padding(12).mumlaRecess(radius: 8)
+                        .accessibilityLabel(mText("Föregående samtal", "Preceding conversation"))
+                        .accessibilityIdentifier("format.context")
+                        .onChange(of: precedingText) { _, value in
+                            if value.count > LocalTextPreferences.maximumContextCharacters {
+                                precedingText = String(value.prefix(LocalTextPreferences.maximumContextCharacters))
+                            }
+                        }
+                    Button(mText("Uppdatera förslag", "Update preview")) { attempt += 1 }
+                        .buttonStyle(MumlaKeyStyle()).disabled(result == nil || scenePhase != .active)
+                        .accessibilityIdentifier("format.update-context")
+                }
+            }
+        }
     }
 
     private struct Request: Hashable {
@@ -114,7 +157,8 @@ public struct TranscriptFormattingView: View {
     }
 
     private var canApply: Bool {
-        result?.status == (action == .format ? .formatted : .summarized)
+        generatedContext == LocalTextPreferences.boundedContext(precedingText)
+            && result?.status == (action == .format ? .formatted : .summarized)
     }
 
     private var preview: String {
@@ -134,6 +178,9 @@ public struct TranscriptFormattingView: View {
     private var status: String {
         if saveFailed { return mText("Kunde inte spara. Originalet är kvar.", "Couldn't save. Keeping the original.") }
         guard let result else { return action == .format ? mText("Formaterar…", "Formatting…") : mText("Sammanfattar…", "Summarizing…") }
+        if generatedContext != LocalTextPreferences.boundedContext(precedingText) {
+            return mText("Uppdatera förslaget för att använda ändrad kontext", "Update the preview to use the changed context")
+        }
         switch result.status {
         case .formatted: return mText("Förslag klart", "Preview ready")
         case .summarized: return mText("Kontrollera förslaget före användning", "Review the suggestion before using it")
@@ -148,10 +195,11 @@ public struct TranscriptFormattingView: View {
             switch reason {
             case .available: return ""
             case .systemTooOld: return mText("Kräver iOS 26 eller macOS 26", "Requires iOS 26 or macOS 26")
-            case .deviceNotEligible: return mText("Apple Intelligence stöds inte på enheten", "This device doesn't support Apple Intelligence")
+            case .deviceNotEligible: return mText("Enheten kan inte köra denna textmodell", "This device cannot run this text model")
             case .intelligenceDisabled: return mText("Apple Intelligence är avstängt", "Apple Intelligence is turned off")
             case .modelNotReady: return mText("Apple Intelligence är inte redo", "Apple Intelligence isn't ready")
             case .unsupportedLanguage: return mText("Språket stöds inte på enheten", "This language isn't supported on this device")
+            case .modelNotInstalled: return mText("Hämta textmodellen i Inställningar", "Download the text model in Settings")
             }
         }
     }
