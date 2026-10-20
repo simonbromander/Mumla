@@ -122,11 +122,12 @@ public struct TranscriptFormattingView: View {
         VStack(alignment: .leading, spacing: 12) {
             Button { contextExpanded.toggle() } label: {
                 HStack {
-                    Text(mText("Föregående samtal (valfritt)", "Preceding conversation (optional)"))
+                    Text(mText("Kontext (valfritt)", "Context (optional)"))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Image(systemName: contextExpanded ? "chevron.down" : "chevron.right")
                 }.frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("format.context-section")
+                .font(.system(.caption, design: .monospaced))
                 .accessibilityValue(contextExpanded ? mText("Utökat", "Expanded") : mText("Minimerat", "Collapsed"))
             if contextExpanded {
                 VStack(alignment: .leading, spacing: 12) {
