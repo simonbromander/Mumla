@@ -8,7 +8,7 @@ module MumlaIOSSigning
     "Mumla" => "com.mumla.app",
     "MumlaKeyboard" => "com.mumla.app.keyboard",
     "MumlaWidgets" => "com.mumla.app.widgets",
-    "MumlaWatch" => "com.mumla.app.watchkitapp"
+    "MumlaWatch" => "com.mumla.app.watch"
   }.freeze
   APP_GROUP = "group.com.mumla.app"
 

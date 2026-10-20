@@ -56,8 +56,22 @@ final class MumlaUITests: XCTestCase {
         context.tap()
         context.typeText("When is the meeting?")
         XCTAssertFalse(apply.isEnabled)
-        app.buttons["format.update-context"].tap()
-        XCTAssertTrue(apply.isEnabled)
+        let scroll = app.scrollViews.firstMatch
+        let update = app.buttons["format.update-context"]
+        // Scroll inside the visible area, not the content inset hidden by the keyboard/footer.
+        let visibleBottom = apply.frame.minY - 24
+        let visibleHeight = visibleBottom - scroll.frame.minY
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        for _ in 0..<3 where update.frame.maxY > visibleBottom {
+            origin.withOffset(CGVector(dx: scroll.frame.maxX - 2, dy: scroll.frame.minY + visibleHeight * 0.85))
+                .press(forDuration: 0.05, thenDragTo: origin.withOffset(
+                    CGVector(dx: scroll.frame.maxX - 2, dy: scroll.frame.minY + visibleHeight * 0.15)))
+        }
+        XCTAssertLessThanOrEqual(update.frame.maxY, visibleBottom)
+        update.tap()
+        let refreshed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: apply)
+        XCTAssertEqual(XCTWaiter.wait(for: [refreshed], timeout: 5), .completed)
+        capture("66-context-refreshed-preview", app: app)
         app.buttons["format.close"].tap()
         app.buttons["transcript.format"].tap()
         XCTAssertTrue(app.buttons["format.context-section"].waitForExistence(timeout: 5))
