@@ -172,6 +172,9 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         let section = sectionIndex.flatMap { CommandLine.arguments.indices.contains($0 + 1) ? CommandLine.arguments[$0 + 1] : nil } ?? "dictate"
         let isPill = section.hasPrefix("pill-")
         if section == "pill-recording" { snapshotCoordinator.prepareRecordingSnapshot() }
+        if section == "pill-preparing" { snapshotCoordinator.pillState = .preparing(progress: 0.45) }
+        if section == "pill-transcribing" { snapshotCoordinator.pillState = .transcribing }
+        if section == "pill-message" { snapshotCoordinator.pillState = .message("Microphone permission needed") }
         if section == "pill-transcript" {
             snapshotCoordinator.pillState = .transcript(DictationRecord(
                 text: "Vi ses klockan nio. Jag tar med anteckningarna från mötet så att vi kan gå igenom nästa steg tillsammans.", language: .swedish

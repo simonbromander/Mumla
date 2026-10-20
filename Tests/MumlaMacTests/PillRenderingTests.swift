@@ -25,13 +25,17 @@ final class PillRenderingTests: XCTestCase {
         XCTAssertEqual(view.layer?.cornerCurve, .continuous)
     }
 
-    func testRecordingAndTranscriptCornersDoNotRenderSquareBottomEdges() throws {
+    func testDialogStatesKeepRoundedCornersAndReadableContents() throws {
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let coordinator = makeCoordinator(directory: directory)
         let states: [PillState] = [
+            .preparing(progress: 0.45),
             .listening(elapsedSeconds: 17),
+            .handsFree(elapsedSeconds: 87),
+            .transcribing,
+            .message("Microphone permission needed"),
             .transcript(DictationRecord(text: "Funkar det här nu då?", language: .swedish), copied: false),
             .transcript(DictationRecord(text: String(repeating: "En längre anteckning. ", count: 100), language: .swedish), copied: true)
         ]
@@ -55,6 +59,13 @@ final class PillRenderingTests: XCTestCase {
                 }
             }
             XCTAssertGreaterThan(try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)).alphaComponent, 0.98)
+            if !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency && !NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast {
+                // Sample the chassis above the opaque display/text well, away from its border.
+                let scale = CGFloat(bitmap.pixelsHigh) / size.height
+                let chassis = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: Int(4 * scale)))
+                XCTAssertGreaterThan(chassis.alphaComponent, 0.75)
+                XCTAssertLessThan(chassis.alphaComponent, 0.96)
+            }
             XCTAssertEqual(view.bounds.size, size)
         }
     }

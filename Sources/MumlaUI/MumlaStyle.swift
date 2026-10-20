@@ -93,7 +93,9 @@ private struct WindowGlass: NSViewRepresentable {
 #endif
 
 public extension View {
-    func mumlaSurface(radius: CGFloat = 12) -> some View { modifier(MachinedSurface(radius: radius, inset: false)) }
+    func mumlaSurface(radius: CGFloat = 12, opacity: Double = 1) -> some View {
+        modifier(MachinedSurface(radius: radius, inset: false, opacity: opacity))
+    }
     func mumlaRecess(radius: CGFloat = 10) -> some View { modifier(MachinedSurface(radius: radius, inset: true)) }
     func mumlaDisplayLens(radius: CGFloat = 7) -> some View { modifier(DisplayLens(radius: radius)) }
 }
@@ -104,23 +106,26 @@ private struct MachinedSurface: ViewModifier {
     @Environment(\.colorSchemeContrast) private var contrast
     var radius: CGFloat
     var inset: Bool
+    var opacity: Double = 1
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
             .background {
-                if inset || reduceTransparency || contrast == .increased {
-                    shape.fill(LinearGradient(
-                        colors: inset ? [MumlaStyle.recessTop, MumlaStyle.recessBottom] : [MumlaStyle.surfaceTop, MumlaStyle.surfaceBottom],
-                        startPoint: .top, endPoint: .bottom
-                    ).shadow(.inner(color: .black.opacity(inset ? (scheme == .light ? 0.18 : 0.8) : 0.1), radius: inset ? 3 : 1, y: 2)))
-                } else {
-                    shape.fill(.regularMaterial)
-                        .overlay {
-                            shape.fill(LinearGradient(colors: [MumlaStyle.surfaceTop.opacity(scheme == .light ? 0.58 : 0.34),
-                                                               MumlaStyle.surfaceBottom.opacity(scheme == .light ? 0.42 : 0.48)],
-                                                      startPoint: .topLeading, endPoint: .bottomTrailing))
-                        }
-                }
+                Group {
+                    if inset || reduceTransparency || contrast == .increased {
+                        shape.fill(LinearGradient(
+                            colors: inset ? [MumlaStyle.recessTop, MumlaStyle.recessBottom] : [MumlaStyle.surfaceTop, MumlaStyle.surfaceBottom],
+                            startPoint: .top, endPoint: .bottom
+                        ).shadow(.inner(color: .black.opacity(inset ? (scheme == .light ? 0.18 : 0.8) : 0.1), radius: inset ? 3 : 1, y: 2)))
+                    } else {
+                        shape.fill(.regularMaterial)
+                            .overlay {
+                                shape.fill(LinearGradient(colors: [MumlaStyle.surfaceTop.opacity(scheme == .light ? 0.58 : 0.34),
+                                                                   MumlaStyle.surfaceBottom.opacity(scheme == .light ? 0.42 : 0.48)],
+                                                          startPoint: .topLeading, endPoint: .bottomTrailing))
+                            }
+                    }
+                }.opacity(reduceTransparency || contrast == .increased ? 1 : opacity)
             }
             .overlay {
                 shape.strokeBorder(LinearGradient(
