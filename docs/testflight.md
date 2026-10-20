@@ -9,6 +9,65 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
   replacing this legacy companion identifier, even when earlier rebuilt iOS
   packages omitted the Watch app.
 
+## Verified iOS Release 34: 2026-10-20
+
+- iOS `1.0.1 (34)`, app source
+  `de4ba094ed819216eccf2c07d7d32c78d78d9b67`. Includes compact glass controls,
+  optional context for formatting previews and the Voice Notes inbox, with
+  the new Watch-local recorder/transcriber companion. iOS text generation
+  still uses Apple's eligible on-device system model; Qwen is Mac-only.
+- The Watch explicitly downloads a pinned 150 MB Whisper base model and
+  records up to 60 seconds in Swedish or English, transcribing locally before
+  queueing audio/text for the paired iPhone. Watch recordings, transfer state
+  and the iPhone inbox are separate from existing dictation history.
+- The initial upload was rejected because the new Watch target used
+  `com.mumla.app.watchkitapp`. Restored the preserved `com.mumla.app.watch`,
+  matched its distribution profile and rebuilt before the accepted upload.
+  The rejected candidate is not the released IPA. Phone, keyboard, widget,
+  team, iCloud and App Group identities remain unchanged.
+- 242 shared/Mac tests completed with zero failures and four opt-in model
+  tests skipped; all 35 release-helper tests passed, with 84 assertions.
+  Release Simulator preflight and the final signed archive/export passed.
+- The initial phone run passed 20 hosted tests and 31 of 32 UI cases. The
+  context case tapped a control covered by the software keyboard. Corrected
+  only the test's visible-viewport scroll and async completion checks; the
+  final context case passed on phone and iPad. All phone cases are covered
+  across those runs, not a fresh zero-failure full-suite rerun.
+- The iPad run passed all 20 hosted and ten focused UI cases, including
+  portrait/landscape recorder and keyboard layouts, Voice Notes, summaries,
+  appearance and preferences. The additional context case passed separately.
+  Final Watch tests completed three cases with zero failures and one optional
+  live-model test skipped. Selected phone/iPad screenshots were inspected.
+- Final archive and IPA signatures, profiles, certificates, version/build and
+  dSYM UUIDs verified for all four bundles. All have `get-task-allow=false`.
+  Phone/keyboard/widget retain their App Group; the Watch uses WatchConnectivity
+  rather than that App Group. Exported phone iCloud is Production. Neither
+  keyboard nor widget links speech capture or model runtimes; MLX/Sparkle are
+  absent from iOS/Watch. Watch manifest and license resources were verified.
+- App Store Connect accepted upload at `2026-10-20T18:14:24Z`. Processing
+  completed at `2026-10-20T18:26:12Z`. Build
+  `3435cf9a-6a76-4a41-bf14-8b2315990ecf` was independently verified `VALID`
+  and `IN_BETA_TESTING` at `2026-10-20T18:26:55Z`. Both existing Test and
+  Friends groups include it. No audience changes, external review or public
+  App Store submission were made.
+- Swedish/English testing notes from `fastlane/testflight/ios-1.0.1-34.json`
+  were published and read back at `2026-10-20T18:21:18Z`.
+- Final IPA SHA-256:
+  `a572473831e7833e55e22836d55b5894035c2e7897ae3bcbfadd0ed8cc3bef42`.
+  Preserved IPA/dSYM/audits: `.build/ReleaseAuditIOS34-20261020/`. Evidence:
+  `.build/ios34-build-final.log`, `.build/ios34-upload-final.log`,
+  `.build/ios34-availability-verified.log`, `.build/ios34-phone.xcresult`,
+  `.build/ios34-ipad.xcresult`, `.build/ios34-context-verified.xcresult`,
+  `.build/ios34-ipad-context-verified.xcresult` and
+  `.build/ios34-watch-final.xcresult`.
+- No physical device was connected. Watch microphone capture, interruptions,
+  actual paired WatchConnectivity delivery, performance, memory and battery
+  limits remain unverified. Phone keyboard background audio, first-word
+  capture and haptics also require device acceptance. Phone/Mac dictation
+  remains Swedish-only; English speech recognition is specific to the Watch
+  beta. Meetings and iCloud sync remain unimplemented. Mac direct build 41 is
+  a separate notarized beta, not a sandboxed Mac TestFlight release.
+
 ## Verified iOS Release 33: 2026-10-14
 
 - iOS `1.0.1 (33)`, app source
