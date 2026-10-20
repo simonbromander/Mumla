@@ -3,6 +3,32 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testContextChangesRequireNewPreviewAndAreDiscardedOnClose() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-formatting", "--formatting-success-fixture", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+        app.buttons["transcript.format"].tap()
+        let apply = app.buttons["format.apply"]
+        XCTAssertTrue(apply.waitForExistence(timeout: 5))
+        XCTAssertTrue(apply.isEnabled)
+        app.buttons["format.context-section"].tap()
+        let context = app.textViews["format.context"]
+        XCTAssertTrue(context.waitForExistence(timeout: 5))
+        context.tap()
+        context.typeText("When is the meeting?")
+        XCTAssertFalse(apply.isEnabled)
+        app.buttons["format.update-context"].tap()
+        XCTAssertTrue(apply.isEnabled)
+        app.buttons["format.close"].tap()
+        app.buttons["transcript.format"].tap()
+        XCTAssertTrue(app.buttons["format.context-section"].waitForExistence(timeout: 5))
+        app.buttons["format.context-section"].tap()
+        XCTAssertTrue(context.waitForExistence(timeout: 5))
+        XCTAssertEqual(context.value as? String, "")
+    }
+
     func testSummaryPreviewSavesSeparatelyWithoutReplacingTranscript() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-formatting", "--summary-success-fixture", "-AppleLanguages", "(sv)"]
@@ -11,6 +37,7 @@ final class MumlaUITests: XCTestCase {
         app.buttons["showLatestTranscript"].tap()
         app.buttons["transcript.summarize"].tap()
         XCTAssertTrue(app.staticTexts["format.preview"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["format.context-section"].exists)
         XCTAssertEqual(app.staticTexts["format.preview"].label, "Vi ses klockan 14:30.")
         app.buttons["format.original"].tap()
         XCTAssertEqual(app.staticTexts["format.preview"].label, "hej Simon vi ses klockan 14:30")
@@ -40,7 +67,14 @@ final class MumlaUITests: XCTestCase {
         let editor = app.textViews["text-preferences.formatting"]
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
         app.buttons["text-preferences.reset"].tap()
-        editor.tap(); editor.typeText("Short paragraphs")
+        editor.tap()
+        editor.press(forDuration: 1.2)
+        if app.menuItems["Select All"].waitForExistence(timeout: 2) {
+            app.menuItems["Select All"].tap()
+        } else {
+            editor.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (editor.value as? String)?.count ?? 0))
+        }
+        editor.typeText("Short paragraphs")
         app.buttons["text-preferences.save"].tap()
         preferences.tap()
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
@@ -55,7 +89,7 @@ final class MumlaUITests: XCTestCase {
         app.buttons["text-preferences.save"].tap()
         preferences.tap()
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
-        XCTAssertEqual(editor.value as? String, "")
+        XCTAssertEqual(editor.value as? String, "Use sentence punctuation and short paragraphs. Preserve every word and the original language.")
     }
 
     func testFormattingUnavailableKeepsTranscriptAndDoesNotOfferApply() {

@@ -24,8 +24,8 @@ public struct LocalTextPreferencesView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HStack(spacing: 12) {
                 MumlaIconButton("arrow.counterclockwise", label: mText("Återställ standard", "Reset to default")) {
-                    formatting = ""
-                    summary = ""
+                    formatting = LocalTextPreferences.defaultFormattingPrompt
+                    summary = LocalTextPreferences.defaultSummaryPrompt
                 }.accessibilityIdentifier("text-preferences.reset")
                 Spacer()
                 MumlaIconButton("checkmark", label: mText("Spara", "Save")) {
@@ -39,8 +39,8 @@ public struct LocalTextPreferencesView: View {
         .presentationBackground(MumlaStyle.background)
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .onAppear {
-            formatting = LocalTextPreferences.boundedPrompt(savedFormatting)
-            summary = LocalTextPreferences.boundedPrompt(savedSummary)
+            formatting = LocalTextPreferences.effectivePrompt(savedFormatting, default: LocalTextPreferences.defaultFormattingPrompt)
+            summary = LocalTextPreferences.effectivePrompt(savedSummary, default: LocalTextPreferences.defaultSummaryPrompt)
         }
         #if os(macOS)
         .frame(width: 580, height: 540)
