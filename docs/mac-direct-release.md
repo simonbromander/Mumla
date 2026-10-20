@@ -1,5 +1,43 @@
 # Full-Capability Mac Distribution
 
+## Local Qwen And Compact Controls Beta: 2026-10-20
+
+- Universal direct `1.0.1 (41)` is published as a prerelease in Mumla and
+  Mumla-Releases, from `5d420373424ec2e53974e9e91fc4853057011423`.
+- Includes optional Qwen3.5 4B formatting/summaries through MLX on Apple silicon,
+  context-guided formatting previews, compact glass controls and the pinned
+  microphone Bluetooth fix from @ehsanYazdani's PR #6. The optional 3.1 GB text
+  model is downloaded separately; it is not bundled. Intel dictation remains
+  supported, without Qwen generation. Review generated suggestions before use.
+- 242 shared/Mac tests completed with zero failures and four opt-in model
+  tests skipped; 35 release-helper tests passed with 84 assertions. Contributor
+  CI passed for this release source, including full-history secret scanning,
+  package/helper tests and native builds. These are not model-quality gates.
+- arm64/x86_64, Developer ID signature, hardened runtime, matching dSYMs,
+  microphone-only entitlements, pinned updater metadata, MLX Metal library and
+  bundled runtime licenses verified. No sandbox/debug entitlement or model
+  weights were added to the download.
+- Apple notarization `e20563a3-51b9-4b70-b7b7-53e01dd500bd` was Accepted.
+  The stapled app passed Gatekeeper and ZIP integrity checks. A fresh anonymous
+  download passed signature, ticket, Gatekeeper and checksum verification.
+- ZIP: 37,081,738 bytes. SHA-256:
+  `ac586fa485d18fe84a7f1fa49a6793605871e79ffe3e74f4c3ba9777e7cc8ed8`.
+  Both official repositories contain the ZIP and checksum. A timed-out upload
+  was recovered through a temporary asset name, then renamed before updating
+  the feed. No feed URL or enclosure-host policy was changed.
+- Feed commit `a4642fa`. The live feed is byte-identical to the signed staging
+  file; anonymous downloads and Ed25519 signatures for 41, 40 and 39 passed
+  before and after publication. Live installation/relaunch, actual Bluetooth
+  routing, cross-app paste and Swedish/Qwen quality remain acceptance checks.
+- Evidence: `.build/direct41-build-final.log`, `.build/direct41-notarize.log`,
+  `.build/DirectMac/build-audit-41.json`, `.build/direct41-public-audit.json`,
+  `.build/direct41-public-verify-final.json` and
+  `.build/direct41-live-public-verify.json`. No internal logs or signing
+  material were published.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-41).
+  iOS/Watch build 34 is a separate TestFlight upload; no sandboxed Mac
+  TestFlight upload was made by this direct release.
+
 ## Microphone And Reliability Beta: 2026-10-14
 
 - Universal direct `1.0.1 (40)` is published as a GitHub prerelease in Mumla

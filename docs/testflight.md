@@ -5,6 +5,9 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
 - Bundle ID: `com.mumla.app`
 - Team ID: `PF2PWR4YG4`
 - Version: `1.0.1`
+- Preserved Watch companion ID: `com.mumla.app.watch`. App Store Connect rejects
+  replacing this legacy companion identifier, even when earlier rebuilt iOS
+  packages omitted the Watch app.
 
 ## Verified iOS Release 33: 2026-10-14
 
