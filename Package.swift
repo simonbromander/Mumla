@@ -6,7 +6,8 @@ let package = Package(
     name: "Mumla",
     platforms: [
         .macOS(.v14),
-        .iOS(.v17)
+        .iOS(.v17),
+        .watchOS(.v10)
     ],
     products: [
         .library(name: "MumlaCore", targets: ["MumlaCore"]),

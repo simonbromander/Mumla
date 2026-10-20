@@ -66,3 +66,13 @@ jobs:
           xcodebuild -project Mumla.xcodeproj -scheme MumlaMacDirect -configuration Debug \
             -destination 'platform=macOS' -derivedDataPath .build/CI-Mac \
             CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= build
+      - name: Build Watch app for physical devices without signing
+        run: |
+          xcodebuild -project Mumla.xcodeproj -scheme MumlaWatch -configuration Release \
+            -destination 'generic/platform=watchOS' -derivedDataPath .build/CI-Watch \
+            CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= build
+      - name: Compile Watch tests without signing
+        run: |
+          xcodebuild -project Mumla.xcodeproj -scheme MumlaWatch -configuration Debug \
+            -destination 'generic/platform=watchOS Simulator' -derivedDataPath .build/CI-iOS \
+            CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= build-for-testing

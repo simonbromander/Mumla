@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MumlaHomeView: View {
     @ObservedObject var session: DictationSession
+    @ObservedObject var voiceNotes: VoiceNotes
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var keyboardLauncher = KeyboardSessionLauncher.shared
@@ -36,7 +37,11 @@ struct MumlaHomeView: View {
                 } else {
                     ScrollView {
                         Group {
-                            if tab == .history { history } else { dictionary }
+                            if tab == .history { history }
+                            else if tab == .voiceNotes {
+                                VoiceNotesSection(inbox: voiceNotes, playbackAllowed: session.state == .idle && !session.keyboardSnapshot.isAlive())
+                            }
+                            else { dictionary }
                         }.padding(.bottom, 16)
                     }.scrollIndicators(.hidden)
                 }
@@ -68,6 +73,7 @@ struct MumlaHomeView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .background && session.state == .recording { Task { await session.finish() } }
             if phase == .active {
+                voiceNotes.refresh()
                 session.refreshPendingAudio()
                 session.prepareKeyboardModel()
                 activateKeyboardIfRequested()
@@ -286,11 +292,12 @@ struct MumlaHomeView: View {
 }
 
 private enum HomeTab: String, CaseIterable, Identifiable {
-    case dictate, history, dictionary
+    case dictate, voiceNotes, history, dictionary
     var id: Self { self }
     var title: String {
         switch self {
         case .dictate: mText("Diktera", "Dictate")
+        case .voiceNotes: mText("Röstnoter", "Voice Notes")
         case .history: mText("Historik", "History")
         case .dictionary: mText("Ordlista", "Dictionary")
         }
@@ -298,6 +305,7 @@ private enum HomeTab: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .dictate: "waveform"
+        case .voiceNotes: "waveform.circle"
         case .history: "clock"
         case .dictionary: "text.book.closed"
         }

@@ -7,6 +7,14 @@ relevant components; a summary here is not a replacement for upstream terms.
 
 ## Speech Models
 
+The Watch companion uses [WhisperKit 1.1.1](https://github.com/argmaxinc/argmax-oss-swift/tree/v1.1.1)
+and the multilingual [OpenAI Whisper base model](https://huggingface.co/openai/whisper-base).
+The [Argmax CoreML conversion](https://huggingface.co/argmaxinc/whisperkit-coreml)
+and tokenizer downloads use pinned revisions and SHA-256 checksums in the Watch model manifest.
+The runtime and model use MIT licenses. Argmax's incorporated tokenizer code also carries Apache 2.0 notices.
+Full license texts ship in the Watch app's `Watch-Licenses.txt` resource.
+Mumla does not retrain these weights. Recordings and inference remain on the Watch until paired-device delivery.
+
 | Component | Attribution | License / Source |
 | --- | --- | --- |
 | Pianissimo-sv | Klang AI AB | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), [Model](https://huggingface.co/KlangAI/pianissimo-sv) |
