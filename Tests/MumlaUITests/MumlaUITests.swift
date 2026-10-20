@@ -3,6 +3,43 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testVoiceNotesEmptyState() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(en)"]
+        app.launch()
+        app.buttons["tab.voiceNotes"].tap()
+        XCTAssertTrue(app.staticTexts["voiceNotes.empty"].waitForExistence(timeout: 5))
+        capture("70-voice-notes-empty", app: app)
+    }
+
+    func testVoiceNotePlaybackCopyAndDelete() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-voice-notes", "-AppleLanguages", "(en)"]
+        app.launch()
+        app.buttons["tab.voiceNotes"].tap()
+        let note = app.buttons["voiceNotes.note"].firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(app.buttons["tab.voiceNotes"].frame.width, 44)
+        capture("71-voice-notes-inbox", app: app)
+        note.tap()
+        XCTAssertTrue(app.staticTexts["voiceNotes.transcript"].waitForExistence(timeout: 5))
+        app.buttons["voiceNotes.play"].tap()
+        XCTAssertTrue(app.buttons["Pause"].waitForExistence(timeout: 2))
+        app.buttons["voiceNotes.play"].tap()
+        XCTAssertTrue(app.buttons["voiceNotes.play"].label.contains("Play recording"))
+        app.buttons["voiceNotes.copy"].tap()
+        XCTAssertTrue(app.buttons["voiceNotes.copy"].label.contains("Copied"))
+        capture("72-voice-note-detail", app: app)
+        app.buttons["voiceNotes.delete"].tap()
+        app.buttons["Delete"].tap()
+        XCTAssertTrue(app.staticTexts["voiceNotes.empty"].waitForExistence(timeout: 5))
+        app.terminate()
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)"]
+        app.launch()
+        app.buttons["tab.voiceNotes"].tap()
+        XCTAssertTrue(app.staticTexts["voiceNotes.empty"].waitForExistence(timeout: 5))
+    }
+
     func testContextChangesRequireNewPreviewAndAreDiscardedOnClose() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-formatting", "--formatting-success-fixture", "-AppleLanguages", "(en)"]
