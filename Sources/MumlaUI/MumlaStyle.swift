@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 public func mText(_ swedish: String, _ english: String) -> String {
     Locale.preferredLanguages.first?.hasPrefix("sv") == true ? swedish : english
@@ -32,38 +35,121 @@ public enum MumlaStyle {
 }
 
 public struct MumlaBackdrop: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     public init() {}
     public var body: some View {
-        LinearGradient(colors: [MumlaStyle.backdropTop, MumlaStyle.background], startPoint: .topLeading, endPoint: .bottomTrailing)
-            .ignoresSafeArea().accessibilityHidden(true)
+        ZStack {
+            if reduceTransparency || contrast == .increased {
+                MumlaStyle.background
+            } else {
+                #if os(macOS)
+                WindowGlass()
+                #else
+                Rectangle().fill(.regularMaterial)
+                #endif
+                LinearGradient(colors: [MumlaStyle.backdropTop.opacity(scheme == .light ? 0.60 : 0.54),
+                                        MumlaStyle.background.opacity(0.80)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+        }.ignoresSafeArea().allowsHitTesting(false).accessibilityHidden(true)
     }
 }
+
+/// Frosted chrome for navigation, kept separate from the opaque reading wells.
+public struct MumlaGlassPanel: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    public init() {}
+    public var body: some View {
+        Group {
+            if reduceTransparency || contrast == .increased {
+                MumlaStyle.panel
+            } else {
+                Rectangle().fill(.regularMaterial)
+                    .overlay(MumlaStyle.panel.opacity(scheme == .light ? 0.40 : 0.34))
+                    .overlay {
+                        LinearGradient(colors: [.white.opacity(scheme == .light ? 0.22 : 0.05), .clear],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    }
+            }
+        }.allowsHitTesting(false).accessibilityHidden(true)
+    }
+}
+
+#if os(macOS)
+private struct WindowGlass: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .underWindowBackground
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+}
+#endif
 
 public extension View {
     func mumlaSurface(radius: CGFloat = 12) -> some View { modifier(MachinedSurface(radius: radius, inset: false)) }
     func mumlaRecess(radius: CGFloat = 10) -> some View { modifier(MachinedSurface(radius: radius, inset: true)) }
+    func mumlaDisplayLens(radius: CGFloat = 7) -> some View { modifier(DisplayLens(radius: radius)) }
 }
 
 private struct MachinedSurface: ViewModifier {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     var radius: CGFloat
     var inset: Bool
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
             .background {
-                shape.fill(LinearGradient(
-                    colors: inset ? [MumlaStyle.recessTop, MumlaStyle.recessBottom] : [MumlaStyle.surfaceTop, MumlaStyle.surfaceBottom],
-                    startPoint: .top, endPoint: .bottom
-                ).shadow(.inner(color: .black.opacity(inset ? (scheme == .light ? 0.18 : 0.8) : 0.1), radius: inset ? 3 : 1, y: 2)))
+                if inset || reduceTransparency || contrast == .increased {
+                    shape.fill(LinearGradient(
+                        colors: inset ? [MumlaStyle.recessTop, MumlaStyle.recessBottom] : [MumlaStyle.surfaceTop, MumlaStyle.surfaceBottom],
+                        startPoint: .top, endPoint: .bottom
+                    ).shadow(.inner(color: .black.opacity(inset ? (scheme == .light ? 0.18 : 0.8) : 0.1), radius: inset ? 3 : 1, y: 2)))
+                } else {
+                    shape.fill(.regularMaterial)
+                        .overlay {
+                            shape.fill(LinearGradient(colors: [MumlaStyle.surfaceTop.opacity(scheme == .light ? 0.58 : 0.34),
+                                                               MumlaStyle.surfaceBottom.opacity(scheme == .light ? 0.42 : 0.48)],
+                                                      startPoint: .topLeading, endPoint: .bottomTrailing))
+                        }
+                }
             }
             .overlay {
                 shape.strokeBorder(LinearGradient(
-                    colors: inset ? [.black.opacity(scheme == .light ? 0.25 : 0.85), .white.opacity(scheme == .light ? 0.8 : 0.12)] : [.white.opacity(scheme == .light ? 0.9 : 0.20), .black.opacity(scheme == .light ? 0.22 : 0.7)],
+                    colors: inset ? [.black.opacity(scheme == .light ? 0.25 : 0.85), .white.opacity(scheme == .light ? 0.8 : 0.12)] : [.white.opacity(scheme == .light ? 0.95 : 0.30), .white.opacity(scheme == .light ? 0.22 : 0.06), .black.opacity(scheme == .light ? 0.15 : 0.5)],
                     startPoint: .top, endPoint: .bottom
                 ), lineWidth: 1).allowsHitTesting(false)
             }
-            .shadow(color: .black.opacity(inset ? 0 : scheme == .light ? 0.09 : 0.22), radius: 4, y: 3)
+            .shadow(color: .black.opacity(inset ? 0 : scheme == .light ? 0.07 : 0.20), radius: 7, y: 4)
+    }
+}
+
+private struct DisplayLens: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    var radius: CGFloat
+    func body(content: Content) -> some View {
+        content.overlay {
+            if !reduceTransparency && contrast != .increased {
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(LinearGradient(colors: [.white.opacity(0.20), .white.opacity(0.02), .clear],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .strokeBorder(LinearGradient(colors: [.white.opacity(0.65), .white.opacity(0.05)],
+                                                         startPoint: .top, endPoint: .bottom), lineWidth: 1)
+                    }
+                    .allowsHitTesting(false).accessibilityHidden(true)
+            }
+        }
     }
 }
 
@@ -89,7 +175,7 @@ public struct MumlaKeyStyle: ButtonStyle {
             .overlay {
                 shape.strokeBorder(LinearGradient(colors: [.white.opacity(configuration.isPressed ? 0.05 : scheme == .light ? 0.6 : 0.20), .black.opacity(scheme == .light ? 0.3 : 0.95)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(configuration.isPressed ? 0.1 : scheme == .light ? 0.20 : 0.65), radius: configuration.isPressed ? 1 : 2, y: configuration.isPressed ? 0 : 3)
+            .shadow(color: .black.opacity(configuration.isPressed ? 0.1 : scheme == .light ? 0.14 : 0.45), radius: configuration.isPressed ? 1 : 3, y: configuration.isPressed ? 0 : 2)
             .offset(y: configuration.isPressed && !reduceMotion ? 2 : 0)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.10), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
@@ -184,6 +270,7 @@ public struct MumlaRecorderDisplay: View {
                 context.stroke(lines, with: .color(MumlaStyle.lcdInk.opacity(0.035)), lineWidth: 0.5)
             }.clipShape(RoundedRectangle(cornerRadius: 7)).allowsHitTesting(false).accessibilityHidden(true)
         }
+        .mumlaDisplayLens()
         .padding(7).mumlaRecess(radius: 12)
     }
 }

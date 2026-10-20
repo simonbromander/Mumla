@@ -56,6 +56,7 @@ struct PillView: View {
                 LinearGradient(colors: [MumlaStyle.lcd, MumlaStyle.lcdEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
                     .shadow(.inner(color: .black.opacity(0.45), radius: 4, y: 2))
             ))
+            .mumlaDisplayLens()
             VStack(spacing: 8) {
                 if recording {
                     MumlaIconButton("stop.fill", label: mText("Stoppa", "Stop")) { Task { await coordinator.finishDictation() } }

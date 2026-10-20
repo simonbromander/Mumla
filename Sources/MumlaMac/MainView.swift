@@ -157,7 +157,7 @@ struct MainView: View {
             }.padding(.horizontal, 10)
         }
         .padding(.horizontal, 16).padding(.top, 28).padding(.bottom, 20)
-        .background(MumlaStyle.panel)
+        .background { MumlaGlassPanel() }
         .overlay(alignment: .trailing) { Rectangle().fill(.primary.opacity(0.06)).frame(width: 1) }
     }
 

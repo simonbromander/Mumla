@@ -253,7 +253,7 @@ struct MumlaHomeView: View {
         }
         .padding(8).mumlaRecess(radius: 13).frame(maxWidth: 520)
         .padding(.horizontal, 20).padding(.top, 6).padding(.bottom, 6)
-        .background(MumlaStyle.background)
+        .background { MumlaGlassPanel() }
     }
 
     private func sectionHeading(_ title: String, count: Int) -> some View {
