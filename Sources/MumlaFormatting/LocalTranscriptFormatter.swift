@@ -5,7 +5,7 @@ import FoundationModels
 #endif
 
 public enum FormattingAvailability: Equatable, Sendable {
-    case available, systemTooOld, deviceNotEligible, intelligenceDisabled, modelNotReady, unsupportedLanguage
+    case available, systemTooOld, deviceNotEligible, intelligenceDisabled, modelNotReady, unsupportedLanguage, modelNotInstalled
 }
 
 public enum FormattingStatus: Equatable, Sendable {
@@ -55,7 +55,9 @@ public struct LocalTranscriptFormatter: Sendable {
                 return result(text, .unsafeOutput)
             }
             return result(formatted, formatted == text ? .unchanged : .formatted)
-        } catch is CancellationError { return result(text, .cancelled) }
+        } catch LocalTextGenerationError.inputTooLong { return result(text, .tooLong) }
+        catch LocalTextGenerationError.incompleteOutput { return result(text, .unsafeOutput) }
+        catch is CancellationError { return result(text, .cancelled) }
         catch { return result(text, Task.isCancelled ? .cancelled : .failed) }
     }
 

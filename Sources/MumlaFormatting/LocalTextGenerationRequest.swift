@@ -1,6 +1,10 @@
 import Foundation
 import MumlaCore
 
+public enum LocalTextGenerationError: Error {
+    case inputTooLong, incompleteOutput
+}
+
 public struct LocalTextGenerationRequest: Equatable, Sendable {
     public let text: String
     public let language: MumlaLanguage

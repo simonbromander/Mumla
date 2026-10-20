@@ -195,10 +195,11 @@ public struct TranscriptFormattingView: View {
             switch reason {
             case .available: return ""
             case .systemTooOld: return mText("Kräver iOS 26 eller macOS 26", "Requires iOS 26 or macOS 26")
-            case .deviceNotEligible: return mText("Apple Intelligence stöds inte på enheten", "This device doesn't support Apple Intelligence")
+            case .deviceNotEligible: return mText("Enheten kan inte köra denna textmodell", "This device cannot run this text model")
             case .intelligenceDisabled: return mText("Apple Intelligence är avstängt", "Apple Intelligence is turned off")
             case .modelNotReady: return mText("Apple Intelligence är inte redo", "Apple Intelligence isn't ready")
             case .unsupportedLanguage: return mText("Språket stöds inte på enheten", "This language isn't supported on this device")
+            case .modelNotInstalled: return mText("Hämta textmodellen i Inställningar", "Download the text model in Settings")
             }
         }
     }

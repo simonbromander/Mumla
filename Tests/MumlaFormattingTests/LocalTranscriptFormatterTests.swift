@@ -18,7 +18,7 @@ final class LocalTranscriptFormatterTests: XCTestCase, @unchecked Sendable {
     }
 
     func testUnavailableDoesNotInvokeModel() async {
-        for availability in [FormattingAvailability.systemTooOld, .deviceNotEligible, .intelligenceDisabled, .modelNotReady, .unsupportedLanguage] {
+        for availability in [FormattingAvailability.systemTooOld, .deviceNotEligible, .intelligenceDisabled, .modelNotReady, .unsupportedLanguage, .modelNotInstalled] {
             let formatter = LocalTranscriptFormatter(availability: { _ in availability }, generate: { _ in
                 XCTFail("Unavailable models must not run")
                 return "changed"

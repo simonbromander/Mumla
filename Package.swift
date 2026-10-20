@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
 
@@ -19,12 +19,21 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.17.3"),
-        .package(url: "https://github.com/sparkle-project/Sparkle.git", exact: "2.10.0")
+        .package(url: "https://github.com/sparkle-project/Sparkle.git", exact: "2.10.0"),
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", exact: "3.32.3", traits: []),
+        .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.32.3"),
+        .package(url: "https://github.com/huggingface/swift-transformers.git", exact: "1.3.0")
     ],
     targets: [
         .target(name: "MumlaCore"),
         .target(name: "MumlaUI", dependencies: ["MumlaCore"], resources: [.process("Resources")]),
-        .target(name: "MumlaFormatting", dependencies: ["MumlaCore", "MumlaUI"]),
+        .target(name: "MumlaFormatting", dependencies: [
+            "MumlaCore", "MumlaUI",
+            .product(name: "MLX", package: "mlx-swift", condition: .when(platforms: [.macOS])),
+            .product(name: "MLXLLM", package: "mlx-swift-lm", condition: .when(platforms: [.macOS])),
+            .product(name: "MLXLMCommon", package: "mlx-swift-lm", condition: .when(platforms: [.macOS])),
+            .product(name: "Tokenizers", package: "swift-transformers", condition: .when(platforms: [.macOS]))
+        ]),
         .target(
             name: "MumlaAudio",
             dependencies: [
@@ -55,7 +64,10 @@ let package = Package(
             ]
         ),
         .testTarget(name: "MumlaMacTests", dependencies: ["MumlaMac", "MumlaCore", "MumlaAudio", "MumlaUI"]),
-        .testTarget(name: "MumlaFormattingTests", dependencies: ["MumlaFormatting", "MumlaCore"]),
+        .testTarget(name: "MumlaFormattingTests", dependencies: [
+            "MumlaFormatting", "MumlaCore",
+            .product(name: "MLX", package: "mlx-swift", condition: .when(platforms: [.macOS]))
+        ]),
         .testTarget(
             name: "MumlaCoreTests",
             dependencies: ["MumlaCore"],

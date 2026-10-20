@@ -37,7 +37,9 @@ public struct LocalTranscriptSummarizer: Sendable {
             try Task.checkCancellation()
             guard LocalTextPreferences.acceptsSummary(output) else { return result("", .unsafeOutput) }
             return result(output, .summarized)
-        } catch is CancellationError { return result("", .cancelled) }
+        } catch LocalTextGenerationError.inputTooLong { return result("", .tooLong) }
+        catch LocalTextGenerationError.incompleteOutput { return result("", .unsafeOutput) }
+        catch is CancellationError { return result("", .cancelled) }
         catch { return result("", Task.isCancelled ? .cancelled : .failed) }
     }
 

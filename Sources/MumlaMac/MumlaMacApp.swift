@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import MumlaAudio
 import MumlaCore
+import MumlaFormatting
 import MumlaUI
 import SwiftUI
 
@@ -50,7 +51,9 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             historyStore: historyStore,
             dictionaryStore: DictionaryStore(directory: storageDirectory),
             settingsStore: AppSettingsStore(directory: storageDirectory),
-            modelDirectory: modelDirectory
+            modelDirectory: modelDirectory,
+            textModel: QwenTextModel(directory: storageDirectory.appendingPathComponent(
+                "Models/Qwen3.5-4B/\(QwenModelArtifact.revision)", isDirectory: true))
         )
         pillWindowController = PillWindowController(coordinator: coordinator)
         updater = MacUpdateController(coordinator: coordinator)
@@ -176,7 +179,8 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         }
         let compact = CommandLine.arguments.contains("--snapshot-compact")
         let light = CommandLine.arguments.contains("--snapshot-light")
-        let size = section == "about" ? NSSize(width: 580, height: 520) : isPill ? NSSize(width: PillView.width, height: PillView.height(for: snapshotCoordinator.pillState))
+        let size = section == "text-model" ? NSSize(width: compact ? 320 : 480, height: 320)
+            : section == "about" ? NSSize(width: 580, height: 520) : isPill ? NSSize(width: PillView.width, height: PillView.height(for: snapshotCoordinator.pillState))
             : NSSize(width: compact ? 820 : 960, height: compact ? 560 : 760)
         let view: NSView
         let window: NSWindow
@@ -187,6 +191,9 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             view = window.contentView!
         } else {
             let root = section == "about" ? AnyView(MumlaAboutView())
+                : section == "text-model" ? AnyView(QwenTextModelControls(model: snapshotCoordinator.textModel)
+                    .padding(24).frame(width: size.width, height: size.height, alignment: .topLeading)
+                    .buttonStyle(MumlaKeyStyle()).background(MumlaStyle.background))
                 : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section))
             view = NSHostingView(rootView: root.environment(\.colorScheme, light ? .light : .dark))
             window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)

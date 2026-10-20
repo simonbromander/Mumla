@@ -4,10 +4,12 @@ import Carbon
 import Foundation
 import MumlaAudio
 import MumlaCore
+import MumlaFormatting
 import MumlaUI
 
 @MainActor
 final class AppCoordinator: ObservableObject {
+    let textModel: QwenTextModel
     @Published var pillState: PillState = .hidden
     @Published private(set) var inputLevel: Double = 0
     @Published private(set) var waveformSamples = Array(repeating: 0.0, count: 43)
@@ -66,7 +68,8 @@ final class AppCoordinator: ObservableObject {
         settingsStore: AppSettingsStore,
         modelDirectory: URL?,
         pasteboard: NSPasteboard = .general,
-        inserter: ClipboardTextInserter? = nil
+        inserter: ClipboardTextInserter? = nil,
+        textModel: QwenTextModel = QwenTextModel()
     ) {
         self.recorder = recorder
         self.transcriber = transcriber
@@ -77,6 +80,7 @@ final class AppCoordinator: ObservableObject {
         self.modelDirectory = modelDirectory
         self.pasteboard = pasteboard
         self.inserter = inserter ?? ClipboardTextInserter(pasteboard: pasteboard)
+        self.textModel = textModel
     }
 
     func bootstrap() {

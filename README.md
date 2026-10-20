@@ -14,6 +14,11 @@ speech recognition, and a tactile, recorder-inspired interface.
 - iPhone/iPad recording, local history, transcript copy/share, and a replacement dictionary.
 - An iOS keyboard with Swedish/English typing assistance and an explicit dictation-session flow.
 - Matching tactile controls, iPhone haptics, and System / Light / Dark appearance.
+- Optional Mac text formatting and summaries with Qwen3.5 4B running locally through MLX.
+  Download the verified 3.1 GB text model in Settings. Requires Apple Silicon and
+  macOS 14+, without Apple Intelligence. The model uses about 3 GB of memory after
+  first use. Each suggestion requires explicit acceptance.
+  iOS text formatting continues to use Apple's system model on eligible devices.
 
 **This is an early-stage app.** English speech recognition, automatic model routing,
 meeting capture, and iCloud sync are not implemented yet. Swedish/English keyboard
@@ -31,7 +36,7 @@ bypass macOS security. See [Mac distribution](docs/mac-app-store-compatibility.m
 
 ## Build And Test
 
-Use a Mac with **Xcode 26 or later**, its command-line tools, and Swift 6.
+Use a Mac with **Xcode 26.2 or later**, its command-line tools, Metal Toolchain, and Swift 6.2.
 The apps target macOS 14+ and iOS 17+. Apple silicon is recommended for model work.
 XcodeGen is needed only to regenerate the checked-in Xcode project.
 

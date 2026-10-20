@@ -113,7 +113,9 @@ struct MainView: View {
             }.padding(28).frame(width: 540, height: 400).background { MumlaBackdrop() }
                 .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
                 .sheet(item: $textRequest) { request in
-                    TranscriptFormattingView(record: request.record, action: request.action) { text in
+                    TranscriptFormattingView(record: request.record, action: request.action,
+                                             formatter: coordinator.textModel.formatter,
+                                             summarizer: coordinator.textModel.summarizer) { text in
                         if request.action == .format { try coordinator.applyFormatting(request.record, text: text) }
                         else { try coordinator.applySummary(request.record, text: text) }
                         copied = false
@@ -394,7 +396,7 @@ struct MainView: View {
                 settingRow(mText("Introduktion", "Introduction"), symbol: "sparkles") {
                     Button { coordinator.showOnboarding() } label: { Label(mText("Visa", "Show"), systemImage: "arrow.right").padding(12) }
                 }
-                settingRow(mText("Språkmodell", "Language model"), symbol: "waveform") {
+                settingRow(mText("Talmodell", "Speech model"), symbol: "waveform") {
                     if coordinator.modelDirectory != nil {
                         MumlaReadout(mText("Installerad", "Installed"))
                     } else {
@@ -402,6 +404,9 @@ struct MainView: View {
                     }
                 }
                 if coordinator.isInstallingModel { MumlaDownloadGauge(fraction: coordinator.modelInstallProgress.fraction).padding(.top, 16) }
+                settingRow(mText("Textmodell", "Text model"), symbol: "text.alignleft") {
+                    QwenTextModelControls(model: coordinator.textModel)
+                }
                 settingRow(mText("Om Mumla", "About Mumla"), symbol: "info.circle") {
                     Button { showAbout = true } label: { Label(mText("Modeller och licenser", "Models and licenses"), systemImage: "doc.text").padding(12) }
                 }

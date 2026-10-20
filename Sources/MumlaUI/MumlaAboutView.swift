@@ -30,10 +30,22 @@ public struct MumlaAboutView: View {
                     credit("FluidAudio", owner: "Fluid Inference", license: "Apache 2.0",
                            detail: mText("Swift-biblioteket som kör CoreML-modellen lokalt på Apple-enheter.", "The Swift library that runs the CoreML model locally on Apple devices."),
                            source: "https://github.com/FluidInference/FluidAudio", licenseURL: "https://www.apache.org/licenses/LICENSE-2.0")
+                    #if os(macOS)
+                    credit("Qwen3.5 4B · 4-bit", owner: "Qwen Team / MLX Community", license: "Apache 2.0",
+                           detail: mText("Textformatering och sammanfattning körs lokalt efter en separat modellhämtning. MLX Community har kvantiserat modellen till 4-bitars vikter. Mumla har inte tränat om modellen.", "Text formatting and summaries run locally after a separate model download. MLX Community quantized the model to 4-bit weights. Mumla has not retrained the model."),
+                           source: "https://huggingface.co/mlx-community/Qwen3.5-4B-MLX-4bit", licenseURL: "https://www.apache.org/licenses/LICENSE-2.0")
+                    credit("MLX Swift / MLX Swift LM", owner: "Apple / ml-explore", license: "MIT",
+                           detail: mText("Kör textmodellen på Apple Silicon utan Apple Intelligence.", "Runs the text model on Apple Silicon without Apple Intelligence."),
+                           source: "https://github.com/ml-explore/mlx-swift-lm", licenseURL: "https://github.com/ml-explore/mlx-swift-lm/blob/3.32.3/LICENSE")
+                    credit("Swift Transformers", owner: "Hugging Face", license: "Apache 2.0",
+                           detail: mText("Läser textmodellens lokala tokenizer och chattmall. Transkript skickas inte till Hugging Face.", "Reads the text model's local tokenizer and chat template. Transcripts are not sent to Hugging Face."),
+                           source: "https://github.com/huggingface/swift-transformers", licenseURL: "https://github.com/huggingface/swift-transformers/blob/1.3.0/LICENSE")
+                    #else
                     Text("Apple Foundation Models").font(.system(.headline, design: .monospaced)).accessibilityAddTraits(.isHeader)
                     Text(mText("Valfri textformatering och sammanfattning med Apples lokala systemmodell. Kräver en kompatibel enhet med Apple Intelligence. Modellen tillhandahålls av operativsystemet och distribueras inte med Mumla.", "Optional text formatting and summaries with Apple's on-device system model. Requires a compatible device with Apple Intelligence. The model is provided by the operating system and isn't distributed with Mumla."))
                         .font(.system(.callout, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                     Divider()
+                    #endif
                     if Bundle.main.object(forInfoDictionaryKey: "MumlaDistribution") as? String == "direct" {
                         credit("Sparkle", owner: "Sparkle Project", license: "MIT / BSD",
                                detail: mText("Kontrollerar och installerar signerade Mac-uppdateringar när du ber om det. Ingen systemprofilering.", "Checks and installs signed Mac updates when requested. No system profiling."),
@@ -121,5 +133,13 @@ private struct LicenseNotice: Identifiable {
         LicenseNotice(title: "Japanese G2P", file: "JapaneseG2P-LICENSE", ext: "md"),
         LicenseNotice(title: "Kokoro G2P", file: "KokoroAneSpanishFrenchG2P-LICENSE", ext: "md")
     ] + (Bundle.main.object(forInfoDictionaryKey: "MumlaDistribution") as? String == "direct"
-         ? [LicenseNotice(title: "Sparkle / MIT / BSD", file: "Sparkle-LICENSE", ext: "txt")] : []) }
+         ? [LicenseNotice(title: "Sparkle / MIT / BSD", file: "Sparkle-LICENSE", ext: "txt")] : []) + textModelNotices }
+
+    private static var textModelNotices: [LicenseNotice] {
+        #if os(macOS)
+        [LicenseNotice(title: "Qwen / MLX / Tokenizers", file: "Qwen-runtime-notices", ext: "txt")]
+        #else
+        []
+        #endif
+    }
 }

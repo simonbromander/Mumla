@@ -49,6 +49,9 @@ jobs:
         run: |
           xcodebuild -version
           swift --version
+          if ! xcrun metal --version; then
+            xcodebuild -downloadComponent MetalToolchain
+          fi
       - name: Swift package tests
         run: swift test
       - name: Release-helper unit tests (no signing or uploads)
