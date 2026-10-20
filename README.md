@@ -36,7 +36,7 @@ bypass macOS security. See [Mac distribution](docs/mac-app-store-compatibility.m
 
 ## Build And Test
 
-Use a Mac with **Xcode 26.2 or later**, its command-line tools, Metal Toolchain, and Swift 6.2.
+Use a Mac with **Xcode 26.4.1 or later**, its command-line tools, Metal Toolchain, and Swift 6.3.
 The apps target macOS 14+ and iOS 17+. Apple silicon is recommended for model work.
 XcodeGen is needed only to regenerate the checked-in Xcode project.
 
