@@ -34,6 +34,7 @@ public struct TranscriptFormattingView: View {
     @State private var attempt = 0
     @State private var precedingText = ""
     @State private var generatedContext = ""
+    @State private var contextExpanded = false
 
     public init(record: DictationRecord, action: TranscriptTextAction = .format, formatter: LocalTranscriptFormatter = .apple,
                 summarizer: LocalTranscriptSummarizer = .apple,
@@ -118,25 +119,35 @@ public struct TranscriptFormattingView: View {
     }
 
     private var conversationContext: some View {
-        DisclosureGroup(mText("Föregående samtal (valfritt)", "Preceding conversation (optional)")) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(mText("Lägg till relevanta meddelanden, högst 600 tecken. Kontexten används bara i denna förhandsvisning.",
-                           "Add relevant messages, up to 600 characters. The context stays in this preview."))
-                    .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                TextEditor(text: $precedingText).scrollContentBackground(.hidden)
-                    .frame(minHeight: 80).padding(12).mumlaRecess(radius: 8)
-                    .accessibilityLabel(mText("Föregående samtal", "Preceding conversation"))
-                    .accessibilityIdentifier("format.context")
-                    .onChange(of: precedingText) { _, value in
-                        if value.count > LocalTextPreferences.maximumContextCharacters {
-                            precedingText = String(value.prefix(LocalTextPreferences.maximumContextCharacters))
+        VStack(alignment: .leading, spacing: 12) {
+            Button { contextExpanded.toggle() } label: {
+                HStack {
+                    Text(mText("Föregående samtal (valfritt)", "Preceding conversation (optional)"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: contextExpanded ? "chevron.down" : "chevron.right")
+                }.frame(minHeight: 44).contentShape(Rectangle())
+            }.buttonStyle(.plain).accessibilityIdentifier("format.context-section")
+                .accessibilityValue(contextExpanded ? mText("Utökat", "Expanded") : mText("Minimerat", "Collapsed"))
+            if contextExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(mText("Lägg till relevanta meddelanden, högst 600 tecken. Kontexten används bara i denna förhandsvisning.",
+                               "Add relevant messages, up to 600 characters. The context stays in this preview."))
+                        .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    TextEditor(text: $precedingText).scrollContentBackground(.hidden)
+                        .frame(minHeight: 80).padding(12).mumlaRecess(radius: 8)
+                        .accessibilityLabel(mText("Föregående samtal", "Preceding conversation"))
+                        .accessibilityIdentifier("format.context")
+                        .onChange(of: precedingText) { _, value in
+                            if value.count > LocalTextPreferences.maximumContextCharacters {
+                                precedingText = String(value.prefix(LocalTextPreferences.maximumContextCharacters))
+                            }
                         }
-                    }
-                Button(mText("Uppdatera förslag", "Update preview")) { attempt += 1 }
-                    .buttonStyle(MumlaKeyStyle()).disabled(result == nil || scenePhase != .active)
-                    .accessibilityIdentifier("format.update-context")
-            }.padding(.top, 12)
-        }.accessibilityIdentifier("format.context-section")
+                    Button(mText("Uppdatera förslag", "Update preview")) { attempt += 1 }
+                        .buttonStyle(MumlaKeyStyle()).disabled(result == nil || scenePhase != .active)
+                        .accessibilityIdentifier("format.update-context")
+                }
+            }
+        }
     }
 
     private struct Request: Hashable {
