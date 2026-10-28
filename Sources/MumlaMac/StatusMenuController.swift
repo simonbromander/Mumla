@@ -25,7 +25,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         super.init()
         MumlaAppearance.stored().applyNativeAppearance()
         if let button = self.statusItem.button {
-            button.image = NSImage(systemSymbolName: "mic.circle.fill", accessibilityDescription: "Mumla")
+            button.image = Self.makeStatusImage()
             button.imagePosition = .imageOnly
         }
         rebuildMenu()
@@ -71,6 +71,23 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
+    }
+
+    /// Use the app icon's waveform and record button as a monochrome menu bar mark.
+    private static func makeStatusImage() -> NSImage {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
+            NSColor.black.setFill()
+            let heights: [CGFloat] = [2.5, 5.25, 8, 5.25, 2.5]
+            for (index, height) in heights.enumerated() {
+                let bar = NSRect(x: 3 + CGFloat(index) * 2.5, y: 13.5 - height / 2, width: 2, height: height)
+                NSBezierPath(roundedRect: bar, xRadius: 1, yRadius: 1).fill()
+            }
+            NSBezierPath(ovalIn: NSRect(x: 5, y: 0.5, width: 8, height: 8)).fill()
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "Mumla"
+        return image
     }
 
     private func rebuildMenu() {

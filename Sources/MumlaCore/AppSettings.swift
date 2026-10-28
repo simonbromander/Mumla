@@ -8,6 +8,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var onboardingCompleted: Bool
     public var triggerKey: DictationTriggerKey
     public var showPasteDialog: Bool
+    public var djiMicButtonEnabled: Bool
     /// When set, dictation records from this input device instead of following the system default.
     public var pinnedInputDevice: PinnedInputDevice?
 
@@ -19,7 +20,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         onboardingCompleted: Bool = false,
         triggerKey: DictationTriggerKey = .control,
         showPasteDialog: Bool = true,
-        pinnedInputDevice: PinnedInputDevice? = nil
+        pinnedInputDevice: PinnedInputDevice? = nil,
+        djiMicButtonEnabled: Bool = false
     ) {
         self.languageMode = languageMode
         self.lastLanguage = lastLanguage
@@ -29,6 +31,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.triggerKey = triggerKey
         self.showPasteDialog = showPasteDialog
         self.pinnedInputDevice = pinnedInputDevice
+        self.djiMicButtonEnabled = djiMicButtonEnabled
     }
 
     public static let `default` = AppSettings()
@@ -42,6 +45,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case triggerKey
         case showPasteDialog
         case pinnedInputDevice
+        case djiMicButtonEnabled
     }
 
     public init(from decoder: Decoder) throws {
@@ -54,6 +58,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         triggerKey = try container.decodeIfPresent(DictationTriggerKey.self, forKey: .triggerKey) ?? .control
         showPasteDialog = try container.decodeIfPresent(Bool.self, forKey: .showPasteDialog) ?? true
         pinnedInputDevice = try container.decodeIfPresent(PinnedInputDevice.self, forKey: .pinnedInputDevice)
+        djiMicButtonEnabled = try container.decodeIfPresent(Bool.self, forKey: .djiMicButtonEnabled) ?? false
     }
 }
 

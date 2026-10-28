@@ -74,11 +74,13 @@
 		B769CDE18330B935CA9E7D19 /* KeyboardSessionSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD72BF9A49E892842340380F /* KeyboardSessionSignalTests.swift */; };
 		B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */; };
 		BA3F945570826A391E965859 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
+		BAF45AE8EA58B812265D4A8B /* DJIMicButtonMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2599F6380447F5D512C92F /* DJIMicButtonMonitor.swift */; };
 		BC59DCA6E81E340BEFFC281B /* MumlaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83E6911303AC4BC9E5177E8 /* MumlaApp.swift */; };
 		BC5E686832CC6496E3F1DCC2 /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0AEFF1145452A94A52DBBB40 /* MumlaCore */; };
 		BE32EB9AFC91A28357364AD6 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0932AADEC6AB5EDEE9CB8682 /* AppCoordinator.swift */; };
 		BF7862AD315FB1DE4CB16045 /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 83A8AC9F56638A4A697EEC0C /* MumlaCore */; };
 		C1ABA02FDB299B831ECCA00E /* WatchTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD9F136F727318945224E97D /* WatchTranscriber.swift */; };
+		C20D55866B15D69952488F03 /* DJIMicButtonMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2599F6380447F5D512C92F /* DJIMicButtonMonitor.swift */; };
 		C269080771F75259FBDF0D4A /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = F2609A56CC257B5C0FCF5E47 /* MumlaCore */; };
 		C2BE52AF10B2327351D27901 /* FocusedFieldEditObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */; };
 		CF1728D869A216C30D6F7A64 /* Watch-Licenses.txt in Resources */ = {isa = PBXBuildFile; fileRef = B360EAD65F0D6A7B932D7F79 /* Watch-Licenses.txt */; };
@@ -186,6 +188,7 @@
 		44E58014013CC8E21640D766 /* MumlaMacDirect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaMacDirect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A8F18D733A016100EF500D8 /* KeyboardPreviewHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPreviewHarness.swift; sourceTree = "<group>"; };
 		4B3B48F1351AA4FD5B142E25 /* MumlaWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D2599F6380447F5D512C92F /* DJIMicButtonMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DJIMicButtonMonitor.swift; sourceTree = "<group>"; };
 		4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaSheets.swift; sourceTree = "<group>"; };
 		4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateInstallGate.swift; sourceTree = "<group>"; };
 		4F7F84A3491DB7F273F94E53 /* MumlaMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -421,6 +424,7 @@
 				4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */,
 				9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */,
 				F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */,
+				4D2599F6380447F5D512C92F /* DJIMicButtonMonitor.swift */,
 				2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */,
 				D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */,
 				739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */,
@@ -834,6 +838,7 @@
 				391610879AA51AC52FF2AFA0 /* AppUpdateInstallGate.swift in Sources */,
 				4C360FB45B6D0C7DBACB2491 /* ClipboardTextInserter.swift in Sources */,
 				065760EDCEF33AA9175A54F5 /* ControlHotkeyMonitor.swift in Sources */,
+				BAF45AE8EA58B812265D4A8B /* DJIMicButtonMonitor.swift in Sources */,
 				B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */,
 				5383AD414A7C20B2C8D57A59 /* FocusedTextTargetInspector.swift in Sources */,
 				A574CF983F6E06E20756689C /* HotkeyEventSource.swift in Sources */,
@@ -908,6 +913,7 @@
 				5D99978EB75E2BDF1F9CD88E /* AppUpdateInstallGate.swift in Sources */,
 				81F1DC32ADD15685188CDD18 /* ClipboardTextInserter.swift in Sources */,
 				02669D6FEE2591498532D9E5 /* ControlHotkeyMonitor.swift in Sources */,
+				C20D55866B15D69952488F03 /* DJIMicButtonMonitor.swift in Sources */,
 				C2BE52AF10B2327351D27901 /* FocusedFieldEditObserver.swift in Sources */,
 				7E8D425EA6F7DB8E1BD1A830 /* FocusedTextTargetInspector.swift in Sources */,
 				8463FA770CBD257B18E65DA4 /* HotkeyEventSource.swift in Sources */,

@@ -30,6 +30,8 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSInputMonitoringUsageDescription</key>
+    <string>Mumla reads your dictation key and DJI microphone button to start and stop dictation.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Mumla uses the microphone for private on-device dictation.</string>
     <key>NSPrincipalClass</key>
