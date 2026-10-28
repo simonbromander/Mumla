@@ -1,5 +1,40 @@
 # Full-Capability Mac Distribution
 
+## DJI Mic Button Beta: 2026-10-28
+
+- Universal direct `1.0.1 (42)` is published as a prerelease in Mumla and
+  Mumla-Releases, from `062cc5b3889915a5684a30412c5e26eb97a9f835`.
+- Includes optional native DJI Mic Mini USB receiver button control and the
+  branded waveform/record-button menu-bar icon from PR #9. DJI control is off
+  by default and needs Input Monitoring. Microphone selection remains separate.
+  The listener handles duplicate reports, pairing holds, permission denial,
+  helper conflicts, sleep and receiver removal; existing dictation and paste
+  protections remain in place.
+- 256 shared/Mac tests completed with zero failures and four opt-in model
+  tests skipped; all 35 release-helper tests passed with 84 assertions. The
+  iOS Release Simulator preflight and signed Mac archive/export passed.
+- arm64/x86_64, Developer ID signature, hardened runtime, matching dSYMs,
+  microphone-only entitlements, updater metadata and MLX Metal library verified.
+  Model weights are downloaded separately, not bundled in the release.
+- Apple notarization `5d18d683-1313-4574-ae8f-3fc457922e38` was Accepted.
+  The stapled app passed Gatekeeper. A fresh anonymous public ZIP passed the
+  same signature, ticket, Gatekeeper and binary checks; ZIP integrity passed.
+- ZIP: 37,143,617 bytes. SHA-256:
+  `c226cfe39ca057e03d558bfd57f3f07bd03863da7d9d7b881c0fa8e8ac04367b`.
+  Both official repositories contain matching ZIP and checksum assets.
+- Feed commit `4ea6e3a`. The live feed is byte-identical to signed staging;
+  public downloads and Ed25519 signatures for 42, 41 and 40 passed before and
+  after publication. Real DJI button/audio routing, cross-app paste, live updater
+  installation and model quality still require hardware acceptance.
+- Evidence: `.build/direct42-build.log`, `.build/direct42-notarize.log`,
+  `.build/direct42-local-audit.json`, `.build/direct42-public-audit.json`,
+  `.build/direct42-feed-prepare.json`, `.build/direct42-public-verify.json`
+  and `.build/direct42-live-public-verify.json`.
+  dSYMs and the anonymous ZIP are retained in
+  `.build/ReleaseAuditMac42-20261028/`. No private logs or signing material were
+  published. iOS/Watch build 35 is a separate TestFlight release.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-42).
+
 ## Local Qwen And Compact Controls Beta: 2026-10-20
 
 - Universal direct `1.0.1 (41)` is published as a prerelease in Mumla and

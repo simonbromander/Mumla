@@ -9,6 +9,44 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
   replacing this legacy companion identifier, even when earlier rebuilt iOS
   packages omitted the Watch app.
 
+## Verified iOS Release 35: 2026-10-28
+
+- iOS `1.0.1 (35)`, app source
+  `062cc5b3889915a5684a30412c5e26eb97a9f835`. Maintenance refresh from current
+  main, retaining build 34's compact recorder, context-guided formatting,
+  separate summaries, typing keyboard and Watch Voice Notes. The new DJI
+  Mic Mini button control and menu-bar branding are Mac-only features.
+- All 256 shared/Mac tests completed with zero failures and four opt-in model
+  tests skipped; all 35 release-helper tests passed with 84 assertions. The
+  Release Simulator preflight and signed iOS/Watch archive/export passed.
+  Phone/iPad UI and hosted suites were not rerun for this maintenance refresh;
+  build 34's test coverage and device-acceptance limits are recorded below.
+- Archive and extracted IPA signatures, profiles, certificates, version/build
+  and dSYM UUIDs verified for all four bundles, with `get-task-allow=false`.
+  App/keyboard/widget retain `group.com.mumla.app`; Watch retains the original
+  `com.mumla.app.watch` identity and WatchConnectivity architecture. Exported
+  phone iCloud environment is Production. Extension capture/runtime isolation,
+  Watch model manifest and licenses were checked. No identities were changed.
+- Apple accepted the upload at `2026-10-28T09:41:51Z`; processing completed at
+  `2026-10-28T09:45:39Z`. Build
+  `a31416fe-287f-4c55-b1c9-80847d7f2c54` was independently verified `VALID`
+  and `IN_BETA_TESTING` at `2026-10-28T09:46:03Z`. Existing Test and Friends
+  groups both include it, without audience changes. The read-only report is
+  `.build/ios35-availability.json`.
+- IPA SHA-256:
+  `281d54488c881ee287031aeba2a4a030832bb571fcb1f1dfa8241e4cc69daf28`.
+  IPA, dSYMs and signing audits are retained in
+  `.build/ReleaseAuditIOS35-20261028/`. Build and upload logs:
+  `.build/ios35-build.log` and `.build/ios35-upload.log`.
+- Swedish/English testing notes from `fastlane/testflight/ios-1.0.1-35.json`
+  were published and read back at `2026-10-28T09:46:00Z`. No external review or
+  public App Store submission was made.
+- Physical DJI control, phone keyboard background capture, haptics, Watch
+  recording/paired delivery and model quality remain hardware acceptance
+  checks. Phone dictation remains Swedish-only; Watch supports Swedish and
+  English. Meetings and iCloud sync are not implemented. No cloud fallback.
+  Mac direct build 42 is a separate notarized beta.
+
 ## Verified iOS Release 34: 2026-10-20
 
 - iOS `1.0.1 (34)`, app source
