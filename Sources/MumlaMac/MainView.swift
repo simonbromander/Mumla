@@ -360,6 +360,38 @@ struct MainView: View {
                         }
                     }
                 }
+                settingRow(mText("DJI-mikrofonknapp", "DJI mic button"), symbol: "dot.radiowaves.left.and.right") {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        Toggle(mText("DJI-mikrofonknapp", "DJI mic button"), isOn: Binding(
+                            get: { coordinator.settings.djiMicButtonEnabled },
+                            set: { coordinator.setDJIMicButtonEnabled($0) }
+                        ))
+                        .toggleStyle(MumlaSwitchStyle(showsLabel: false))
+                        .accessibilityIdentifier("settings.dji-mic-button")
+                        Text(mText("Tryck för att starta eller stoppa diktering. Använder mikrofonen vald ovan.",
+                                   "Press to start or stop dictation. Uses the microphone selected above."))
+                            .font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        if coordinator.settings.djiMicButtonEnabled {
+                            Text(coordinator.djiMicButtonStatusText).font(.system(size: 11, design: .monospaced))
+                                .accessibilityIdentifier("settings.dji-mic-status")
+                            if coordinator.djiMicButtonStatus == .helperRunning {
+                                Button { coordinator.quitDJIMicHelper?() } label: {
+                                    Text(mText("Avsluta den separata appen", "Quit the separate app")).frame(minHeight: 44)
+                                }.accessibilityIdentifier("settings.dji-quit-helper")
+                            } else if coordinator.djiMicButtonStatus == .permissionRequired {
+                                Button { coordinator.requestDJIMicAccess?() } label: {
+                                    Text(mText("Tillåt inmatningsövervakning", "Allow Input Monitoring")).frame(minHeight: 44)
+                                }
+                            } else if coordinator.djiMicButtonStatus == .receiverUnavailable {
+                                Button { coordinator.retryDJIMicButton?() } label: {
+                                    Text(mText("Försök igen", "Try again")).frame(minHeight: 44)
+                                }
+                            }
+                        }
+                        Text(mText("Kräver en DJI Mic Mini-mottagare ansluten via USB.", "Requires a DJI Mic Mini receiver connected by USB."))
+                            .font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    }.multilineTextAlignment(.trailing).frame(maxWidth: 280, alignment: .trailing)
+                }
                 settingRow(mText("Tangentbordsåtkomst", "Keyboard access"), symbol: "keyboard") {
                     HStack(spacing: 12) {
                         VStack(alignment: .trailing, spacing: 6) {

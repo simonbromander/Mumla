@@ -24,6 +24,7 @@ final class AppCoordinator: ObservableObject {
     @Published var modelInstallProgress: ModelInstallProgress = .idle
     @Published var statusText: String = "Ready"
     @Published private(set) var hotkeyMonitorStatus: HotkeyMonitorStatus = .stopped
+    @Published private(set) var djiMicButtonStatus: DJIMicButtonStatus = .off
     @Published var hotkeyGestureStage: HotkeyGestureStage = .waiting
     @Published private(set) var settingsOpenRequest: UUID?
     @Published private(set) var isBusyForAppUpdate = false
@@ -36,6 +37,10 @@ final class AppCoordinator: ObservableObject {
     var quit: (() -> Void)?
     var triggerKeyChanged: ((DictationTriggerKey) -> Void)?
     var requestHotkeyAccess: (() -> Void)?
+    var djiMicButtonEnabledChanged: ((Bool) -> Void)?
+    var requestDJIMicAccess: (() -> Void)?
+    var retryDJIMicButton: (() -> Void)?
+    var quitDJIMicHelper: (() -> Void)?
 
     private let recorder: MicrophoneRecorder
     private var transcriber: LocalPianissimoTranscriber?
@@ -48,7 +53,14 @@ final class AppCoordinator: ObservableObject {
     private let correctionLearner = CorrectionLearner()
     private let editObserver = FocusedFieldEditObserver()
 
-    private var activeMode: RecordingMode? { didSet { refreshUpdateActivity() } }
+    private var activeMode: RecordingMode? {
+        didSet {
+            if activeMode == nil { activeDJIMicReceiverID = nil }
+            refreshUpdateActivity()
+        }
+    }
+    private var activeDJIMicReceiverID: UInt64?
+    private var pendingDJIMicStart: (id: UUID, receiverID: UInt64)?
     private var recordingStartedAt: Date?
     private var elapsedTimer: Timer?
     private var modelInstallTask: Task<Void, Never>? { didSet { refreshUpdateActivity() } }
@@ -87,6 +99,7 @@ final class AppCoordinator: ObservableObject {
         settings = (try? settingsStore.load()) ?? .default
         languageMode = settings.languageMode
         triggerKeyChanged?(settings.triggerKey)
+        djiMicButtonEnabledChanged?(settings.djiMicButtonEnabled)
         refreshLaunchAtLoginStatus()
         history = (try? historyStore.load()) ?? []
         dictionaryEntries = (try? dictionaryStore.load()) ?? []
@@ -138,6 +151,55 @@ final class AppCoordinator: ObservableObject {
         requestHotkeyAccess?()
     }
 
+    func updateDJIMicButtonStatus(_ status: DJIMicButtonStatus) { djiMicButtonStatus = status }
+
+    var djiMicButtonStatusText: String {
+        switch djiMicButtonStatus {
+        case .off: mText("Av", "Off")
+        case .paused: mText("Pausad", "Paused")
+        case .permissionRequired: mText("Tillåt inmatningsövervakning", "Allow Input Monitoring")
+        case .waitingForReceiver: mText("Anslut mottagaren via USB", "Connect the receiver by USB")
+        case .ready: mText("Knappen är redo", "Button ready")
+        case .receiverUnavailable: mText("Mottagaren är upptagen eller otillgänglig", "Receiver busy or unavailable")
+        case .helperRunning: mText("Avsluta DJI Mic Mumla", "Quit DJI Mic Mumla")
+        }
+    }
+
+    func setDJIMicButtonEnabled(_ enabled: Bool) {
+        guard settings.djiMicButtonEnabled != enabled else { return }
+        var updated = settings
+        updated.djiMicButtonEnabled = enabled
+        do {
+            try settingsStore.save(updated)
+            settings = updated
+            if !enabled, pendingStartID == pendingDJIMicStart?.id { pendingStartID = nil; pendingDJIMicStart = nil }
+            djiMicButtonEnabledChanged?(enabled)
+            if enabled { requestDJIMicAccess?() }
+        } catch { statusText = "Settings save failed" }
+    }
+
+    func djiMicButtonPressed(receiverID: UInt64) async {
+        guard settings.djiMicButtonEnabled else { return }
+        if pendingStartID != nil {
+            pendingStartID = nil
+            pendingDJIMicStart = nil
+        } else if activeMode != nil {
+            await finishDictation()
+        } else if IsSecureEventInputEnabled() {
+            showSecureInputWarning()
+        } else {
+            await startDictation(mode: .handsFree, djiReceiverID: receiverID)
+        }
+    }
+
+    func djiMicReceiverDisconnected(_ receiverID: UInt64) async {
+        if pendingDJIMicStart?.receiverID == receiverID, pendingDJIMicStart?.id == pendingStartID {
+            pendingStartID = nil
+            pendingDJIMicStart = nil
+        }
+        if activeDJIMicReceiverID == receiverID { await finishDictation() }
+    }
+
     var hotkeyStatusText: String {
         switch hotkeyMonitorStatus {
         case .active: settings.triggerKey.displayName + " " + mText("redo", "ready")
@@ -178,6 +240,7 @@ final class AppCoordinator: ObservableObject {
             "Secure Input: \(IsSecureEventInputEnabled())",
             "Microphone: \(microphone)",
             "Listener: \(hotkeyMonitorStatus)",
+            "DJI button: \(settings.djiMicButtonEnabled ? String(describing: djiMicButtonStatus) : "off")",
             "Gesture: \(hotkeyGestureStage.rawValue)",
             "Paste: \(inserter.lastOutcome.rawValue)",
             "Model installed: \(modelDirectory != nil)",
@@ -664,7 +727,7 @@ final class AppCoordinator: ObservableObject {
         }
     }
 
-    private func startDictation(mode: RecordingMode) async {
+    private func startDictation(mode: RecordingMode, djiReceiverID: UInt64? = nil) async {
         guard !isInstallingAppUpdate, activeMode == nil, pendingStartID == nil, inFlightOperations == 0, pillState != .transcribing else { return }
         pasteVerificationTask?.cancel()
         hidePillTask?.cancel()
@@ -689,6 +752,8 @@ final class AppCoordinator: ObservableObject {
 
         let startID = UUID()
         pendingStartID = startID
+        if let djiReceiverID { pendingDJIMicStart = (startID, djiReceiverID) }
+        defer { if pendingDJIMicStart?.id == startID { pendingDJIMicStart = nil } }
         insertionTarget = FocusedTextTargetInspector.captureEditableTarget()
         let permission = await recorder.microphonePermissionGranted()
         guard pendingStartID == startID else { return }
@@ -702,6 +767,7 @@ final class AppCoordinator: ObservableObject {
 
         do {
             _ = try recorder.start(inputDeviceUID: connectedPinnedInputDeviceUID())
+            activeDJIMicReceiverID = djiReceiverID
             activeMode = mode
             recordingStartedAt = Date()
             waveformSamples = Array(repeating: 0, count: 43)

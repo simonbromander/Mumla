@@ -14,6 +14,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     private var mainWindowController: MainWindowController!
     private var pillWindowController: PillWindowController!
     private var hotkeyMonitor: ControlHotkeyMonitor!
+    private var djiMicMonitor: DJIMicButtonMonitor!
     private var updater: MacUpdateController!
     private var hotkeyIsSuspended = false
 
@@ -64,6 +65,18 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         coordinator.requestHotkeyAccess = { [weak hotkeyMonitor] in hotkeyMonitor?.requestPermission() }
         hotkeyMonitor.onStatusChanged = { [weak coordinator] status in coordinator?.updateHotkeyStatus(status) }
         hotkeyMonitor.onGestureStageChanged = { [weak coordinator] stage in coordinator?.hotkeyGestureStage = stage }
+        djiMicMonitor = DJIMicButtonMonitor()
+        coordinator.djiMicButtonEnabledChanged = { [weak djiMicMonitor] in djiMicMonitor?.setEnabled($0) }
+        coordinator.requestDJIMicAccess = { [weak djiMicMonitor] in djiMicMonitor?.requestPermission() }
+        coordinator.retryDJIMicButton = { [weak djiMicMonitor] in djiMicMonitor?.refresh(forceRestart: true) }
+        coordinator.quitDJIMicHelper = {
+            for app in NSRunningApplication.runningApplications(withBundleIdentifier: DJIMicButtonMonitor.legacyHelperBundleID) {
+                _ = app.terminate()
+            }
+        }
+        djiMicMonitor.onStatusChanged = { [weak coordinator] in coordinator?.updateDJIMicButtonStatus($0) }
+        djiMicMonitor.onPress = { [weak coordinator] in await coordinator?.djiMicButtonPressed(receiverID: $0) }
+        djiMicMonitor.onDisconnect = { [weak coordinator] in await coordinator?.djiMicReceiverDisconnected($0) }
 
         coordinator.showPill = { [weak pillWindowController] in
             pillWindowController?.show()
@@ -112,6 +125,11 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(retryHotkeyMonitor(_:)), name: NSWorkspace.didActivateApplicationNotification, object: nil
         )
+        for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(
+                self, selector: #selector(refreshDJIMicMonitor(_:)), name: name, object: nil
+            )
+        }
         for name in [NSWorkspace.didWakeNotification, NSWorkspace.sessionDidBecomeActiveNotification] {
             NSWorkspace.shared.notificationCenter.addObserver(
                 self, selector: #selector(resumeHotkeyMonitor(_:)), name: name, object: nil
@@ -130,27 +148,34 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         guard !hotkeyIsSuspended else { return }
         hotkeyMonitor?.start()
+        djiMicMonitor?.refresh()
     }
 
     @objc private func retryHotkeyMonitor(_ notification: Notification) {
         guard !hotkeyIsSuspended else { return }
         hotkeyMonitor?.start()
+        djiMicMonitor?.refresh()
     }
+
+    @objc private func refreshDJIMicMonitor(_ notification: Notification) { djiMicMonitor?.refresh() }
 
     @objc private func suspendHotkeyMonitor(_ notification: Notification) {
         hotkeyIsSuspended = true
         hotkeyMonitor?.stop()
+        djiMicMonitor?.suspend()
         coordinator?.cancelDictation()
     }
 
     @objc private func resumeHotkeyMonitor(_ notification: Notification) {
         hotkeyIsSuspended = false
         hotkeyMonitor?.start(forceRestart: true)
+        djiMicMonitor?.resume()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         hotkeyMonitor?.stop()
+        djiMicMonitor?.stop()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
