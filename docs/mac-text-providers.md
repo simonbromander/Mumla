@@ -34,8 +34,8 @@ unavailable Apple model handling, safe lists, protected numeric/symbol content,
 unchanged-output feedback, history originals, cancellation and paste behavior.
 Run a real synthetic Qwen trial when weights are available; keep downloaded
 weights out of Git. Render compact settings in both appearances. These changes
-are separate from the already published build 43; do not report them released
-until a subsequent signed build and update feed are verified.
+are separate from build 43. They are now published in signed/notarized Mac
+build 44 with its verified update feed; see the [release record](mac-direct-release.md).
 
 ## Model evaluation, 2026-11-06
 
@@ -68,8 +68,8 @@ quality evidence. Do not commit model weights or machine-specific paths.
 - Shared/Mac suite: 280 tests, zero failures, seven opt-in checks skipped. The
   two real Qwen quality checks were run separately and passed, including all
   four list fixtures and the eight prose fixtures plus a summary.
-- Direct Mac and iOS Simulator Debug apps compile. This is not a signed release
-  or a TestFlight upload. No iOS provider selector or automatic formatting was
+- Direct Mac and iOS Simulator Debug apps compile. Those are compile checks;
+  signed release evidence is recorded separately. No iOS provider selector or automatic formatting was
   introduced; the shared manual formatter gains the same safe list policy.
 - Compact Mac Settings was rendered and inspected in light and dark, including
   the selected Apple model's actual disabled-state message. Provider persistence,

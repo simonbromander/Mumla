@@ -1,5 +1,45 @@
 # Full-Capability Mac Distribution
 
+## Tiny Dictation And Text Models Beta: 2026-11-06
+
+- Universal direct `1.0.1 (44)` is published as a prerelease in Mumla and
+  Mumla-Releases, from `8fe64a35631e5537cc0570334f39f7b4d6bc63aa`.
+- Minimal recording is a translucent, click-through 104 x 30 point REC/timer
+  capsule without waveform or transport buttons. Full Recorder and readable
+  copy fallback remain available. Confirmed pastes still dismiss the overlay.
+- Mac Settings offers Qwen or Apple's local model, with availability/language
+  checks and no silent provider fallback. Formatting supports word-preserving
+  bullets/numbered lists and accurately reports unchanged output. Summaries
+  remain separate previews; automatic formatting remains off by default.
+- 283 shared/Mac tests completed with zero failures and seven opt-in skips;
+  all 35 release-helper tests passed with 84 assertions. Exact-source
+  Contributor CI `42237910229` passed secret scanning, package/helper tests,
+  iOS/Mac/Watch builds and Watch test compilation.
+- Real pinned-Qwen evaluation passed four list preferences, eight prose cases
+  and a summary. This is synthetic evidence, not a general quality guarantee.
+  Apple model quality and target-Mac microphone/paste acceptance remain separate.
+- arm64/x86_64, matching dSYMs, hardened runtime, microphone-only entitlements,
+  pinned updater metadata, MLX Metal kernels and absence of model weights were
+  verified locally and from a freshly extracted anonymous public download.
+- Apple notarization `fe5851e9-4e6a-4e54-99e5-0ee017dc053b` was Accepted.
+  Stapled ticket, Gatekeeper and ZIP-integrity checks passed.
+- ZIP: 37,202,981 bytes. SHA-256:
+  `32c118a31c9f687eadd5d7846eb073adc784c31b2e3974a8ab86f3d0f6cb1290`.
+  Both official repositories' anonymous ZIP/checksum downloads match staging.
+- Feed commit `00b5113`; the live feed matches signed staging byte for byte.
+  Public enclosure lengths and Ed25519 signatures for 44, 43 and 42 passed
+  before and after publication. No feed URL, signing key or update policy changed.
+- The website's build-44 download/setup update is deployed from `cca6195`.
+  Its 17 unit and 38 browser checks passed; live JS/CSS match the local build.
+- Evidence: `.build/direct44-build.log`, `.build/direct44-notarize.log`,
+  `.build/direct44-source-ci.json`, `.build/direct44-local-audit.json`,
+  `.build/direct44-public-audit.json`, `.build/direct44-feed-prepare.json` and
+  `.build/direct44-live-public-verify.json`. dSYMs and fresh public downloads
+  are retained in `.build/ReleaseAuditMac44-20261106/`, not published as assets.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-44).
+  Installation/relaunch and populated-data preservation need target-Mac acceptance.
+  No iOS or sandboxed Mac TestFlight upload was performed by this release.
+
 ## Minimal Dictation And Local Formatting Beta: 2026-11-06
 
 - Universal direct `1.0.1 (43)` is published as a prerelease in Mumla and

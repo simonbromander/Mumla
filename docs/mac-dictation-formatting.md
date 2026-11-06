@@ -1,10 +1,10 @@
 # Optional Mac dictation formatting
 
 The subsequent [text-provider/list follow-up](mac-text-providers.md) adds a Mac
-Qwen/Apple choice and word-preserving list layout. The build-43 record below
-describes what was released at that point, not that follow-up's release status.
-The 104 x 30 point minimal capsule is also an unreleased refinement; build 43
-shipped the larger minimal overlay with waveform and transport buttons.
+Qwen/Apple choice and word-preserving list layout. It and the 104 x 30 point
+minimal capsule are published in direct Mac build 44; see the verified
+[release record](mac-direct-release.md). The build-43 record below describes
+the earlier release, whose larger minimal overlay had waveform/transport buttons.
 
 ## Scope
 
