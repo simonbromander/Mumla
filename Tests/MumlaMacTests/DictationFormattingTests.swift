@@ -59,6 +59,84 @@ final class DictationFormattingTests: XCTestCase {
         XCTAssertEqual(requests.map(\.stylePrompt), ["First style", "Second style"])
     }
 
+    func testSelectedAppleFormatterRoutesBothDictationAndManualFormatting() async throws {
+        let qwen = FormattingProbe(output: "Should never be used")
+        let apple = FormattingProbe(output: "Hej Anna. Vi ses imorgon.")
+        let fixture = Fixture(formatter: qwen.formatter, appleFormatter: apple.formatter)
+        defer { fixture.cleanUp() }
+        fixture.coordinator.setTextModelProvider(.appleIntelligence)
+        fixture.coordinator.setFormatDictationBeforePasting(true)
+        try await fixture.coordinator.completeDictation(fixture.original, target: fixture.target)
+        let manual = await fixture.coordinator.transcriptFormatter.format(fixture.original.text, language: .swedish, foreground: true)
+        let qwenRequests = await qwen.requests
+        let appleRequests = await apple.requests
+        XCTAssertTrue(qwenRequests.isEmpty)
+        XCTAssertEqual(appleRequests.count, 2)
+        XCTAssertEqual(manual.status, .formatted)
+        XCTAssertEqual(fixture.system.text, "Hej Anna. Vi ses imorgon.")
+        XCTAssertEqual(try fixture.history.load().first?.originalText, fixture.original.text)
+        XCTAssertEqual(fixture.coordinator.pillState, .hidden)
+    }
+
+    func testUnavailableAppleKeepsOriginalWithoutSilentlyCallingQwen() async throws {
+        let qwen = FormattingProbe(output: "Should never be used")
+        let unavailable = LocalTranscriptFormatter(availability: { _ in .unsupportedLanguage }, generate: { _ in
+            XCTFail("Unavailable Apple model must not run"); return ""
+        })
+        let fixture = Fixture(formatter: qwen.formatter, appleFormatter: unavailable)
+        defer { fixture.cleanUp() }
+        fixture.coordinator.setTextModelProvider(.appleIntelligence)
+        fixture.coordinator.setFormatDictationBeforePasting(true)
+        try await fixture.coordinator.completeDictation(fixture.original, target: fixture.target)
+        let qwenRequests = await qwen.requests
+        XCTAssertTrue(qwenRequests.isEmpty)
+        XCTAssertEqual(fixture.system.text, fixture.original.text)
+        XCTAssertEqual(try fixture.history.load(), [fixture.original])
+        XCTAssertTrue(fixture.coordinator.dictationFormattingStatus?.contains(FormattingAvailability.unsupportedLanguage.textModelStatus) == true)
+    }
+
+    func testChangingProviderDoesNotRerouteAnInFlightDictation() async throws {
+        let qwen = FormattingProbe(output: "Hej Anna. Vi ses imorgon.", suspend: true)
+        let apple = FormattingProbe(output: "Should never be used")
+        let fixture = Fixture(formatter: qwen.formatter, appleFormatter: apple.formatter)
+        defer { fixture.cleanUp() }
+        fixture.coordinator.setFormatDictationBeforePasting(true)
+        let operation = Task { try await fixture.coordinator.completeDictation(fixture.original, target: fixture.target) }
+        for _ in 0..<100 {
+            if await !qwen.requests.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        fixture.coordinator.setTextModelProvider(.appleIntelligence)
+        await qwen.resume()
+        try await operation.value
+        let appleRequests = await apple.requests
+        XCTAssertTrue(appleRequests.isEmpty)
+        XCTAssertEqual(fixture.system.text, "Hej Anna. Vi ses imorgon.")
+        XCTAssertEqual(fixture.coordinator.settings.textModelProvider, .appleIntelligence)
+    }
+
+    func testUnchangedStatusDescribesModelOutputNotNecessity() async throws {
+        let probe = FormattingProbe(output: "hej Anna vi ses imorgon")
+        let fixture = Fixture(formatter: probe.formatter)
+        defer { fixture.cleanUp() }
+        fixture.coordinator.setFormatDictationBeforePasting(true)
+        try await fixture.coordinator.completeDictation(fixture.original, target: fixture.target)
+        let message = try XCTUnwrap(fixture.coordinator.dictationFormattingStatus)
+        XCTAssertTrue(message == "Modellen returnerade oförändrad text" || message == "Model returned unchanged text")
+    }
+
+    func testListFormattingPersistsOriginalBeforePastingAndHidesOverlay() async throws {
+        let input = DictationRecord(text: "köp mjölk ring Anna", language: .swedish)
+        let output = "- Köp mjölk\n- Ring Anna"
+        let fixture = Fixture(formatter: FormattingProbe(output: output).formatter)
+        defer { fixture.cleanUp() }
+        fixture.coordinator.setFormatDictationBeforePasting(true)
+        try await fixture.coordinator.completeDictation(input, target: fixture.target)
+        XCTAssertEqual(fixture.system.text, output)
+        XCTAssertEqual(try fixture.history.load().first?.originalText, input.text)
+        XCTAssertEqual(fixture.coordinator.pillState, .hidden)
+    }
+
     func testUnavailableUnsafeAndFailedModelsFallBackToSavedOriginal() async throws {
         let formatters = [
             LocalTranscriptFormatter(availability: { _ in .modelNotInstalled }, generate: { _ in XCTFail("Unavailable model ran"); return "" }),
@@ -134,16 +212,20 @@ final class DictationFormattingTests: XCTestCase {
         defer { fixture.cleanUp() }
         fixture.coordinator.setFormatDictationBeforePasting(true)
         fixture.coordinator.setDictationOverlayStyle(.minimal)
+        fixture.coordinator.setTextModelProvider(.appleIntelligence)
         let saved = try AppSettingsStore(directory: fixture.directory).load()
         XCTAssertTrue(saved.formatDictationBeforePasting)
         XCTAssertEqual(saved.dictationOverlayStyle, .minimal)
+        XCTAssertEqual(saved.textModelProvider, .appleIntelligence)
         let url = fixture.directory.appendingPathComponent("settings.json")
         try FileManager.default.removeItem(at: url)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
         fixture.coordinator.setFormatDictationBeforePasting(false)
         fixture.coordinator.setDictationOverlayStyle(.recorder)
+        fixture.coordinator.setTextModelProvider(.qwen)
         XCTAssertTrue(fixture.coordinator.settings.formatDictationBeforePasting)
         XCTAssertEqual(fixture.coordinator.settings.dictationOverlayStyle, .minimal)
+        XCTAssertEqual(fixture.coordinator.settings.textModelProvider, .appleIntelligence)
     }
 
     func testHistorySaveFailureNeverGeneratesOrPastes() async throws {
@@ -230,7 +312,8 @@ private final class Fixture {
     let original = DictationRecord(text: "hej Anna vi ses imorgon", language: .swedish)
     let target = FocusedTextTargetSnapshot(element: AXUIElementCreateApplication(getpid()), processID: getpid())
 
-    init(formatter: LocalTranscriptFormatter, directory: URL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)) {
+    init(formatter: LocalTranscriptFormatter, directory: URL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString),
+         appleFormatter: LocalTranscriptFormatter = .apple) {
         self.directory = directory
         preferences = UserDefaults(suiteName: suite)!
         history = DictationHistoryStore(directory: directory)
@@ -241,7 +324,7 @@ private final class Fixture {
             dictionaryStore: DictionaryStore(directory: directory), settingsStore: AppSettingsStore(directory: directory),
             modelDirectory: nil, pasteboard: board, inserter: inserter,
             textModel: QwenTextModel(directory: directory.appendingPathComponent("model")),
-            dictationFormatter: formatter, textPreferences: preferences)
+            dictationFormatter: formatter, appleFormatter: appleFormatter, textPreferences: preferences)
     }
     func cleanUp() {
         coordinator.dismissPill()

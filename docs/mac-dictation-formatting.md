@@ -1,5 +1,9 @@
 # Optional Mac dictation formatting
 
+The subsequent [text-provider/list follow-up](mac-text-providers.md) adds a Mac
+Qwen/Apple choice and word-preserving list layout. The build-43 record below
+describes what was released at that point, not that follow-up's release status.
+
 ## Scope
 
 - Add a persistent, default-off Format before pasting switch beside Text preferences.

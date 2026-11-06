@@ -114,8 +114,8 @@ struct MainView: View {
                 .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
                 .sheet(item: $textRequest) { request in
                     TranscriptFormattingView(record: request.record, action: request.action,
-                                             formatter: coordinator.textModel.formatter,
-                                             summarizer: coordinator.textModel.summarizer) { text in
+                                             formatter: coordinator.transcriptFormatter,
+                                             summarizer: coordinator.transcriptSummarizer) { text in
                         if request.action == .format { try coordinator.applyFormatting(request.record, text: text) }
                         else { try coordinator.applySummary(request.record, text: text) }
                         copied = false

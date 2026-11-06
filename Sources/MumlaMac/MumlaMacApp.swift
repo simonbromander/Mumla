@@ -196,6 +196,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         let sectionIndex = CommandLine.arguments.firstIndex(of: "--snapshot-section")
         let section = sectionIndex.flatMap { CommandLine.arguments.indices.contains($0 + 1) ? CommandLine.arguments[$0 + 1] : nil } ?? "dictate"
         let isPill = section.hasPrefix("pill-")
+        if CommandLine.arguments.contains("--snapshot-apple-text") { snapshotCoordinator.settings.textModelProvider = .appleIntelligence }
         if CommandLine.arguments.contains("--snapshot-minimal") { snapshotCoordinator.settings.dictationOverlayStyle = .minimal }
         if section == "pill-recording" { snapshotCoordinator.prepareRecordingSnapshot() }
         if section == "pill-preparing" { snapshotCoordinator.pillState = .preparing(progress: 0.45) }

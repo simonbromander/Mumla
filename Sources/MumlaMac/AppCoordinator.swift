@@ -31,6 +31,7 @@ final class AppCoordinator: ObservableObject {
     @Published private(set) var inputDevices: [AudioInputDevice] = []
     @Published private(set) var isFormattingDictation = false
     @Published private(set) var dictationFormattingStatus: String?
+    @Published private(set) var appleTextModelAvailability: FormattingAvailability = .modelNotReady
     private(set) var lastRecordingStartupMilliseconds: Double?
     private(set) var isInstallingAppUpdate = false
 
@@ -54,6 +55,7 @@ final class AppCoordinator: ObservableObject {
     private let pasteboard: NSPasteboard
     private let inserter: ClipboardTextInserter
     private let dictationFormatter: LocalTranscriptFormatter
+    private let appleFormatter: LocalTranscriptFormatter
     private let textPreferences: UserDefaults
     private var formattingTask: Task<FormattingResult, Never>?
     private let correctionLearner = CorrectionLearner()
@@ -89,6 +91,7 @@ final class AppCoordinator: ObservableObject {
         inserter: ClipboardTextInserter? = nil,
         textModel: QwenTextModel = QwenTextModel(),
         dictationFormatter: LocalTranscriptFormatter? = nil,
+        appleFormatter: LocalTranscriptFormatter = .apple,
         textPreferences: UserDefaults = .standard
     ) {
         self.recorder = recorder
@@ -102,6 +105,7 @@ final class AppCoordinator: ObservableObject {
         self.inserter = inserter ?? ClipboardTextInserter(pasteboard: pasteboard)
         self.textModel = textModel
         self.dictationFormatter = dictationFormatter ?? textModel.formatter
+        self.appleFormatter = appleFormatter
         self.textPreferences = textPreferences
     }
 
@@ -128,6 +132,24 @@ final class AppCoordinator: ObservableObject {
 
     var isInstallingModel: Bool {
         modelInstallTask != nil
+    }
+
+    var transcriptFormatter: LocalTranscriptFormatter {
+        settings.textModelProvider == .appleIntelligence ? appleFormatter : dictationFormatter
+    }
+
+    var transcriptSummarizer: LocalTranscriptSummarizer {
+        settings.textModelProvider == .appleIntelligence ? .apple : textModel.summarizer
+    }
+
+    func refreshAppleTextModelAvailability() {
+        let language: MumlaLanguage
+        switch settings.languageMode {
+        case .automatic: language = settings.lastLanguage
+        case .swedish: language = .swedish
+        case .english: language = .english
+        }
+        appleTextModelAvailability = LocalTranscriptFormatter.appleAvailability(language)
     }
 
     func setAppUpdateInstallationInProgress(_ inProgress: Bool) {
@@ -346,7 +368,7 @@ final class AppCoordinator: ObservableObject {
             isFormattingDictation = true
             pillState = .transcribing
             showPill?()
-            let formatter = dictationFormatter
+            let formatter = transcriptFormatter
             let prompt = textPreferences.string(forKey: LocalTextPreferences.formattingKey) ?? ""
             let task = Task {
                 // A user-triggered dictation is explicit work even when another app owns focus.
@@ -383,9 +405,9 @@ final class AppCoordinator: ObservableObject {
     private func formattingStatusText(_ status: FormattingStatus) -> String {
         switch status {
         case .formatted: mText("Formaterat före inklistring", "Formatted before pasting")
-        case .unchanged: mText("Inga formateringsändringar behövdes", "No formatting changes needed")
-        case .unavailable: mText("Textmodellen är inte redo. Använder originalet.", "Text model not ready. Using the original.")
-        case .unsafeOutput: mText("Förslaget ändrade ord. Använder originalet.", "Suggestion changed words. Using the original.")
+        case .unchanged: mText("Modellen returnerade oförändrad text", "Model returned unchanged text")
+        case .unavailable(let reason): reason.textModelStatus + " " + mText("Använder originalet.", "Using the original.")
+        case .unsafeOutput: mText("Förslaget klarade inte innehållskontrollen. Använder originalet.", "Suggestion didn't pass the content check. Using the original.")
         case .tooLong: mText("För långt för textmodellen. Använder originalet.", "Too long for the text model. Using the original.")
         default: mText("Formatering misslyckades. Använder originalet.", "Formatting failed. Using the original.")
         }
@@ -513,6 +535,18 @@ final class AppCoordinator: ObservableObject {
             try settingsStore.save(updated)
             settings = updated
             dictationFormattingStatus = nil
+        } catch { statusText = "Settings save failed" }
+    }
+
+    func setTextModelProvider(_ provider: TextModelProvider) {
+        guard settings.textModelProvider != provider else { return }
+        var updated = settings
+        updated.textModelProvider = provider
+        do {
+            try settingsStore.save(updated)
+            settings = updated
+            dictationFormattingStatus = nil
+            refreshAppleTextModelAvailability()
         } catch { statusText = "Settings save failed" }
     }
 

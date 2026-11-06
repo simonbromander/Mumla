@@ -28,7 +28,8 @@ final class AppSettingsStoreTests: XCTestCase {
             pinnedInputDevice: PinnedInputDevice(uid: "BuiltInMicrophoneDevice", name: "MacBook Pro Microphone"),
             djiMicButtonEnabled: true,
             formatDictationBeforePasting: true,
-            dictationOverlayStyle: .minimal
+            dictationOverlayStyle: .minimal,
+            textModelProvider: .appleIntelligence
         )
 
         try store.save(settings)
@@ -58,5 +59,6 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertFalse(settings.djiMicButtonEnabled)
         XCTAssertFalse(settings.formatDictationBeforePasting)
         XCTAssertEqual(settings.dictationOverlayStyle, .recorder)
+        XCTAssertEqual(settings.textModelProvider, .qwen)
     }
 }

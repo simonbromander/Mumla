@@ -9,6 +9,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var triggerKey: DictationTriggerKey
     public var showPasteDialog: Bool
     public var formatDictationBeforePasting: Bool
+    public var textModelProvider: TextModelProvider
     public var dictationOverlayStyle: DictationOverlayStyle
     public var djiMicButtonEnabled: Bool
     /// When set, dictation records from this input device instead of following the system default.
@@ -25,7 +26,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         pinnedInputDevice: PinnedInputDevice? = nil,
         djiMicButtonEnabled: Bool = false,
         formatDictationBeforePasting: Bool = false,
-        dictationOverlayStyle: DictationOverlayStyle = .recorder
+        dictationOverlayStyle: DictationOverlayStyle = .recorder,
+        textModelProvider: TextModelProvider = .qwen
     ) {
         self.languageMode = languageMode
         self.lastLanguage = lastLanguage
@@ -38,6 +40,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.djiMicButtonEnabled = djiMicButtonEnabled
         self.formatDictationBeforePasting = formatDictationBeforePasting
         self.dictationOverlayStyle = dictationOverlayStyle
+        self.textModelProvider = textModelProvider
     }
 
     public static let `default` = AppSettings()
@@ -54,6 +57,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case djiMicButtonEnabled
         case formatDictationBeforePasting
         case dictationOverlayStyle
+        case textModelProvider
     }
 
     public init(from decoder: Decoder) throws {
@@ -69,11 +73,20 @@ public struct AppSettings: Codable, Equatable, Sendable {
         djiMicButtonEnabled = try container.decodeIfPresent(Bool.self, forKey: .djiMicButtonEnabled) ?? false
         formatDictationBeforePasting = try container.decodeIfPresent(Bool.self, forKey: .formatDictationBeforePasting) ?? false
         dictationOverlayStyle = try container.decodeIfPresent(DictationOverlayStyle.self, forKey: .dictationOverlayStyle) ?? .recorder
+        textModelProvider = try container.decodeIfPresent(TextModelProvider.self, forKey: .textModelProvider) ?? .qwen
     }
 }
 
 public enum DictationOverlayStyle: String, Codable, CaseIterable, Sendable {
     case recorder, minimal
+}
+
+public enum TextModelProvider: String, Codable, CaseIterable, Sendable {
+    case qwen, appleIntelligence
+
+    public var displayName: String {
+        self == .qwen ? "Qwen3.5 4B" : "Apple Intelligence"
+    }
 }
 
 public struct PinnedInputDevice: Codable, Equatable, Sendable {

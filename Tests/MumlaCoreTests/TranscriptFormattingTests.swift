@@ -32,6 +32,43 @@ final class TranscriptFormattingTests: XCTestCase {
         }
     }
 
+    func testListsPreserveEveryContentWordAndNumericValue() {
+        XCTAssertTrue(TranscriptFormattingPolicy.accepts(original: "ring Anna", formatted: "- Ring Anna"))
+        XCTAssertTrue(TranscriptFormattingPolicy.accepts(original: "ring Anna", formatted: "1. Ring Anna"))
+        let source = "köp mjölk hämta paket ring Anna"
+        for output in [
+            "- Köp mjölk\n- Hämta paket\n- Ring Anna",
+            "• Köp mjölk\n• Hämta paket\n• Ring Anna",
+            "* Köp mjölk\n* Hämta paket\n* Ring Anna",
+            "1. Köp mjölk\n2. Hämta paket\n3. Ring Anna",
+            "1) Köp mjölk\n2) Hämta paket\n3) Ring Anna"
+        ] { XCTAssertTrue(TranscriptFormattingPolicy.accepts(original: source, formatted: output), output) }
+        XCTAssertTrue(TranscriptFormattingPolicy.accepts(original: "betala 3,5 SEK ring 14:30 värdet är -2",
+            formatted: "1. Betala 3,5 SEK\n2. Ring 14:30\n3. Värdet är -2"))
+        XCTAssertTrue(TranscriptFormattingPolicy.accepts(original: "- köp mjölk\n- ring Anna", formatted: "- Köp mjölk\n- Ring Anna."))
+        XCTAssertTrue(TranscriptFormattingPolicy.accepts(original: "1. köp mjölk\n2. ring Anna", formatted: "1. Köp mjölk\n2. Ring Anna."))
+    }
+
+    func testListsCannotHideChangedContentNumbersOrSymbols() {
+        for (source, output) in [
+            ("köp mjölk ring Anna", "1. Köp mjölk\n3. Ring Anna"),
+            ("köp mjölk ring Anna", "2. Köp mjölk\n3. Ring Anna"),
+            ("köp mjölk ring Anna", "- Köp mjölk\n- Kontakta Anna"),
+            ("köp inte mjölk ring Anna", "- Köp mjölk\n- Ring Anna"),
+            ("köp mjölk ring Anna", "Inköpslista\n- Köp mjölk\n- Ring Anna"),
+            ("värdet är -2 kostar 3,5 SEK", "- Värdet är 2\n- Kostar 3,5 SEK"),
+            ("värdet är - 2 ring Anna", "- Värdet är 2\n- Ring Anna"),
+            ("betala 1 ring Anna", "1. Betala\n2. Ring Anna"),
+            ("betala 3,5 SEK ring 14:30", "1. Betala 35 SEK\n2. Ring 14:30"),
+            ("mejla anna@example.com läs https://mumla.app/path", "- Mejla anna@example. com\n- Läs https://mumla.app/path"),
+            ("a + b c = d", "- A b +\n- C = d"),
+            ("a * b ring Anna", "- A b\n* Ring Anna"),
+            ("köp mjölk ring Anna", "```\n- Köp mjölk\n- Ring Anna\n```"),
+            ("köp mjölk ring Anna", "# Köp mjölk\n- Ring Anna"),
+            ("3. köp mjölk ring Anna", "1. Köp mjölk\n2. Ring Anna")
+        ] { XCTAssertFalse(TranscriptFormattingPolicy.accepts(original: source, formatted: output), "\(source) -> \(output)") }
+    }
+
     func testHistoryAcceptanceAndRestoreSurviveReload() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

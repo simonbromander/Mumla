@@ -184,7 +184,7 @@ public struct TranscriptFormattingView: View {
         switch result.status {
         case .formatted: return mText("Förslag klart", "Preview ready")
         case .summarized: return mText("Kontrollera förslaget före användning", "Review the suggestion before using it")
-        case .unchanged: return mText("Inga ändringar", "No changes")
+        case .unchanged: return mText("Modellen returnerade oförändrad text", "Model returned unchanged text")
         case .tooLong: return mText("Texten är för lång för försöksversionen", "This text is too long for the trial")
         case .unsafeOutput:
             return action == .format ? mText("Förslaget ändrade innehållet. Originalet är kvar.", "The suggestion changed the content. Keeping the original.") : mText("Kunde inte skapa ett giltigt förslag", "Couldn't create a valid suggestion")

@@ -7,6 +7,12 @@ public enum TranscriptFormattingPolicy {
         guard !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               original.count <= maximumCharacters,
               !formatted.isEmpty, formatted.count <= original.count * 2 + 32 else { return false }
+        if acceptsContent(original: original, formatted: formatted) { return true }
+        guard let listContent = removingAddedListMarkers(from: formatted) else { return false }
+        return acceptsContent(original: original, formatted: listContent)
+    }
+
+    private static func acceptsContent(original: String, formatted: String) -> Bool {
         let words = #"[\p{L}\p{M}\p{N}_]+(?:['’\-][\p{L}\p{M}\p{N}_]+)*"#
         let source = matches(words, in: original)
         let output = matches(words, in: formatted)
@@ -25,6 +31,26 @@ public enum TranscriptFormattingPolicy {
         // Symbols outside ordinary prose punctuation must remain in the same gaps.
         guard gaps(words, in: original).map(fixedSymbols) == gaps(words, in: formatted).map(fixedSymbols) else { return false }
         return true
+    }
+
+    private static func removingAddedListMarkers(from text: String) -> String? {
+        let prefix = try! NSRegularExpression(pattern: #"^ {0,3}(?:[-*•][\t ]+|([1-9][0-9]{0,2})[.)][\t ]+)(?=\S)"#)
+        var nextNumber = 1
+        var itemCount = 0
+        var lines: [String] = []
+        for line in text.components(separatedBy: .newlines) {
+            guard let match = prefix.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+                  let range = Range(match.range, in: line) else { lines.append(line); continue }
+            if let numberRange = Range(match.range(at: 1), in: line) {
+                guard Int(line[numberRange]) == nextNumber else { return nil }
+                nextNumber += 1
+            }
+            itemCount += 1
+            lines.append(String(line[range.upperBound...]))
+        }
+        // Only new list markers are ignored. Original numbers and symbols still
+        // pass through the full content check, including signs, links and their positions.
+        return itemCount > 0 ? lines.joined(separator: "\n") : nil
     }
 
     private static func matches(_ pattern: String, in text: String) -> [String] {

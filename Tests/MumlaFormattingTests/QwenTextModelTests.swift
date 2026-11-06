@@ -6,6 +6,16 @@ import MumlaCore
 import XCTest
 
 final class QwenTextModelTests: XCTestCase, @unchecked Sendable {
+    func testInstallPinnedQwenForLocalEvaluation() async throws {
+        guard ProcessInfo.processInfo.environment["MUMLA_INSTALL_QWEN"] == "1",
+              let path = ProcessInfo.processInfo.environment["MUMLA_TEST_QWEN_DIRECTORY"] else {
+            throw XCTSkip("Opt-in download of pinned local evaluation weights")
+        }
+        let store = QwenModelStore(directory: URL(fileURLWithPath: path, isDirectory: true))
+        try await QwenModelInstaller(store: store).install { _ in }
+        XCTAssertTrue(store.isInstalled)
+    }
+
     func testModelRevisionAndEveryFileArePinned() {
         let artifact = QwenModelArtifact.artifact
         XCTAssertEqual(artifact.revision, QwenModelArtifact.revision)
@@ -151,6 +161,28 @@ final class QwenTextModelTests: XCTestCase, @unchecked Sendable {
             // One model may stay ready; repeated requests must not accumulate model copies or KV caches.
             XCTAssertLessThan(active, baseline + 256 * 1_024 * 1_024)
             XCTAssertLessThan(active, 3_500_000_000)
+        }
+    }
+
+    @MainActor
+    func testActualQwenFollowsListPreferencesWithoutRewriting() async throws {
+        guard let path = ProcessInfo.processInfo.environment["MUMLA_TEST_QWEN_DIRECTORY"] else {
+            throw XCTSkip("Set MUMLA_TEST_QWEN_DIRECTORY for a real on-device list evaluation")
+        }
+        let model = QwenTextModel(directory: URL(fileURLWithPath: path, isDirectory: true))
+        let fixtures: [(String, MumlaLanguage, String)] = [
+            ("köp mjölk hämta paket ring Anna", .swedish, "Use a bullet list. Preserve all words."),
+            ("buy milk collect the parcel call Anna", .english, "Use a numbered list. Preserve all words."),
+            ("köp mjölk hämta paket ring Anna", .swedish, "Follow ASD-STE100\nMake bullet or numbered list when appropriate"),
+            ("betala 3,5 SEK ring Anna klockan 14:30 kontrollera värdet -2", .swedish, "Use a numbered list. Preserve all words and numbers.")
+        ]
+        for (index, fixture) in fixtures.enumerated() {
+            let result = await model.formatter.format(fixture.0, language: fixture.1, foreground: true, stylePrompt: fixture.2)
+            print("Synthetic Qwen list \(index): status=\(result.status), seconds=\(result.elapsed), output=\(result.text)")
+            XCTAssertEqual(result.status, .formatted, "An unchanged response is not a passing list-preference evaluation")
+            XCTAssertTrue(result.text.contains("\n"), "Expected a multi-item list")
+            XCTAssertTrue(result.text.hasPrefix("- ") || result.text.hasPrefix("1. ") || result.text.hasPrefix("1) "))
+            XCTAssertTrue(TranscriptFormattingPolicy.accepts(original: fixture.0, formatted: result.text))
         }
     }
 

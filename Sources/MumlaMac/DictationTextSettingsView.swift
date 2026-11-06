@@ -1,3 +1,4 @@
+import MumlaCore
 import MumlaUI
 import MumlaFormatting
 import SwiftUI
@@ -6,6 +7,7 @@ struct DictationTextSettingsView: View {
     @ObservedObject var coordinator: AppCoordinator
     var customize: () -> Void
     @State private var modelExpanded = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -20,8 +22,8 @@ struct DictationTextSettingsView: View {
                 ))
                 .toggleStyle(MumlaSwitchStyle(showsLabel: false))
                 .accessibilityIdentifier("settings.format-before-pasting")
-                .help(mText("Lokal formatering av skiljetecken och stycken. Originalet sparas. Tar extra tid.",
-                            "Local punctuation and paragraph formatting. Keeps the original. Adds processing time."))
+                .help(mText("Lokala skiljetecken, stycken och listor. Orden bevaras. Tar extra tid.",
+                            "Local punctuation, paragraphs and lists. Preserves words. Adds processing time."))
             }
             HStack(alignment: .center, spacing: 16) {
                 Button(action: customize) {
@@ -38,15 +40,53 @@ struct DictationTextSettingsView: View {
                     .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("settings.dictation-formatting-status")
             }
-            DisclosureGroup(isExpanded: $modelExpanded) {
-                QwenTextModelControls(model: coordinator.textModel, isInUse: coordinator.isFormattingDictation)
-                    .padding(.top, 12)
-            } label: {
-                Label(mText("Textmodell", "Text model") + " · Qwen3.5 4B", systemImage: "cpu")
-                    .font(.system(size: 12, design: .monospaced))
+            Label(mText("Textmodell", "Text model"), systemImage: "cpu")
+                .font(.system(size: 12, design: .monospaced))
+            HStack(spacing: 4) {
+                ForEach(TextModelProvider.allCases, id: \.self) { provider in
+                    Button { coordinator.setTextModelProvider(provider) } label: {
+                        Text(provider.displayName)
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(MumlaStereoKeyStyle(isLatched: coordinator.settings.textModelProvider == provider, height: 44))
+                    .accessibilityAddTraits(coordinator.settings.textModelProvider == provider ? .isSelected : [])
+                    .accessibilityIdentifier("settings.text-model.\(provider.rawValue)")
+                }
             }
-            .accessibilityIdentifier("settings.text-model")
+            if coordinator.settings.textModelProvider == .qwen {
+                DisclosureGroup(isExpanded: $modelExpanded) {
+                    QwenTextModelControls(model: coordinator.textModel, isInUse: coordinator.isFormattingDictation)
+                        .padding(.top, 12)
+                } label: {
+                    Label("Qwen3.5 4B", systemImage: "internaldrive")
+                        .font(.system(size: 12, design: .monospaced))
+                }
+                .accessibilityIdentifier("settings.text-model")
+            } else {
+                HStack(spacing: 12) {
+                    Label(coordinator.appleTextModelAvailability.textModelStatus,
+                          systemImage: coordinator.appleTextModelAvailability == .available ? "checkmark.circle" : "exclamationmark.circle")
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button { coordinator.refreshAppleTextModelAvailability() } label: {
+                        Image(systemName: "arrow.clockwise").frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(MumlaKeyStyle())
+                    .help(mText("Kontrollera modellstatus", "Check model status"))
+                    .accessibilityLabel(mText("Kontrollera modellstatus", "Check model status"))
+                }
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(MumlaStyle.secondary)
+                    .accessibilityIdentifier("settings.apple-text-model-status")
+            }
         }
         .padding(.vertical, 16)
+        .onAppear { coordinator.refreshAppleTextModelAvailability() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { coordinator.refreshAppleTextModelAvailability() }
+        }
+        .onChange(of: coordinator.settings.languageMode) { _, _ in coordinator.refreshAppleTextModelAvailability() }
+        .onChange(of: coordinator.settings.lastLanguage) { _, _ in coordinator.refreshAppleTextModelAvailability() }
     }
 }
