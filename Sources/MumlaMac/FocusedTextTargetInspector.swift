@@ -11,6 +11,17 @@ enum FocusedTextTarget {
 }
 
 enum FocusedTextTargetInspector {
+    /// Inspect once before recording; secure-field detection and the paste target must agree.
+    static func captureForDictation() -> (focus: FocusedTextTarget, target: FocusedTextTargetSnapshot?) {
+        guard !IsSecureEventInputEnabled() else { return (.secureText, nil) }
+        guard AccessibilityPermission.isTrusted, let element = focusedElement() else { return (.unknown, nil) }
+        let focus = inspect(element: element)
+        guard focus == .editableText else { return (focus, nil) }
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(element, &pid) == .success else { return (focus, nil) }
+        return (focus, FocusedTextTargetSnapshot(element: element, processID: pid))
+    }
+
     static func captureEditableTarget(processID: pid_t? = nil) -> FocusedTextTargetSnapshot? {
         guard !IsSecureEventInputEnabled(), AccessibilityPermission.isTrusted,
               let element = focusedElement(processID: processID), inspect(element: element) == .editableText else { return nil }

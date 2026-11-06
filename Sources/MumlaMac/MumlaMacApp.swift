@@ -196,6 +196,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         let sectionIndex = CommandLine.arguments.firstIndex(of: "--snapshot-section")
         let section = sectionIndex.flatMap { CommandLine.arguments.indices.contains($0 + 1) ? CommandLine.arguments[$0 + 1] : nil } ?? "dictate"
         let isPill = section.hasPrefix("pill-")
+        if CommandLine.arguments.contains("--snapshot-minimal") { snapshotCoordinator.settings.dictationOverlayStyle = .minimal }
         if section == "pill-recording" { snapshotCoordinator.prepareRecordingSnapshot() }
         if section == "pill-preparing" { snapshotCoordinator.pillState = .preparing(progress: 0.45) }
         if section == "pill-transcribing" { snapshotCoordinator.pillState = .transcribing }
@@ -208,7 +209,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         let compact = CommandLine.arguments.contains("--snapshot-compact")
         let light = CommandLine.arguments.contains("--snapshot-light")
         let size = section == "text-model" ? NSSize(width: compact ? 320 : 480, height: 320)
-            : section == "about" ? NSSize(width: 580, height: 520) : isPill ? NSSize(width: PillView.width, height: PillView.height(for: snapshotCoordinator.pillState))
+            : section == "about" ? NSSize(width: 580, height: 520) : isPill ? PillView.size(for: snapshotCoordinator.pillState, style: snapshotCoordinator.settings.dictationOverlayStyle)
             : NSSize(width: compact ? 820 : 960, height: compact ? 560 : 760)
         let view: NSView
         let window: NSWindow

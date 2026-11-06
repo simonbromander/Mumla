@@ -17,6 +17,8 @@ public struct LocalTextPreferencesView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     editor(mText("Formatering", "Formatting"), text: $formatting, identifier: "text-preferences.formatting")
+                        .help(mText("Styr skiljetecken, stor bokstav och stycken. Ord får inte läggas till eller skrivas om.",
+                                    "Controls punctuation, capitalization and paragraphs. Words cannot be added or rewritten."))
                     editor(mText("Sammanfattning", "Summary"), text: $summary, identifier: "text-preferences.summary")
                 }.padding(24)
             }

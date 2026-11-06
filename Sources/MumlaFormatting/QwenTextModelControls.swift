@@ -4,7 +4,8 @@ import SwiftUI
 
 public struct QwenTextModelControls: View {
     @ObservedObject private var model: QwenTextModel
-    public init(model: QwenTextModel) { self.model = model }
+    private var isInUse: Bool
+    public init(model: QwenTextModel, isInUse: Bool = false) { self.model = model; self.isInUse = isInUse }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -32,7 +33,7 @@ public struct QwenTextModelControls: View {
                     Button { model.remove() } label: {
                         Text(mText("Ta bort modell", "Remove model")).padding(12)
                     }
-                        .disabled(model.isRemoving).accessibilityIdentifier("text-model.remove")
+                        .disabled(model.isRemoving || isInUse).accessibilityIdentifier("text-model.remove")
                 }
             } else {
                 Button { model.download() } label: {

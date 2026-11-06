@@ -10,22 +10,67 @@ struct PillView: View {
         if case .transcript = state { return 208 }
         return 92
     }
+    static func size(for state: PillState, style: DictationOverlayStyle) -> NSSize {
+        if style == .minimal, case .transcript = state { return NSSize(width: width, height: height(for: state)) }
+        return style == .minimal ? NSSize(width: 256, height: 56) : NSSize(width: width, height: height(for: state))
+    }
+    static func cornerRadius(for state: PillState, style: DictationOverlayStyle) -> CGFloat {
+        size(for: state, style: style).height == 56 ? 28 : cornerRadius
+    }
 
     var body: some View {
         Group {
             if case let .transcript(record, copied) = coordinator.pillState {
                 transcript(record, copied: copied)
+            } else if coordinator.settings.dictationOverlayStyle == .minimal {
+                minimalRecorder
             } else {
                 recorder
             }
         }
         .padding(8)
-        .frame(width: Self.width, height: Self.height(for: coordinator.pillState))
-        .mumlaSurface(radius: Self.cornerRadius, opacity: 0.88)
-        .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .frame(width: Self.size(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle).width,
+               height: Self.size(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle).height)
+        .mumlaSurface(radius: Self.cornerRadius(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle), opacity: 0.88)
+        .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle), style: .continuous))
         .mumlaAppearance()
         .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
         .accessibilityElement(children: .contain)
+    }
+
+    private var minimalRecorder: some View {
+        HStack(spacing: 8) {
+            MumlaRecordingLight(recording: recording)
+            if recording {
+                Text("REC").font(.system(size: 10, weight: .semibold, design: .monospaced))
+                MumlaWaveform(samples: coordinator.waveformSamples, active: true, ink: MumlaStyle.accent)
+                    .frame(width: 44, height: 16).accessibilityHidden(true)
+                Text(elapsed).font(.system(size: 12, design: .monospaced)).monospacedDigit()
+                    .accessibilityLabel(mText("Inspelningstid", "Recording time") + " " + elapsed)
+            } else {
+                Text(title).font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            if recording {
+                compactButton("stop.fill", label: mText("Stoppa", "Stop")) { Task { await coordinator.finishDictation() } }
+                compactButton("xmark", label: mText("Avbryt", "Cancel")) { coordinator.cancelDictation() }
+            } else if coordinator.isFormattingDictation {
+                compactButton("xmark", label: mText("Avbryt formatering", "Cancel formatting")) { coordinator.cancelDictation() }
+            } else if coordinator.pillState != .transcribing {
+                compactButton("xmark", label: mText("Stäng", "Close")) { coordinator.dismissPill() }
+            }
+        }
+        .foregroundStyle(MumlaStyle.ink)
+        .padding(.horizontal, 8)
+        .accessibilityIdentifier("dictation.minimal-overlay")
+    }
+
+    private func compactButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).frame(width: 28, height: 32)
+                .contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityLabel(label).help(label)
     }
 
     private var recorder: some View {
@@ -62,6 +107,9 @@ struct PillView: View {
                 if recording {
                     MumlaIconButton("stop.fill", label: mText("Stoppa", "Stop")) { Task { await coordinator.finishDictation() } }
                     MumlaIconButton("xmark", label: mText("Avbryt", "Cancel")) { coordinator.cancelDictation() }
+                } else if coordinator.isFormattingDictation {
+                    MumlaIconButton("xmark", label: mText("Avbryt formatering", "Cancel formatting")) { coordinator.cancelDictation() }
+                        .accessibilityIdentifier("dictation.cancel-formatting")
                 } else if coordinator.pillState != .transcribing {
                     MumlaIconButton("xmark", label: mText("Stäng", "Close")) { coordinator.dismissPill() }
                 }
@@ -108,7 +156,7 @@ struct PillView: View {
         switch coordinator.pillState {
         case .preparing: mText("FÖRBEREDER", "PREPARING")
         case .listening, .handsFree: "REC"
-        case .transcribing: mText("TRANSKRIBERAR", "TRANSCRIBING")
+        case .transcribing: coordinator.isFormattingDictation ? mText("FORMATERAR", "FORMATTING") : mText("TRANSKRIBERAR", "TRANSCRIBING")
         case let .message(message): message
         case .transcript: mText("TEXTEN ÄR KLAR", "TRANSCRIPT READY")
         case .hidden: "MUMla"

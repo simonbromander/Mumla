@@ -218,7 +218,7 @@ struct MainView: View {
     private var recorderDetail: String {
         switch coordinator.pillState {
         case .listening, .handsFree: mText("Lyssnar", "Listening")
-        case .transcribing: mText("Skriver dina ord", "Transcribing")
+        case .transcribing: coordinator.isFormattingDictation ? mText("Formaterar texten", "Formatting text") : mText("Skriver dina ord", "Transcribing")
         case let .preparing(progress): mText("Förbereder svenska", "Preparing Swedish") + " \(Int(progress * 100)) %"
         case let .message(message): message
         case .transcript: mText("Texten är klar", "Transcript ready")
@@ -304,6 +304,22 @@ struct MainView: View {
             VStack(spacing: 0) {
                 settingRow(mText("Utseende", "Appearance"), symbol: "circle.lefthalf.filled") {
                     MumlaAppearancePicker()
+                }
+                DictationTextSettingsView(coordinator: coordinator) { showTextPreferences = true }
+                Divider().opacity(0.6)
+                settingRow(mText("Dikteringsruta", "Dictation overlay"), symbol: "rectangle.bottomthird.inset.filled") {
+                    HStack(spacing: 4) {
+                        ForEach(DictationOverlayStyle.allCases, id: \.self) { style in
+                            Button { coordinator.setDictationOverlayStyle(style) } label: {
+                                Text(style == .recorder ? mText("Bandspelare", "Recorder") : mText("Minimal", "Minimal"))
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(MumlaStereoKeyStyle(isLatched: coordinator.settings.dictationOverlayStyle == style, height: 44))
+                            .accessibilityAddTraits(coordinator.settings.dictationOverlayStyle == style ? .isSelected : [])
+                            .accessibilityIdentifier("settings.overlay.\(style.rawValue)")
+                        }
+                    }.frame(width: 210)
                 }
                 settingRow(mText("Dikteringstangent", "Trigger key"), symbol: "keyboard") {
                     HStack(spacing: 4) {
@@ -436,16 +452,8 @@ struct MainView: View {
                     }
                 }
                 if coordinator.isInstallingModel { MumlaDownloadGauge(fraction: coordinator.modelInstallProgress.fraction).padding(.top, 16) }
-                settingRow(mText("Textmodell", "Text model"), symbol: "text.alignleft") {
-                    QwenTextModelControls(model: coordinator.textModel)
-                }
                 settingRow(mText("Om Mumla", "About Mumla"), symbol: "info.circle") {
                     Button { showAbout = true } label: { Label(mText("Modeller och licenser", "Models and licenses"), systemImage: "doc.text").padding(12) }
-                }
-                settingRow(mText("Textpreferenser", "Text preferences"), symbol: "text.badge.star") {
-                    Button { showTextPreferences = true } label: {
-                        Label(mText("Anpassa", "Customize"), systemImage: "slider.horizontal.3").padding(12)
-                    }.accessibilityIdentifier("settings.text-preferences")
                 }
                 if updater.isAvailable {
                     settingRow(mText("Uppdateringar", "Updates"), symbol: "arrow.triangle.2.circlepath") {

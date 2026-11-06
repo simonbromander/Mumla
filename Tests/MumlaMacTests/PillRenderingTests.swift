@@ -39,11 +39,12 @@ final class PillRenderingTests: XCTestCase {
             .transcript(DictationRecord(text: "Funkar det här nu då?", language: .swedish), copied: false),
             .transcript(DictationRecord(text: String(repeating: "En längre anteckning. ", count: 100), language: .swedish), copied: true)
         ]
-        for state in states {
+        for (style, state) in DictationOverlayStyle.allCases.flatMap({ style in states.map { (style, $0) } }) {
+            coordinator.settings.dictationOverlayStyle = style
             coordinator.pillState = state
             let controller = PillWindowController(coordinator: coordinator)
             defer { controller.window.close() }
-            let size = NSSize(width: PillView.width, height: PillView.height(for: state))
+            let size = PillView.size(for: state, style: style)
             controller.window.setContentSize(size)
             let view = try XCTUnwrap(controller.window.contentView)
             view.frame = NSRect(origin: .zero, size: size)
@@ -58,7 +59,9 @@ final class PillRenderingTests: XCTestCase {
                                       "The pill's corners must remain transparent in \(state)")
                 }
             }
-            XCTAssertGreaterThan(try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)).alphaComponent, 0.98)
+            let centerAlpha = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)).alphaComponent
+            // Minimal mode has a translucent chassis, not the recorder's opaque LCD well.
+            XCTAssertGreaterThan(centerAlpha, size.height == 56 ? 0.88 : 0.98)
             if !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency && !NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast {
                 // Sample the chassis above the opaque display/text well, away from its border.
                 let scale = CGFloat(bitmap.pixelsHigh) / size.height
@@ -68,6 +71,28 @@ final class PillRenderingTests: XCTestCase {
             }
             XCTAssertEqual(view.bounds.size, size)
         }
+    }
+
+    func testMinimalOverlayKeepsCopyFallbackReadableAndNeverTakesFocus() throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let coordinator = makeCoordinator(directory: directory)
+        coordinator.setDictationOverlayStyle(.minimal)
+        coordinator.pillState = .listening(elapsedSeconds: 17)
+        let controller = PillWindowController(coordinator: coordinator)
+        defer { controller.window.close() }
+        controller.show()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        XCTAssertEqual(controller.window.frame.size, NSSize(width: 256, height: 56))
+        XCTAssertEqual(controller.window.contentView?.layer?.cornerRadius, 28)
+        XCTAssertFalse(controller.window.canBecomeKey)
+        XCTAssertFalse(controller.window.canBecomeMain)
+        coordinator.pillState = .transcript(DictationRecord(text: "A saved transcript", language: .english), copied: false)
+        controller.show()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        XCTAssertEqual(controller.window.frame.size, NSSize(width: 380, height: 208))
+        XCTAssertEqual(controller.window.contentView?.layer?.cornerRadius, PillView.cornerRadius)
     }
 
     private func makeCoordinator(directory: URL) -> AppCoordinator {

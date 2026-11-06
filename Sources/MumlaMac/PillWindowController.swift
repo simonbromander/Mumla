@@ -35,16 +35,17 @@ final class PillWindowController {
         presentationID = UUID()
         let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) ?? NSScreen.main
         guard let screen else { return }
-        let size = NSSize(width: PillView.width, height: PillView.height(for: coordinator.pillState))
+        let size = PillView.size(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle)
+        window.contentView?.layer?.cornerRadius = PillView.cornerRadius(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle)
         let frame = NSRect(x: screen.visibleFrame.midX - size.width / 2, y: screen.visibleFrame.minY + 20, width: size.width, height: size.height)
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         if !window.isVisible {
-            window.setFrame(frame.offsetBy(dx: 0, dy: reduceMotion ? 0 : -20), display: true)
+            window.setFrame(frame.offsetBy(dx: 0, dy: reduceMotion ? 0 : -8), display: true)
             window.alphaValue = reduceMotion ? 1 : 0
             window.orderFrontRegardless()
         }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = reduceMotion ? 0 : 0.22
+            context.duration = reduceMotion ? 0 : 0.12
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             window.animator().setFrame(frame, display: true)
             window.animator().alphaValue = 1

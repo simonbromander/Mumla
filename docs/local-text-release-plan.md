@@ -1,5 +1,9 @@
 # Local text beta release
 
+For the subsequent Mac-only opt-in dictation path, see
+[Mac dictation formatting](mac-dictation-formatting.md). This original release
+plan describes the manual-preview release, not that newer option.
+
 ## Scope
 
 - Release optional foreground formatting and summary previews on iOS and Mac.

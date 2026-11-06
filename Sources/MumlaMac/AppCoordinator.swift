@@ -29,6 +29,9 @@ final class AppCoordinator: ObservableObject {
     @Published private(set) var settingsOpenRequest: UUID?
     @Published private(set) var isBusyForAppUpdate = false
     @Published private(set) var inputDevices: [AudioInputDevice] = []
+    @Published private(set) var isFormattingDictation = false
+    @Published private(set) var dictationFormattingStatus: String?
+    private(set) var lastRecordingStartupMilliseconds: Double?
     private(set) var isInstallingAppUpdate = false
 
     var showPill: (() -> Void)?
@@ -50,6 +53,9 @@ final class AppCoordinator: ObservableObject {
     private let settingsStore: AppSettingsStore
     private let pasteboard: NSPasteboard
     private let inserter: ClipboardTextInserter
+    private let dictationFormatter: LocalTranscriptFormatter
+    private let textPreferences: UserDefaults
+    private var formattingTask: Task<FormattingResult, Never>?
     private let correctionLearner = CorrectionLearner()
     private let editObserver = FocusedFieldEditObserver()
 
@@ -81,7 +87,9 @@ final class AppCoordinator: ObservableObject {
         modelDirectory: URL?,
         pasteboard: NSPasteboard = .general,
         inserter: ClipboardTextInserter? = nil,
-        textModel: QwenTextModel = QwenTextModel()
+        textModel: QwenTextModel = QwenTextModel(),
+        dictationFormatter: LocalTranscriptFormatter? = nil,
+        textPreferences: UserDefaults = .standard
     ) {
         self.recorder = recorder
         self.transcriber = transcriber
@@ -93,6 +101,8 @@ final class AppCoordinator: ObservableObject {
         self.pasteboard = pasteboard
         self.inserter = inserter ?? ClipboardTextInserter(pasteboard: pasteboard)
         self.textModel = textModel
+        self.dictationFormatter = dictationFormatter ?? textModel.formatter
+        self.textPreferences = textPreferences
     }
 
     func bootstrap() {
@@ -244,6 +254,7 @@ final class AppCoordinator: ObservableObject {
             "Gesture: \(hotkeyGestureStage.rawValue)",
             "Paste: \(inserter.lastOutcome.rawValue)",
             "Model installed: \(modelDirectory != nil)",
+            "Recording startup: \(lastRecordingStartupMilliseconds.map { String(format: "%.0f ms (after gesture)", $0) } ?? "not measured")",
             "Working: \(isBusyForAppUpdate)"
         ].joined(separator: "\n")
         pasteboard.clearContents()
@@ -314,23 +325,75 @@ final class AppCoordinator: ObservableObject {
                 return
             }
 
-            let record = DictationRecord(
+            try await completeDictation(DictationRecord(
                 text: text,
                 language: resolvedLanguage,
                 durationMilliseconds: durationMilliseconds
-            )
-            history = try historyStore.append(record)
-            updateLastLanguage(resolvedLanguage)
-
-            let insertion = await inserter.insert(text, target: insertionTarget)
-            presentInsertion(insertion, record: record)
+            ), target: insertionTarget)
         } catch {
             showError(error.localizedDescription)
         }
     }
 
+    func completeDictation(_ original: DictationRecord, target: FocusedTextTargetSnapshot?) async throws {
+        inFlightOperations += 1
+        defer { inFlightOperations -= 1 }
+        history = try historyStore.append(original)
+        updateLastLanguage(original.language)
+        dictationFormattingStatus = nil
+        var record = original
+        if settings.formatDictationBeforePasting {
+            isFormattingDictation = true
+            pillState = .transcribing
+            showPill?()
+            let formatter = dictationFormatter
+            let prompt = textPreferences.string(forKey: LocalTextPreferences.formattingKey) ?? ""
+            let task = Task {
+                // A user-triggered dictation is explicit work even when another app owns focus.
+                await formatter.format(original.text, language: original.language, foreground: true, stylePrompt: prompt)
+            }
+            formattingTask = task
+            let result = await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+            formattingTask = nil
+            isFormattingDictation = false
+            textModel.refresh()
+            if result.status == .cancelled || Task.isCancelled {
+                dictationFormattingStatus = mText("Avbrutet. Originalet finns i historiken.", "Cancelled. Original saved in History.")
+                pillState = .message(mText("Avbrutet", "Cancelled"))
+                scheduleHidePill()
+                return
+            }
+            dictationFormattingStatus = formattingStatusText(result.status)
+            if result.status == .formatted {
+                do {
+                    let updated = try historyStore.applyFormatting(recordID: original.id, expectedText: original.text, formattedText: result.text)
+                    if let formatted = updated.first(where: { $0.id == original.id }) {
+                        history = updated
+                        record = formatted
+                    }
+                } catch {
+                    dictationFormattingStatus = mText("Kunde inte spara formatering. Använder originalet.", "Couldn't save formatting. Using the original.")
+                }
+            }
+        }
+        guard !Task.isCancelled else { return }
+        presentInsertion(await inserter.insert(record.text, target: target), record: record)
+    }
+
+    private func formattingStatusText(_ status: FormattingStatus) -> String {
+        switch status {
+        case .formatted: mText("Formaterat före inklistring", "Formatted before pasting")
+        case .unchanged: mText("Inga formateringsändringar behövdes", "No formatting changes needed")
+        case .unavailable: mText("Textmodellen är inte redo. Använder originalet.", "Text model not ready. Using the original.")
+        case .unsafeOutput: mText("Förslaget ändrade ord. Använder originalet.", "Suggestion changed words. Using the original.")
+        case .tooLong: mText("För långt för textmodellen. Använder originalet.", "Too long for the text model. Using the original.")
+        default: mText("Formatering misslyckades. Använder originalet.", "Formatting failed. Using the original.")
+        }
+    }
+
     func cancelDictation() {
         pendingStartID = nil
+        if let formattingTask { formattingTask.cancel(); return }
         guard activeMode != nil else { dismissPill(); return }
         recorder.cancel()
         activeMode = nil
@@ -442,6 +505,28 @@ final class AppCoordinator: ObservableObject {
         }
     }
 
+    func setFormatDictationBeforePasting(_ enabled: Bool) {
+        guard settings.formatDictationBeforePasting != enabled else { return }
+        var updated = settings
+        updated.formatDictationBeforePasting = enabled
+        do {
+            try settingsStore.save(updated)
+            settings = updated
+            dictationFormattingStatus = nil
+        } catch { statusText = "Settings save failed" }
+    }
+
+    func setDictationOverlayStyle(_ style: DictationOverlayStyle) {
+        guard settings.dictationOverlayStyle != style else { return }
+        var updated = settings
+        updated.dictationOverlayStyle = style
+        do {
+            try settingsStore.save(updated)
+            settings = updated
+            if pillState != .hidden { showPill?() }
+        } catch { statusText = "Settings save failed" }
+    }
+
     /// Pins dictation to `device`, or follows the system default input when `nil`.
     func setPinnedInputDevice(_ device: AudioInputDevice?) {
         let pinned = device.map { PinnedInputDevice(uid: $0.uid, name: $0.name) }
@@ -474,7 +559,7 @@ final class AppCoordinator: ObservableObject {
     /// UID of the remembered microphone if it's connected now, following it to a new UID if needed.
     private func connectedPinnedInputDeviceUID() -> String? {
         guard let pinned = settings.pinnedInputDevice else { return nil }
-        refreshInputDevices()
+        // The device-list observer maintains this cache; the recorder revalidates the UID at start.
         guard let device = AudioInputDevices.match(pinned, in: inputDevices) else { return nil }
         if device.uid != pinned.uid || device.name != pinned.name {
             var updated = settings
@@ -729,11 +814,13 @@ final class AppCoordinator: ObservableObject {
 
     private func startDictation(mode: RecordingMode, djiReceiverID: UInt64? = nil) async {
         guard !isInstallingAppUpdate, activeMode == nil, pendingStartID == nil, inFlightOperations == 0, pillState != .transcribing else { return }
+        let startup = ContinuousClock.now
         pasteVerificationTask?.cancel()
         hidePillTask?.cancel()
         editObserver.cancel()
 
-        if FocusedTextTargetInspector.inspect() == .secureText {
+        let focus = FocusedTextTargetInspector.captureForDictation()
+        if focus.focus == .secureText {
             statusText = "Secure input active"
             return
         }
@@ -754,7 +841,7 @@ final class AppCoordinator: ObservableObject {
         pendingStartID = startID
         if let djiReceiverID { pendingDJIMicStart = (startID, djiReceiverID) }
         defer { if pendingDJIMicStart?.id == startID { pendingDJIMicStart = nil } }
-        insertionTarget = FocusedTextTargetInspector.captureEditableTarget()
+        insertionTarget = focus.target
         let permission = await recorder.microphonePermissionGranted()
         guard pendingStartID == startID else { return }
         pendingStartID = nil
@@ -767,6 +854,8 @@ final class AppCoordinator: ObservableObject {
 
         do {
             _ = try recorder.start(inputDeviceUID: connectedPinnedInputDeviceUID())
+            let elapsed = startup.duration(to: .now).components
+            lastRecordingStartupMilliseconds = Double(elapsed.seconds) * 1_000 + Double(elapsed.attoseconds) / 1e15
             activeDJIMicReceiverID = djiReceiverID
             activeMode = mode
             recordingStartedAt = Date()

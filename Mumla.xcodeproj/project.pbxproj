@@ -10,6 +10,7 @@
 		02669D6FEE2591498532D9E5 /* ControlHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */; };
 		0301D15094BA1074D02033D7 /* MumlaWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2FE40E14122384A93F10589 /* MumlaWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		065760EDCEF33AA9175A54F5 /* ControlHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */; };
+		0B97F87ED414D91AEFBF762E /* DictationTextSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 574825760B4AA0CCE3E34EBE /* DictationTextSettingsView.swift */; };
 		0B9CC038F26F324291172FFF /* PillWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898B56239AD94246CC0FF25C /* PillWindowController.swift */; };
 		0BD5D83FD0DB99F385652090 /* MumlaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 07493FEA651A87897D27D793 /* MumlaUI */; };
 		1695597D3B29BB8DD65AD23E /* WatchModel.json in Resources */ = {isa = PBXBuildFile; fileRef = 6B55A1101B1E059C59AA84A6 /* WatchModel.json */; };
@@ -63,6 +64,7 @@
 		9EFCD542EA297D8D08791B31 /* MumlaFormatting in Frameworks */ = {isa = PBXBuildFile; productRef = DE293698D119DAFC0396752E /* MumlaFormatting */; };
 		A574CF983F6E06E20756689C /* HotkeyEventSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */; };
 		A774592AA706D3097154EC0B /* MacUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04055FB8BA15C8D1036D8CD3 /* MacUpdateController.swift */; };
+		AB430B189C9A32DF244889A0 /* DictationTextSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 574825760B4AA0CCE3E34EBE /* DictationTextSettingsView.swift */; };
 		ABD30B6FE86268ED77F7D69C /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0DDCBC9B5E04500DC92D19F9 /* MumlaCore */; };
 		AD90C06988792860C1D9F6FD /* PillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749B69E10CE6D1D7FC443EBA /* PillView.swift */; };
 		B1EACA8B325A7F65A46941CA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BCBFDE2D6BF81C78A8F44D2F /* Assets.xcassets */; };
@@ -192,6 +194,7 @@
 		4F2BECF807FAB06C9EEA307B /* MumlaSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaSheets.swift; sourceTree = "<group>"; };
 		4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateInstallGate.swift; sourceTree = "<group>"; };
 		4F7F84A3491DB7F273F94E53 /* MumlaMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		574825760B4AA0CCE3E34EBE /* DictationTextSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationTextSettingsView.swift; sourceTree = "<group>"; };
 		5A3A2CDBEC82B9925A49C8C4 /* Mumla */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Mumla; path = .; sourceTree = SOURCE_ROOT; };
 		5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		68ACD3D29BE320734D8C94AC /* MumlaIOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MumlaIOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -424,6 +427,7 @@
 				4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */,
 				9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */,
 				F83421D0E2282A956B0582B1 /* ControlHotkeyMonitor.swift */,
+				574825760B4AA0CCE3E34EBE /* DictationTextSettingsView.swift */,
 				4D2599F6380447F5D512C92F /* DJIMicButtonMonitor.swift */,
 				2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */,
 				D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */,
@@ -839,6 +843,7 @@
 				4C360FB45B6D0C7DBACB2491 /* ClipboardTextInserter.swift in Sources */,
 				065760EDCEF33AA9175A54F5 /* ControlHotkeyMonitor.swift in Sources */,
 				BAF45AE8EA58B812265D4A8B /* DJIMicButtonMonitor.swift in Sources */,
+				0B97F87ED414D91AEFBF762E /* DictationTextSettingsView.swift in Sources */,
 				B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */,
 				5383AD414A7C20B2C8D57A59 /* FocusedTextTargetInspector.swift in Sources */,
 				A574CF983F6E06E20756689C /* HotkeyEventSource.swift in Sources */,
@@ -914,6 +919,7 @@
 				81F1DC32ADD15685188CDD18 /* ClipboardTextInserter.swift in Sources */,
 				02669D6FEE2591498532D9E5 /* ControlHotkeyMonitor.swift in Sources */,
 				C20D55866B15D69952488F03 /* DJIMicButtonMonitor.swift in Sources */,
+				AB430B189C9A32DF244889A0 /* DictationTextSettingsView.swift in Sources */,
 				C2BE52AF10B2327351D27901 /* FocusedFieldEditObserver.swift in Sources */,
 				7E8D425EA6F7DB8E1BD1A830 /* FocusedTextTargetInspector.swift in Sources */,
 				8463FA770CBD257B18E65DA4 /* HotkeyEventSource.swift in Sources */,

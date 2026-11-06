@@ -1,5 +1,10 @@
 # Local text formatting trial
 
+This describes the original manual-preview trial. Mac dictation now also has a
+default-off [Format before pasting option](mac-dictation-formatting.md) using the
+downloaded Qwen model. iOS remains on the explicit-preview path below. Live model
+quality and microphone-start measurements are not implied by integration tests.
+
 ## Scope
 
 An on-demand action in iOS and macOS transcript details uses Apple's on-device

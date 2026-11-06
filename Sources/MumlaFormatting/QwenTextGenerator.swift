@@ -36,7 +36,8 @@ actor QwenTextGenerator {
         }
         try Task.checkCancellation()
         guard store.isInstalled else { throw QwenModelError.invalidFiles }
-        try store.verify()
+        // Verify before loading weights, not before every use of the same in-memory model.
+        if loadedModel == nil { try store.verify() }
         try Task.checkCancellation()
         Memory.cacheLimit = 64 * 1_024 * 1_024
         return try await run(request, action: action)
