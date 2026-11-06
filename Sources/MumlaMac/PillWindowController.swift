@@ -36,6 +36,7 @@ final class PillWindowController {
         let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) ?? NSScreen.main
         guard let screen else { return }
         let size = PillView.size(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle)
+        window.ignoresMouseEvents = PillView.usesMinimalLayout(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle)
         window.contentView?.layer?.cornerRadius = PillView.cornerRadius(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle)
         let frame = NSRect(x: screen.visibleFrame.midX - size.width / 2, y: screen.visibleFrame.minY + 20, width: size.width, height: size.height)
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion

@@ -1,6 +1,7 @@
 import AppKit
 import MumlaAudio
 import MumlaCore
+import SwiftUI
 import XCTest
 @testable import MumlaMac
 
@@ -61,13 +62,14 @@ final class PillRenderingTests: XCTestCase {
             }
             let centerAlpha = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)).alphaComponent
             // Minimal mode has a translucent chassis, not the recorder's opaque LCD well.
-            XCTAssertGreaterThan(centerAlpha, size.height == 56 ? 0.88 : 0.98)
+            let minimal = PillView.usesMinimalLayout(for: state, style: style)
+            XCTAssertGreaterThan(centerAlpha, minimal ? 0.70 : 0.98)
             if !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency && !NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast {
                 // Sample the chassis above the opaque display/text well, away from its border.
                 let scale = CGFloat(bitmap.pixelsHigh) / size.height
                 let chassis = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: Int(4 * scale)))
-                XCTAssertGreaterThan(chassis.alphaComponent, 0.75)
-                XCTAssertLessThan(chassis.alphaComponent, 0.96)
+                XCTAssertGreaterThan(chassis.alphaComponent, minimal ? 0.60 : 0.75)
+                XCTAssertLessThan(chassis.alphaComponent, minimal ? 0.85 : 0.96)
             }
             XCTAssertEqual(view.bounds.size, size)
         }
@@ -84,8 +86,9 @@ final class PillRenderingTests: XCTestCase {
         defer { controller.window.close() }
         controller.show()
         RunLoop.current.run(until: Date().addingTimeInterval(0.2))
-        XCTAssertEqual(controller.window.frame.size, NSSize(width: 256, height: 56))
-        XCTAssertEqual(controller.window.contentView?.layer?.cornerRadius, 28)
+        XCTAssertEqual(controller.window.frame.size, NSSize(width: 104, height: 30))
+        XCTAssertEqual(controller.window.contentView?.layer?.cornerRadius, 15)
+        XCTAssertTrue(controller.window.ignoresMouseEvents)
         XCTAssertFalse(controller.window.canBecomeKey)
         XCTAssertFalse(controller.window.canBecomeMain)
         coordinator.pillState = .transcript(DictationRecord(text: "A saved transcript", language: .english), copied: false)
@@ -93,6 +96,59 @@ final class PillRenderingTests: XCTestCase {
         RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         XCTAssertEqual(controller.window.frame.size, NSSize(width: 380, height: 208))
         XCTAssertEqual(controller.window.contentView?.layer?.cornerRadius, PillView.cornerRadius)
+        XCTAssertFalse(controller.window.ignoresMouseEvents)
+    }
+
+    func testMinimalRecordingSizeIsStableAndOtherStatesRemainReadable() {
+        for state in [PillState.listening(elapsedSeconds: 0), .listening(elapsedSeconds: 599), .handsFree(elapsedSeconds: 600)] {
+            XCTAssertEqual(PillView.size(for: state, style: .minimal), NSSize(width: 104, height: 30))
+            XCTAssertEqual(PillView.size(for: state, style: .recorder), NSSize(width: 380, height: 92))
+        }
+        XCTAssertEqual(PillView.size(for: .transcribing, style: .minimal), NSSize(width: 156, height: 30))
+        XCTAssertEqual(PillView.size(for: .preparing(progress: 0.45), style: .minimal), NSSize(width: 156, height: 30))
+        XCTAssertEqual(PillView.size(for: .message("Microphone permission needed"), style: .minimal), NSSize(width: 256, height: 56))
+    }
+
+    func testMinimalRecordingRendersInBothAppearancesWithSystemAccessibilitySettings() throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let coordinator = makeCoordinator(directory: directory)
+        coordinator.settings.dictationOverlayStyle = .minimal
+        coordinator.pillState = .handsFree(elapsedSeconds: 600)
+        for scheme in [ColorScheme.light, .dark] {
+            let view = NSHostingView(rootView: PillView(coordinator: coordinator).environment(\.colorScheme, scheme))
+            view.frame = NSRect(x: 0, y: 0, width: 104, height: 30)
+            view.layoutSubtreeIfNeeded()
+            let bitmap = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            let scale = CGFloat(bitmap.pixelsHigh) / view.bounds.height
+            let chassis = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: Int(4 * scale)))
+            if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency || NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast {
+                XCTAssertGreaterThan(chassis.alphaComponent, 0.98)
+            } else {
+                XCTAssertGreaterThan(chassis.alphaComponent, 0.60)
+                XCTAssertLessThan(chassis.alphaComponent, 0.85)
+            }
+        }
+    }
+
+    func testSwitchingToFullRecorderRestoresMouseInteraction() throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let coordinator = makeCoordinator(directory: directory)
+        coordinator.settings.dictationOverlayStyle = .minimal
+        coordinator.pillState = .handsFree(elapsedSeconds: 17)
+        let controller = PillWindowController(coordinator: coordinator)
+        defer { controller.window.close() }
+        controller.show()
+        XCTAssertTrue(controller.window.ignoresMouseEvents)
+        coordinator.settings.dictationOverlayStyle = .recorder
+        controller.show()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        XCTAssertFalse(controller.window.ignoresMouseEvents)
+        XCTAssertEqual(controller.window.frame.size, NSSize(width: 380, height: 92))
     }
 
     private func makeCoordinator(directory: URL) -> AppCoordinator {

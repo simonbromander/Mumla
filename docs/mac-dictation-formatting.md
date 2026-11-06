@@ -3,6 +3,8 @@
 The subsequent [text-provider/list follow-up](mac-text-providers.md) adds a Mac
 Qwen/Apple choice and word-preserving list layout. The build-43 record below
 describes what was released at that point, not that follow-up's release status.
+The 104 x 30 point minimal capsule is also an unreleased refinement; build 43
+shipped the larger minimal overlay with waveform and transport buttons.
 
 ## Scope
 
@@ -19,8 +21,12 @@ describes what was released at that point, not that follow-up's release status.
 - Keep word-preservation validation independent of user prompts. Preferences
   control punctuation, capitalization and paragraph breaks, not rewriting.
 - Add an independent Recorder / Minimal overlay preference. Minimal keeps REC,
-  live metering, elapsed time and stop/cancel controls without the large display.
-  Copy fallback remains readable and the window must never take focus.
+  a pulsing recording dot and elapsed time in a 104 x 30 point capsule, without
+  waveform, stop or discard buttons. It is translucent, respects Reduce
+  Transparency / Increase Contrast, and lets clicks pass through. Existing
+  trigger-key release, hands-free tap-to-stop and Escape cancellation remain.
+  Status uses a compact 156 x 30 point capsule; errors and the copy fallback
+  retain readable sizes. The window must never take focus.
 - Investigate Mac startup delay without removing the 250 ms shortcut guard,
   bypassing secure fields, or holding the microphone open while idle.
 
