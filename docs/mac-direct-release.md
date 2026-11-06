@@ -1,5 +1,43 @@
 # Full-Capability Mac Distribution
 
+## Minimal Dictation And Local Formatting Beta: 2026-11-06
+
+- Universal direct `1.0.1 (43)` is published as a prerelease in Mumla and
+  Mumla-Releases, from `b2849fd1da2e90c036247fcbdd57af3f9dbf4380`.
+- Adds default-off local formatting before auto-paste using saved Text
+  preferences, plus Recorder / Minimal overlay choices. The original is saved
+  before formatting; cancellation never pastes late output. Rejected, failed or
+  unavailable generation falls back to the original with a visible outcome.
+- Removes repeated startup accessibility/device-list work and shortens the
+  overlay appearance animation. The 250 ms hold guard is unchanged. Qwen checks
+  pinned files before loading rather than before every use of its loaded model.
+  Hardware latency and live model quality remain unmeasured on the target Mac.
+- 269 shared/Mac tests completed with zero failures and five opt-in live checks
+  skipped. All 35 release-helper tests passed with 84 assertions. Contributor
+  CI passed for the exact release source, including full-history secret scanning,
+  shared/helper tests and native iOS, Mac and Watch build checks.
+- Developer ID signature, hardened runtime, arm64/x86_64, matching dSYMs,
+  microphone-only entitlements, pinned updater metadata and MLX Metal kernels
+  verified. Downloaded model weights are not bundled.
+- Apple notarization `8229012c-1b59-4413-9f6a-c9ace1a6830b` was Accepted.
+  Stapled ticket and Gatekeeper checks passed for the local app and a freshly
+  extracted anonymous public download. ZIP integrity passed.
+- ZIP: 37,192,056 bytes. SHA-256:
+  `1404826f0455772e0dde7db2454a6e747c65bd1b1c370b28a33fb8dd7d1a62b3`.
+  Anonymous downloads and checksum assets from both official repositories match.
+- Feed commit `e5d844c`. The live feed is byte-identical to signed staging;
+  anonymous downloads and Ed25519 signatures for builds 43, 42 and 41 passed
+  before and after feed publication. Installation/relaunch, populated-data
+  preservation and physical dictation/paste remain target-Mac acceptance checks.
+- Evidence: `.build/direct43-build.log`, `.build/direct43-notarize.log`,
+  `.build/direct43-swift-tests.log`, `.build/direct43-source-ci.json`,
+  `.build/direct43-local-audit.json`, `.build/direct43-public-audit.json`,
+  `.build/direct43-feed-prepare.json`, `.build/direct43-public-verify.json`
+  and `.build/direct43-live-public-verify.json`. Anonymous ZIPs and dSYMs are
+  retained in `.build/ReleaseAuditMac43-20261106/`. Internal logs and signing
+  material were not published. iOS and sandboxed Mac TestFlight are unchanged.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-43).
+
 ## DJI Mic Button Beta: 2026-10-28
 
 - Universal direct `1.0.1 (42)` is published as a prerelease in Mumla and

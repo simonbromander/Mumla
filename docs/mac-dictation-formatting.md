@@ -49,4 +49,6 @@ remain separate checks; no release or device acceptance is implied by unit tests
 - Qwen verifies pinned checksums before loading weights, then reuses its loaded
   container rather than hashing the model files on every request. Live Qwen
   checks skipped because no model is installed on this development machine.
-- These changes are not a published or installed app release.
+- Published in the signed/notarized direct Mac beta `1.0.1 (43)`. Distribution
+  verification is recorded in [Mac releases](mac-direct-release.md). Installation
+  on the target Mac and real microphone/model acceptance remain separate checks.
