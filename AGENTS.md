@@ -7,7 +7,11 @@ paywall, backend, or note-formatting architecture into this repo.
 
 Product priorities, in order:
 
-1. Privacy: no audio or text leaves the device except the user's own iCloud.
+1. Privacy: audio stays on-device, except existing paired Watch-to-iPhone transfers
+   and explicit user-requested sharing. Text leaves the device only through the
+   user's own iCloud, an explicit system Share/export action, or one transcript
+   sent by the user to a destination they configured. Destination Send never
+   sends audio.
 2. Swedish accuracy.
 3. Simplicity.
 

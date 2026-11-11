@@ -50,6 +50,15 @@ Audio and transcripts are not sent to a transcription service. Model downloads
 and user-requested Mac update checks use the network; there is no analytics backend.
 Models are downloaded after installation, not committed or bundled in this repo.
 
+Destination sending is being developed separately from Mac beta 45. When configured,
+each explicit Send action sends one transcript and its recording metadata directly
+to the user's HTTPS destination. It never sends audio or a whole history, and it
+never runs automatically. Its bearer credential stays in the containing app's
+local Keychain, not the keyboard or settings file. The recipient controls retention
+after receiving text; removing a destination does not delete remote items.
+Existing explicit Share/export actions and paired Watch-to-iPhone audio transfers
+remain available. iCloud sync remains unimplemented.
+
 The full Mac hotkey/paste workflow uses the direct-download build and requires
 Microphone, Input Monitoring, and Accessibility permissions. The sandboxed Mac
 App Store/TestFlight variant has different restrictions; open source does not

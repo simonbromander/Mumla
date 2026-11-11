@@ -37,6 +37,8 @@ targetTemplates:
     sources:
       - path: Sources/MumlaMac
       - path: Apps/macOS/Mumla/Resources
+      - path: Apps/Shared/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: MumlaKit
         product: MumlaCore

@@ -25,6 +25,7 @@
 		2E9B265E4B2B222D22983381 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 23AE06D7B9DF371EA920EC4E /* WhisperKit */; };
 		30DB43CEA9D36A0FA8AF366A /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */; };
 		31E49F3BECFF6AF727DB80EE /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 75CC8FED39427CE6DD48F6F0 /* MumlaCore */; };
+		326ED404331312A49DABF36F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0E466C85EBB05693C21DCD4B /* PrivacyInfo.xcprivacy */; };
 		32F3E00C6F0E03ABA0D1791D /* KeyboardSessionLauncherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F214F2A03F65E98731F60251 /* KeyboardSessionLauncherTests.swift */; };
 		391610879AA51AC52FF2AFA0 /* AppUpdateInstallGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F714EC45E778208073B7D48 /* AppUpdateInstallGate.swift */; };
 		3BE37B36525EA6882CBD0E58 /* MumlaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 774F6B637BA229F4B010927A /* MumlaUI */; };
@@ -103,6 +104,7 @@
 		F6BB33EB8DA3043C0153E813 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92571BD96423422D811E989B /* Assets.xcassets */; };
 		F78A2C4346174E97A1701275 /* MacStorageDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */; };
 		F8AD0B82F7896BB4370BA03F /* MeetingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804E372DD8AD0896153309C4 /* MeetingsView.swift */; };
+		F9DE035F73FBE514947CE387 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0E466C85EBB05693C21DCD4B /* PrivacyInfo.xcprivacy */; };
 		FBDF35BF000AF08384B37985 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 519A2842446BC1359D62140E /* Sparkle */; };
 		FCB324B1695DC0C9876A6350 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EB2AAABD2686E35D12AB3D /* StatusMenuController.swift */; };
 /* End PBXBuildFile section */
@@ -798,6 +800,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B300AA5D46F982F27219F3C2 /* Assets.xcassets in Resources */,
+				F9DE035F73FBE514947CE387 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -817,6 +820,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6BB33EB8DA3043C0153E813 /* Assets.xcassets in Resources */,
+				326ED404331312A49DABF36F /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
