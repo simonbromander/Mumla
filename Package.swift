@@ -19,7 +19,7 @@ let package = Package(
         .executable(name: "mumla-model-probe", targets: ["MumlaModelProbe"])
     ],
     dependencies: [
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.17.3"),
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.17.3"),
         .package(url: "https://github.com/sparkle-project/Sparkle.git", exact: "2.10.0"),
         .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", exact: "3.32.3", traits: []),
         .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.32.3"),

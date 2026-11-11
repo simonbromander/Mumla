@@ -25,9 +25,9 @@ and iCloud sync are not implemented yet. Swedish/English keyboard
 typing assistance is not English speech recognition. The accuracy and latency
 targets still need evaluation on real, consented recordings.
 
-### Mac Meetings (Development)
+### Mac Meetings (Experimental Beta)
 
-The development direct Mac build includes meeting recording with live, on-device Swedish
+The direct Mac beta includes experimental meeting recording with live, on-device Swedish
 transcription. Open Meetings from the menu bar or recorder, select the meeting
 app plus microphone (or Microphone only), and start recording explicitly. Audio
 is saved in short chunks while the transcript updates. Pause/resume, per-meeting
