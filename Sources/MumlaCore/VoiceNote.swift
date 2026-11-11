@@ -11,6 +11,7 @@ public struct VoiceNote: Codable, Equatable, Identifiable, Sendable {
     public let audioByteCount: Int
     public var transcript: String?
     public var delivered: Bool
+    public var sentAt: Date?
 
     public init(id: UUID = UUID(), createdAt: Date = Date(), duration: TimeInterval,
                 language: String, audioSHA256: String, audioByteCount: Int,
@@ -36,6 +37,7 @@ public struct VoiceNote: Codable, Equatable, Identifiable, Sendable {
         try validate(requireTranscript: true)
         var copy = self
         copy.delivered = false
+        copy.sentAt = nil
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(copy)
@@ -158,6 +160,13 @@ public final class VoiceNoteStore: @unchecked Sendable {
         try files.createDirectory(at: directory, withIntermediateDirectories: true)
         try Data().write(to: tombstone(id), options: .atomic)
         if files.fileExists(atPath: folder(id).path) { try files.removeItem(at: folder(id)) }
+    }
+
+    public func markSent(id: UUID, at date: Date) throws {
+        lock.lock(); defer { lock.unlock() }
+        guard var note = try read(id), !isDeleted(id) else { throw VoiceNoteError.deleted }
+        note.sentAt = date
+        try write(note)
     }
 
     public func isDeleted(_ id: UUID) -> Bool {

@@ -8,6 +8,7 @@ public struct DictationRecord: Codable, Equatable, Identifiable, Sendable {
     public var durationMilliseconds: Double?
     public var originalText: String?
     public var summary: String?
+    public var sentAt: Date?
 
     public var compactPreview: String {
         let words = text.split(whereSeparator: \.isWhitespace)
@@ -186,6 +187,17 @@ public final class DictationHistoryStore: @unchecked Sendable {
             if FileManager.default.fileExists(atPath: fileURL.path) {
                 try FileManager.default.removeItem(at: fileURL)
             }
+        }
+    }
+
+    @discardableResult
+    public func markSent(recordID: UUID, at date: Date) throws -> [DictationRecord] {
+        try lock.withLock {
+            var records = try JSONDecoder().decode([DictationRecord].self, from: Data(contentsOf: fileURL))
+            guard let index = records.firstIndex(where: { $0.id == recordID }) else { throw TranscriptCorrectionError.transcriptChanged }
+            records[index].sentAt = date
+            try JSONEncoder.prettyMumla.encode(records).write(to: fileURL, options: .atomic)
+            return records
         }
     }
 }

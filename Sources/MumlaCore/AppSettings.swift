@@ -12,6 +12,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var textModelProvider: TextModelProvider
     public var dictationOverlayStyle: DictationOverlayStyle
     public var djiMicButtonEnabled: Bool
+    public var transcriptDestination: TranscriptDestination?
     /// When set, dictation records from this input device instead of following the system default.
     public var pinnedInputDevice: PinnedInputDevice?
 
@@ -27,7 +28,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         djiMicButtonEnabled: Bool = false,
         formatDictationBeforePasting: Bool = false,
         dictationOverlayStyle: DictationOverlayStyle = .recorder,
-        textModelProvider: TextModelProvider = .qwen
+        textModelProvider: TextModelProvider = .qwen,
+        transcriptDestination: TranscriptDestination? = nil
     ) {
         self.languageMode = languageMode
         self.lastLanguage = lastLanguage
@@ -41,6 +43,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.formatDictationBeforePasting = formatDictationBeforePasting
         self.dictationOverlayStyle = dictationOverlayStyle
         self.textModelProvider = textModelProvider
+        self.transcriptDestination = transcriptDestination
     }
 
     public static let `default` = AppSettings()
@@ -58,6 +61,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case formatDictationBeforePasting
         case dictationOverlayStyle
         case textModelProvider
+        case transcriptDestination
     }
 
     public init(from decoder: Decoder) throws {
@@ -74,6 +78,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         formatDictationBeforePasting = try container.decodeIfPresent(Bool.self, forKey: .formatDictationBeforePasting) ?? false
         dictationOverlayStyle = try container.decodeIfPresent(DictationOverlayStyle.self, forKey: .dictationOverlayStyle) ?? .recorder
         textModelProvider = try container.decodeIfPresent(TextModelProvider.self, forKey: .textModelProvider) ?? .qwen
+        transcriptDestination = try? container.decodeIfPresent(TranscriptDestination.self, forKey: .transcriptDestination)
     }
 }
 
@@ -133,6 +138,20 @@ public final class AppSettingsStore: @unchecked Sendable {
                 withIntermediateDirectories: true
             )
             try data.write(to: fileURL, options: .atomic)
+        }
+    }
+
+    @discardableResult
+    public func setTranscriptDestination(_ destination: TranscriptDestination?) throws -> AppSettings {
+        try lock.withLock {
+            var settings: AppSettings = .default
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                settings = try JSONDecoder().decode(AppSettings.self, from: Data(contentsOf: fileURL))
+            }
+            settings.transcriptDestination = destination
+            try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try JSONEncoder.prettySettings.encode(settings).write(to: fileURL, options: .atomic)
+            return settings
         }
     }
 }
