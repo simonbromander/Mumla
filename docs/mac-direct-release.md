@@ -1,5 +1,40 @@
 # Full-Capability Mac Distribution
 
+## Experimental Live Meetings Beta: 2026-11-11
+
+- Universal direct `1.0.1 (45)` is published as a prerelease in Mumla and
+  Mumla-Releases from `ddc7ca03673ad622c128e857dbef90170efb8de7`.
+- Adds explicit meeting-app/microphone capture, live local Swedish transcription,
+  optional speaker separation, transcript correction/search/playback/export,
+  pause/resume and recoverable disk-backed recording. Meetings require Apple
+  silicon and macOS 14.2+. Existing Intel dictation remains supported.
+- This is experimental: actual call capture, permissions, clock drift, speaker
+  accuracy, privacy traffic auditing and live installation still need target-Mac
+  acceptance. Synthetic speech and two-hour writer tests are not real-call QA.
+- The local suite completed 306 tests with nine opt-in skips and no failures;
+  all 35 release-helper tests passed. Exact-source Contributor CI `43085579941`
+  passed secret scanning, package/helper tests, iOS/Mac/Watch builds and Watch
+  test compilation. FluidAudio is pinned to the tested 0.17.3 in both resolvers.
+- Developer ID signature, hardened runtime, arm64/x86_64, matching dSYMs,
+  microphone-only entitlements, both capture descriptions, speaker attribution,
+  updater metadata, MLX kernels and absence of model weights passed local and
+  fresh anonymous-download audits.
+- Notarization `cdfd4da3-42b4-485c-9ea6-9073ad4d412a` was Accepted. Stapled ticket
+  and Gatekeeper checks passed. ZIP size: 37,674,117 bytes. SHA-256:
+  `fe8ea201c09823d19151a82e554271fa3b13f4d360fe38e4e77a12a185c86929`.
+  Anonymous ZIPs from both repositories match staging.
+- Feed commit `47ec308`; the live feed matches signed staging byte for byte.
+  Anonymous downloads and Ed25519 signatures for 45, 44 and 43 passed again after
+  publication. Update discovery is available; live replacement/relaunch and
+  populated-data preservation are separate acceptance checks.
+- Website commit `5b93302` updates download links and bilingual meeting/permission
+  notes. Its 17 unit and 40 browser checks passed; the Git-connected production
+  worker build succeeded. No DNS or hosting configuration was changed.
+- Evidence remains ignored under `.build/direct45-*` and
+  `.build/ReleaseAuditMac45-20261111/`. Only ZIP/checksum are release assets.
+  No destination-sending feature, iOS update or Mac TestFlight upload is included.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-45).
+
 ## Tiny Dictation And Text Models Beta: 2026-11-06
 
 - Universal direct `1.0.1 (44)` is published as a prerelease in Mumla and

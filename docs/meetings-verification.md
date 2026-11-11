@@ -1,6 +1,7 @@
 # Live Meetings Verification
 
-Date: 2026-11-11. Development implementation, not a published release.
+Date: 2026-11-11. Shipped as experimental direct Mac beta 1.0.1 (45).
+Real-call product acceptance remains open.
 
 ## Implemented
 
@@ -68,9 +69,10 @@ Private/local evidence stays ignored under `.build`: `meeting-tests.log`,
   transcription/LLM request; an independent traffic audit is still required.
 - Validate the supported OS/hardware matrix, VoiceOver/Reduce Motion and actual
   permission UX. Intel/sandboxed builds are not enabled for this development beta.
-- Before distribution, complete exact-source CI, signing, notarization, Gatekeeper,
-  anonymous-download verification and signed updater feed publication. None of
-  those release operations has been performed for this change.
+- Beta 45 passed exact-source CI, Developer ID signing, notarization, Gatekeeper,
+  anonymous-download verification and signed updater feed publication. See
+  [release evidence](mac-direct-release.md). Real installation/relaunch, populated
+  data preservation and the hardware/call gates above remain unverified.
 
 ## Repeatable Commands
 
