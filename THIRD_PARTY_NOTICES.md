@@ -30,6 +30,15 @@ See the full [conversion attribution](Sources/MumlaUI/Resources/Pianissimo-attri
 and [source survey](docs/model-source-survey.md).
 
 A separate English Parakeet inference path is planned, not enabled in this build.
+
+Mac meetings optionally use LS-EEND DIHARD III for on-device speaker separation.
+The [CoreML distribution](https://huggingface.co/FluidInference/ls-eend-coreml)
+is MIT-licensed. The base model is by Di Liang and Xiaofei Li / Audio-WestlakeU;
+conversion is by GradientDescent2718 with optimization/distribution by
+FluidInference. The source revision and per-file SHA-256 values are pinned in
+`Sources/MumlaAudio/MeetingSpeakerModel.swift`. We compile verified packages
+locally and do not retrain the model. Weights are downloaded only on request,
+not bundled with the app. See the [complete notice](Sources/MumlaUI/Resources/LSEEND-LICENSE.txt).
 Model weights are not included in the Git repository. Retain attribution, source
 links, license links, and notices of modifications when redistributing models.
 Upstream evaluation numbers do not establish Mumla's product accuracy.

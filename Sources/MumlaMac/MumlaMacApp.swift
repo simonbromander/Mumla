@@ -160,6 +160,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     @objc private func refreshDJIMicMonitor(_ notification: Notification) { djiMicMonitor?.refresh() }
 
     @objc private func suspendHotkeyMonitor(_ notification: Notification) {
+        if notification.name == NSWorkspace.willSleepNotification { coordinator?.meetings.stop(interrupted: true) }
         hotkeyIsSuspended = true
         hotkeyMonitor?.stop()
         djiMicMonitor?.suspend()
@@ -179,6 +180,24 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if coordinator?.meetings.isCapturing == true {
+            let alert = NSAlert()
+            alert.messageText = mText("Ett möte spelas in", "A meeting is recording")
+            alert.addButton(withTitle: mText("Stoppa, spara och avsluta", "Stop, save and quit"))
+            alert.addButton(withTitle: mText("Fortsätt spela in", "Keep recording"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
+            coordinator.meetings.stop()
+        }
+        if coordinator?.meetings.isProcessing == true, coordinator?.hasNonMeetingActivity == false {
+            let alert = NSAlert()
+            alert.messageText = mText("Pausa transkriberingen och avsluta?", "Pause transcription and quit?")
+            alert.informativeText = mText("Inspelningen är sparad. Du kan fortsätta transkribera senare.", "The recording is saved. You can resume transcription later.")
+            alert.addButton(withTitle: mText("Pausa och avsluta", "Pause and quit"))
+            alert.addButton(withTitle: mText("Fortsätt", "Continue"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
+            coordinator.meetings.suspendProcessing()
+            return .terminateNow
+        }
         guard coordinator?.isBusyForAppUpdate != true else { return .terminateCancel }
         return .terminateNow
     }
@@ -196,6 +215,19 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         let sectionIndex = CommandLine.arguments.firstIndex(of: "--snapshot-section")
         let section = sectionIndex.flatMap { CommandLine.arguments.indices.contains($0 + 1) ? CommandLine.arguments[$0 + 1] : nil } ?? "dictate"
         let isPill = section.hasPrefix("pill-")
+        if section == "meetings-transcript" {
+            let meeting = MeetingRecord(title: "Produktgenomgång", sourceName: "Meeting app", microphoneOnly: false)
+            try? snapshotCoordinator.meetings.store.create(meeting)
+            _ = try? snapshotCoordinator.meetings.store.update(meeting.id) {
+                $0.capture = .saved; $0.processing = .ready; $0.duration = 1485
+                $0.speakerNames = ["system-0": "Anna", "microphone": "Me"]
+                $0.segments = [
+                    MeetingSegment(id: "example-0", chunkID: "example", track: .microphone, start: 12, end: 20, speaker: "microphone", text: "Vi börjar med inspelningen. Ljudet och transkriptet stannar på den här Macen."),
+                    MeetingSegment(id: "example-1", chunkID: "example", track: .system, start: 21, end: 29, speaker: "system-0", text: "Bra. Jag vill kunna gå tillbaka till det vi faktiskt sa, med tydliga tider och talare."),
+                    MeetingSegment(id: "example-2", chunkID: "example", track: .microphone, start: 31, end: 38, speaker: "microphone", text: "Då testar vi både hörlurar och högtalare innan vi släpper nästa version.")]
+            }
+            snapshotCoordinator.meetings.reload(); snapshotCoordinator.meetings.selectedID = meeting.id
+        }
         if CommandLine.arguments.contains("--snapshot-apple-text") { snapshotCoordinator.settings.textModelProvider = .appleIntelligence }
         if CommandLine.arguments.contains("--snapshot-minimal") { snapshotCoordinator.settings.dictationOverlayStyle = .minimal }
         if section == "pill-recording" { snapshotCoordinator.prepareRecordingSnapshot() }
@@ -224,7 +256,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
                 : section == "text-model" ? AnyView(QwenTextModelControls(model: snapshotCoordinator.textModel)
                     .padding(24).frame(width: size.width, height: size.height, alignment: .topLeading)
                     .buttonStyle(MumlaKeyStyle()).background(MumlaStyle.background))
-                : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section))
+                : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section.hasPrefix("meetings") ? "meetings" : section))
             view = NSHostingView(rootView: root.environment(\.colorScheme, light ? .light : .dark))
             window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
             window.contentView = view

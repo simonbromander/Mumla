@@ -102,7 +102,11 @@ struct PillView: View {
             ))
             .mumlaDisplayLens()
             HStack(spacing: 6) {
-                if recording {
+                if coordinator.isMeetingActive {
+                    MumlaIconButton(coordinator.meetings.isPaused ? "play.fill" : "pause.fill",
+                        label: coordinator.meetings.isPaused ? mText("Fortsätt möte", "Resume meeting") : mText("Pausa möte", "Pause meeting")) { coordinator.meetings.togglePause() }
+                    MumlaIconButton("stop.fill", label: mText("Stoppa och spara möte", "Stop and save meeting")) { coordinator.meetings.stop() }
+                } else if recording {
                     MumlaIconButton("stop.fill", label: mText("Stoppa", "Stop")) { Task { await coordinator.finishDictation() } }
                     MumlaIconButton("xmark", label: mText("Avbryt", "Cancel")) { coordinator.cancelDictation() }
                 } else if coordinator.isFormattingDictation {
@@ -161,6 +165,7 @@ struct PillView: View {
         }
     }
     private var language: String {
-        switch coordinator.languageMode { case .automatic: "AUTO"; case .swedish: "SV"; case .english: "EN" }
+        if coordinator.isMeetingActive { return "SV" }
+        return switch coordinator.languageMode { case .automatic: "AUTO"; case .swedish: "SV"; case .english: "EN" }
     }
 }

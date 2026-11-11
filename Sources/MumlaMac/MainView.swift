@@ -37,6 +37,9 @@ struct MainView: View {
                             Text(subtitle).font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
                         }
                         Spacer()
+                        if selection == .dictate {
+                            MumlaIconButton("person.2", label: mText("Möten", "Meetings")) { coordinator.openMeetings() }
+                        }
                         if selection == .dictate && coordinator.modelDirectory == nil {
                             MumlaIconButton("arrow.down", label: mText("Hämta språkmodell", "Download language model")) { coordinator.installModel() }
                                 .disabled(coordinator.isInstallingModel)
@@ -54,6 +57,7 @@ struct MainView: View {
                     }
                     switch selection {
                     case .dictate: recorder
+                    case .meetings: MeetingsView(meetings: coordinator.meetings, app: coordinator)
                     case .history: history
                     case .dictionary: dictionary
                     case .settings: settings
@@ -70,6 +74,7 @@ struct MainView: View {
         .sheet(isPresented: $showAbout) { MumlaAboutView().frame(width: 580, height: 520) }
         .sheet(isPresented: $showTextPreferences) { LocalTextPreferencesView() }
         .onChange(of: coordinator.settingsOpenRequest) { _, _ in selection = .settings }
+        .onChange(of: coordinator.meetingsOpenRequest) { _, _ in selection = .meetings }
         .onAppear { if coordinator.settingsOpenRequest != nil { selection = .settings } }
         .sheet(isPresented: $coordinator.isOnboardingVisible) { OnboardingView(coordinator: coordinator) }
         .sheet(item: $selectedRecord) { record in
@@ -179,11 +184,14 @@ struct MainView: View {
                 }
                 Spacer(minLength: 0)
                 HStack(alignment: .center, spacing: 16) {
-                    MumlaTransportKey("xmark", title: mText("Avbryt", "Cancel"), compact: compact) { coordinator.cancelDictation() }
-                        .disabled(!isRecording)
-                    MumlaTransportKey(isRecording ? "stop.fill" : "circle.fill", title: isRecording ? mText("Stoppa", "Stop") : mText("Spela in", "Record"), primary: true, active: isRecording, busy: coordinator.pillState == .transcribing, compact: compact) {
-                        Task { await coordinator.toggleHandsFreeDictation() }
-                    }.disabled(coordinator.modelDirectory == nil || coordinator.pillState == .transcribing)
+                    MumlaTransportKey(coordinator.isMeetingActive ? (coordinator.meetings.isPaused ? "play.fill" : "pause.fill") : "xmark", title: coordinator.isMeetingActive ? (coordinator.meetings.isPaused ? mText("Fortsätt", "Resume") : mText("Pausa", "Pause")) : mText("Avbryt", "Cancel"), compact: compact) {
+                        if coordinator.isMeetingActive { coordinator.meetings.togglePause() } else { coordinator.cancelDictation() }
+                    }
+                        .disabled(!isRecording && !coordinator.isMeetingActive)
+                    MumlaTransportKey(isRecording || coordinator.isMeetingActive ? "stop.fill" : "circle.fill", title: isRecording || coordinator.isMeetingActive ? mText("Stoppa", "Stop") : mText("Spela in", "Record"), primary: true, active: isRecording, busy: coordinator.pillState == .transcribing, compact: compact) {
+                        if coordinator.isMeetingActive { coordinator.meetings.stop() }
+                        else { Task { await coordinator.toggleHandsFreeDictation() } }
+                    }.disabled(!coordinator.isMeetingActive && (coordinator.modelDirectory == nil || coordinator.pillState == .transcribing))
                     MumlaTransportKey("text.alignleft", title: mText("Senaste", "Latest"), compact: compact) {
                         copied = false
                         selectedRecord = coordinator.history.first
@@ -209,7 +217,8 @@ struct MainView: View {
     }
 
     private var elapsed: TimeInterval {
-        switch coordinator.pillState {
+        if coordinator.isMeetingActive { return coordinator.meetings.elapsed }
+        return switch coordinator.pillState {
         case let .listening(elapsed), let .handsFree(elapsed): elapsed
         default: 0
         }
@@ -510,6 +519,7 @@ struct MainView: View {
     private var subtitle: String {
         switch selection {
         case .dictate: mText("PÅ DEN HÄR MACEN", "ON THIS MAC")
+        case .meetings: mText("LJUD OCH TRANSKRIPT", "AUDIO AND TRANSCRIPTS")
         case .history: "\(coordinator.history.count) " + mText("dikteringar", "dictations")
         case .dictionary: "\(coordinator.dictionaryEntries.count) " + mText("sparade ord", "saved words")
         case .settings: mText("Ditt Mumla", "Your Mumla")
@@ -518,11 +528,12 @@ struct MainView: View {
 }
 
 private enum MainSection: String, CaseIterable, Identifiable {
-    case dictate, history, dictionary, settings
+    case dictate, meetings, history, dictionary, settings
     var id: Self { self }
     var title: String {
         switch self {
         case .dictate: mText("Diktera", "Dictate")
+        case .meetings: mText("Möten", "Meetings")
         case .history: mText("Historik", "History")
         case .dictionary: mText("Ordlista", "Dictionary")
         case .settings: mText("Inställningar", "Settings")
@@ -531,6 +542,7 @@ private enum MainSection: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .dictate: "record.circle"
+        case .meetings: "person.2"
         case .history: "clock"
         case .dictionary: "text.book.closed"
         case .settings: "slider.horizontal.3"

@@ -52,6 +52,7 @@ public struct DictionaryEntry: Codable, Equatable, Identifiable, Sendable {
 
 public final class DictationHistoryStore: @unchecked Sendable {
     private let fileURL: URL
+    public var directory: URL { fileURL.deletingLastPathComponent() }
     private let limit: Int
     private let lock = NSLock()
 

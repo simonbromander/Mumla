@@ -27,6 +27,37 @@ final class AppCoordinator: ObservableObject {
     @Published private(set) var djiMicButtonStatus: DJIMicButtonStatus = .off
     @Published var hotkeyGestureStage: HotkeyGestureStage = .waiting
     @Published private(set) var settingsOpenRequest: UUID?
+    @Published private(set) var meetingsOpenRequest: UUID?
+    @Published private(set) var isMeetingActive = false
+    private var isMeetingProcessing = false
+    lazy var meetings: MeetingCoordinator = {
+        let result = MeetingCoordinator(directory: historyStore.directory, modelDirectory: { [weak self] in self?.modelDirectory })
+        result.microphoneUID = { [weak self] in self?.settings.pinnedInputDevice?.uid }
+        result.canStart = { [weak self] in
+            guard let self else { return false }
+            return !self.isInstallingAppUpdate && self.activeMode == nil && self.pendingStartID == nil && self.inFlightOperations == 0
+        }
+        result.canProcess = { [weak self] in
+            guard let self else { return false }
+            return !self.isInstallingAppUpdate && self.activeMode == nil && self.pendingStartID == nil && self.inFlightOperations == 0
+        }
+        result.onActivityChanged = { [weak self] capturing, processing in
+            if capturing { self?.hidePillTask?.cancel(); self?.pasteVerificationTask?.cancel(); self?.editObserver.cancel() }
+            self?.isMeetingActive = capturing; self?.isMeetingProcessing = processing; self?.refreshUpdateActivity()
+        }
+        result.onRecordingUpdate = { [weak self] elapsed, level, paused in
+            guard let self else { return }
+            let wasRecording: Bool
+            if case .handsFree = self.pillState { wasRecording = true } else { wasRecording = false }
+            let needsPresentation = self.pillState == .hidden || wasRecording == paused
+            self.pillState = paused ? .message(mText("Möte pausat", "Meeting paused")) : .handsFree(elapsedSeconds: elapsed)
+            self.inputLevel = level
+            self.waveformSamples.removeFirst(); self.waveformSamples.append(level)
+            if needsPresentation { self.showPill?() }
+        }
+        result.onRecordingEnded = { [weak self] in self?.pillState = .hidden; self?.hidePill?() }
+        return result
+    }()
     @Published private(set) var isBusyForAppUpdate = false
     @Published private(set) var inputDevices: [AudioInputDevice] = []
     @Published private(set) var isFormattingDictation = false
@@ -110,6 +141,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     func bootstrap() {
+        meetings.bootstrap()
         settings = (try? settingsStore.load()) ?? .default
         languageMode = settings.languageMode
         triggerKeyChanged?(settings.triggerKey)
@@ -154,11 +186,16 @@ final class AppCoordinator: ObservableObject {
 
     func setAppUpdateInstallationInProgress(_ inProgress: Bool) {
         isInstallingAppUpdate = inProgress
+        if inProgress { meetings.suspendProcessing() } else { meetings.resumeProcessing() }
     }
 
     private func refreshUpdateActivity() {
-        let busy = activeMode != nil || pendingStartID != nil || inFlightOperations > 0 || modelInstallTask != nil
+        let busy = activeMode != nil || pendingStartID != nil || inFlightOperations > 0 || modelInstallTask != nil || isMeetingActive || isMeetingProcessing
         if isBusyForAppUpdate != busy { isBusyForAppUpdate = busy }
+    }
+
+    var hasNonMeetingActivity: Bool {
+        activeMode != nil || pendingStartID != nil || inFlightOperations > 0 || modelInstallTask != nil
     }
 
     var isLaunchAtLoginRequested: Bool {
@@ -414,6 +451,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     func cancelDictation() {
+        guard !isMeetingActive else { return }
         pendingStartID = nil
         if let formattingTask { formattingTask.cancel(); return }
         guard activeMode != nil else { dismissPill(); return }
@@ -432,7 +470,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     var canPasteFromHistory: Bool {
-        !isInstallingAppUpdate && activeMode == nil && pendingStartID == nil && inFlightOperations == 0 && pillState != .transcribing
+        !isInstallingAppUpdate && !isMeetingActive && activeMode == nil && pendingStartID == nil && inFlightOperations == 0 && pillState != .transcribing
     }
 
     func pasteRecord(_ record: DictationRecord, target: FocusedTextTargetSnapshot?) {
@@ -609,6 +647,12 @@ final class AppCoordinator: ObservableObject {
         showMainWindow?()
     }
 
+    func openMeetings() {
+        meetingsOpenRequest = UUID()
+        isOnboardingVisible = false
+        showMainWindow?()
+    }
+
     func openMainWindow() {
         showMainWindow?()
     }
@@ -719,8 +763,10 @@ final class AppCoordinator: ObservableObject {
                     detail: "Starting download"
                 )
                 self.statusText = "Downloading model"
-                self.pillState = .preparing(progress: 0)
-                self.showPill?()
+                if !self.isMeetingActive {
+                    self.pillState = .preparing(progress: 0)
+                    self.showPill?()
+                }
             }
 
             do {
@@ -729,7 +775,7 @@ final class AppCoordinator: ObservableObject {
                         guard let self else { return }
                         self.modelInstallProgress = progress
                         self.statusText = progress.statusTitle
-                        if progress.phase == .downloading || progress.phase == .compiling {
+                        if !self.isMeetingActive && (progress.phase == .downloading || progress.phase == .compiling) {
                             self.pillState = .preparing(progress: progress.fraction)
                             self.showPill?()
                         }
@@ -740,10 +786,13 @@ final class AppCoordinator: ObservableObject {
                     self.modelDirectory = directory
                     self.transcriber = LocalPianissimoTranscriber(modelDirectory: directory)
                     self.statusText = "Ready"
-                    self.pillState = .message("Model ready")
-                    self.showPill?()
-                    self.scheduleHidePill()
+                    if !self.isMeetingActive {
+                        self.pillState = .message("Model ready")
+                        self.showPill?()
+                        self.scheduleHidePill()
+                    }
                     self.modelInstallTask = nil
+                    self.meetings.modelBecameAvailable()
                 }
             } catch {
                 await MainActor.run {
@@ -753,9 +802,11 @@ final class AppCoordinator: ObservableObject {
                         detail: error.localizedDescription
                     )
                     self.statusText = "Model install failed"
-                    self.pillState = .message("Model install failed")
-                    self.showPill?()
-                    self.scheduleHidePill()
+                    if !self.isMeetingActive {
+                        self.pillState = .message("Model install failed")
+                        self.showPill?()
+                        self.scheduleHidePill()
+                    }
                     self.modelInstallTask = nil
                 }
             }
@@ -847,6 +898,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     private func startDictation(mode: RecordingMode, djiReceiverID: UInt64? = nil) async {
+        guard !isMeetingActive else { statusText = mText("Möte pågår", "Meeting in progress"); return }
         guard !isInstallingAppUpdate, activeMode == nil, pendingStartID == nil, inFlightOperations == 0, pillState != .transcribing else { return }
         let startup = ContinuousClock.now
         pasteVerificationTask?.cancel()

@@ -55,6 +55,18 @@ public actor LocalPianissimoTranscriber {
         )
     }
 
+    public func transcribeMeeting(samples: [Float]) async throws -> [MeetingWord] {
+        let manager = try await loadManager()
+        var state = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
+        let result = try await manager.transcribe(samples, decoderState: &state, language: .swedish)
+        let words = result.tokenTimings.map { buildWordTimings(from: $0) } ?? []
+        if !words.isEmpty {
+            return words.map { MeetingWord(text: $0.word, start: $0.startTime, end: $0.endTime) }
+        }
+        guard !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
+        return [MeetingWord(text: result.text, start: 0, end: Double(samples.count) / 16_000)]
+    }
+
     private func loadManager() async throws -> AsrManager {
         try Task.checkCancellation()
         if let manager {

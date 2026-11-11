@@ -55,6 +55,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
+        coordinator.meetings.$activeID
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
+        coordinator.meetings.$isPaused
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
         coordinator.$hotkeyMonitorStatus
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
@@ -91,6 +99,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     private func rebuildMenu() {
+        let label = coordinator.isMeetingActive
+            ? (coordinator.meetings.isPaused ? mText("Mumla · möte pausat", "Mumla · meeting paused") : mText("Mumla · spelar in möte", "Mumla · recording meeting"))
+            : "Mumla"
+        statusItem.button?.setAccessibilityLabel(label)
+        statusItem.button?.toolTip = label
         let menu = NSMenu()
         menu.delegate = self
 
@@ -107,8 +120,21 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
-        menu.addItem(menuItem("Start Hands-free", action: #selector(startHandsFree)))
-        menu.addItem(menuItem("Cancel Dictation", action: #selector(cancelDictation)))
+        let startDictation = menuItem("Start Hands-free", action: #selector(startHandsFree))
+        startDictation.isEnabled = !coordinator.isMeetingActive
+        menu.addItem(startDictation)
+        let cancelDictation = menuItem("Cancel Dictation", action: #selector(cancelDictation))
+        cancelDictation.isEnabled = !coordinator.isMeetingActive
+        menu.addItem(cancelDictation)
+        if coordinator.meetings.activeID != nil {
+            let meetingStatus = NSMenuItem(title: "REC · " + MeetingRecord.timestamp(coordinator.meetings.elapsed), action: nil, keyEquivalent: "")
+            meetingStatus.identifier = .init("meeting.status"); menu.addItem(meetingStatus)
+            menu.addItem(menuItem(coordinator.meetings.isPaused ? mText("Fortsätt möte", "Resume meeting") : mText("Pausa möte", "Pause meeting"), action: #selector(pauseMeeting)))
+            let stop = menuItem(mText("Stoppa och spara möte", "Stop and save meeting"), action: #selector(stopMeeting))
+            stop.identifier = .init("meeting.stop"); menu.addItem(stop)
+        }
+        let meetings = menuItem(mText("Möten...", "Meetings..."), action: #selector(openMeetings))
+        meetings.identifier = .init("meeting.open"); menu.addItem(meetings)
         menu.addItem(.separator())
 
         let languageMenu = NSMenu()
@@ -248,6 +274,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     func menuWillOpen(_ menu: NSMenu) {
+        menu.items.first { $0.identifier?.rawValue == "meeting.status" }?.title = (coordinator.meetings.isPaused ? "PAUSE · " : "REC · ") + MeetingRecord.timestamp(coordinator.meetings.elapsed)
         menuTarget = captureTarget()
         // Publication is deferred to the run loop; opening must use the current busy state.
         menu.items.first { $0.identifier?.rawValue == "history.pasteLast" }?.isEnabled = !coordinator.history.isEmpty && coordinator.canPasteFromHistory
@@ -286,6 +313,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     @objc private func openSettings() {
         coordinator.openSettings()
     }
+
+    @objc private func openMeetings() { coordinator.openMeetings() }
+    @objc private func pauseMeeting() { coordinator.meetings.togglePause() }
+    @objc private func stopMeeting() { coordinator.meetings.stop() }
 
     @objc private func quit() {
         coordinator.quit?()

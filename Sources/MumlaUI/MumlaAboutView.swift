@@ -31,6 +31,9 @@ public struct MumlaAboutView: View {
                            detail: mText("Swift-biblioteket som kör CoreML-modellen lokalt på Apple-enheter.", "The Swift library that runs the CoreML model locally on Apple devices."),
                            source: "https://github.com/FluidInference/FluidAudio", licenseURL: "https://www.apache.org/licenses/LICENSE-2.0")
                     #if os(macOS)
+                    credit("LS-EEND", owner: "Audio-WestlakeU / FluidInference", license: "MIT",
+                           detail: mText("Valfri lokal talaruppdelning för möten. CoreML-konverterad DIHARD III-modell; Mumla har inte tränat om den.", "Optional local speaker separation for meetings. CoreML-converted DIHARD III model; Mumla has not retrained it."),
+                           source: "https://huggingface.co/FluidInference/ls-eend-coreml", licenseURL: "https://huggingface.co/FluidInference/ls-eend-coreml/blob/main/LICENSE")
                     credit("Qwen3.5 4B · 4-bit", owner: "Qwen Team / MLX Community", license: "Apache 2.0",
                            detail: mText("Textformatering och sammanfattning körs lokalt efter en separat modellhämtning. MLX Community har kvantiserat modellen till 4-bitars vikter. Mumla har inte tränat om modellen.", "Text formatting and summaries run locally after a separate model download. MLX Community quantized the model to 4-bit weights. Mumla has not retrained the model."),
                            source: "https://huggingface.co/mlx-community/Qwen3.5-4B-MLX-4bit", licenseURL: "https://www.apache.org/licenses/LICENSE-2.0")
@@ -137,7 +140,8 @@ private struct LicenseNotice: Identifiable {
 
     private static var textModelNotices: [LicenseNotice] {
         #if os(macOS)
-        [LicenseNotice(title: "Qwen / MLX / Tokenizers", file: "Qwen-runtime-notices", ext: "txt")]
+        [LicenseNotice(title: "LS-EEND / MIT", file: "LSEEND-LICENSE", ext: "txt"),
+         LicenseNotice(title: "Qwen / MLX / Tokenizers", file: "Qwen-runtime-notices", ext: "txt")]
         #else
         []
         #endif

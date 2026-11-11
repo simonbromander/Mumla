@@ -166,12 +166,19 @@ Current implementation status:
 
 ## Phase 2 Scope
 
-macOS meetings and sync:
+The [Meetings build plan](meetings-build-plan.md) defines the updated Mac meeting
+scope, implementation status, and remaining physical-call acceptance gates:
 
-- Microphone plus Core Audio process taps as separate channels.
-- Prompt before recording a detected meeting.
-- Transcript document with timestamps, notes, playback, and Markdown export.
-- iCloud private database sync with encrypted transcript text.
+- Explicit microphone plus selected-application audio capture as separate tracks.
+- Durable recordings with live local transcription by default, final tail
+  processing after Stop, and an optional record-now/transcribe-later workflow.
+- Transcript documents with timestamps, per-meeting speaker labels, corrections,
+  retained-audio playback, and copy/Markdown/JSON export.
+- No meeting Q&A, LLM summary workflow, or custom notes editor in this release;
+  users take their transcripts to their own LLM.
+- Meeting detection and iCloud meeting sync are later slices.
+  Private-database sync with encrypted transcript text remains a separate goal,
+  not a prerequisite or an implied capability of the recording beta.
 
 ## Phase 3 Scope
 

@@ -21,9 +21,30 @@ speech recognition, and a tactile, recorder-inspired interface.
   iOS text formatting continues to use Apple's system model on eligible devices.
 
 **This is an early-stage app.** English speech recognition, automatic model routing,
-meeting capture, and iCloud sync are not implemented yet. Swedish/English keyboard
+and iCloud sync are not implemented yet. Swedish/English keyboard
 typing assistance is not English speech recognition. The accuracy and latency
 targets still need evaluation on real, consented recordings.
+
+### Mac Meetings (Development)
+
+The development direct Mac build includes meeting recording with live, on-device Swedish
+transcription. Open Meetings from the menu bar or recorder, select the meeting
+app plus microphone (or Microphone only), and start recording explicitly. Audio
+is saved in short chunks while the transcript updates. Pause/resume, per-meeting
+speaker names, text corrections, clip playback, and text/Markdown/JSON export are
+available. No meeting summary or chat model is required or contacted.
+
+Optional speaker separation uses a separately downloaded, verified 45 MB LS-EEND
+model. Without it, source labels distinguish microphone and meeting-app audio.
+You can turn live transcription off and transcribe the saved recording later.
+Audio is retained for seven days after transcription, or deleted when it finishes,
+depending on the recording's retention choice. Pending audio remains available
+until transcription succeeds or you delete it explicitly.
+
+This implementation needs real Zoom/Teams/Meet and device/permission acceptance
+before a public meeting-support claim. Synthetic speech, disk-backed two-hour
+fixtures, and successful builds are not real-call quality measurements. See the
+[implementation and remaining acceptance gates](docs/meetings-build-plan.md).
 
 Audio and transcripts are not sent to a transcription service. Model downloads
 and user-requested Mac update checks use the network; there is no analytics backend.
@@ -92,6 +113,7 @@ then open an [issue](https://github.com/simonbromander/Mumla/issues) or a focuse
 For vulnerabilities, use [private reporting](SECURITY.md), not public issues.
 
 - [Implementation plan](docs/implementation-plan.md)
+- [Mac meeting recording and transcript build plan](docs/meetings-build-plan.md) (development)
 - [Design system](docs/design-system.md) and [light appearance](docs/light-appearance.md)
 - [Keyboard architecture and acceptance checks](docs/keyboard-plan.md)
 - [Phase 0 evaluation](docs/phase-0-evaluation.md)

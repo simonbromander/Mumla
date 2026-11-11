@@ -18,7 +18,7 @@ enum MacStorageDirectory {
     }
 
     private static func hasData(at directory: URL, fileManager: FileManager) -> Bool {
-        ["history.json", "dictionary.json", "settings.json", "Models", "Downloads"].contains {
+        ["history.json", "dictionary.json", "settings.json", "Models", "Downloads", "Meetings"].contains {
             fileManager.fileExists(atPath: directory.appendingPathComponent($0).path)
         }
     }
