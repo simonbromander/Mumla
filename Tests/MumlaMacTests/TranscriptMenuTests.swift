@@ -7,6 +7,32 @@ import XCTest
 
 @MainActor
 final class TranscriptMenuTests: XCTestCase {
+    func testDestinationMenuIsHiddenUntilConfiguredAndKeepsPasteItems() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let board = NSPasteboard.withUniqueName()
+        let firstStatus = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        let configuredStatus = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        defer {
+            NSStatusBar.system.removeStatusItem(firstStatus); NSStatusBar.system.removeStatusItem(configuredStatus)
+            board.releaseGlobally(); try? FileManager.default.removeItem(at: directory)
+        }
+        let unconfigured = coordinator(directory, board: board)
+        let firstMenu = StatusMenuController(coordinator: unconfigured, updater: MacUpdateController(), statusItem: firstStatus)
+        XCTAssertFalse(firstStatus.menu?.items.contains { $0.identifier?.rawValue == "history.send" } == true)
+        var parts = URLComponents(); parts.scheme = "https"; parts.host = "receiver.invalid"
+        try AppSettingsStore(directory: directory).setTranscriptDestination(TranscriptDestination(name: "My destination", url: parts.url!))
+        let configured = coordinator(directory, board: board)
+        configured.history = [DictationRecord(text: "A transcript", language: .english)]
+        let configuredMenu = StatusMenuController(coordinator: configured, updater: MacUpdateController(), statusItem: configuredStatus)
+        let menu = try XCTUnwrap(configuredStatus.menu)
+        let send = try XCTUnwrap(menu.items.first { $0.identifier?.rawValue == "history.send" })
+        XCTAssertTrue(send.title.hasSuffix("My destination")); XCTAssertEqual(send.submenu?.items.count, 1)
+        XCTAssertEqual(menu.items.first { $0.identifier?.rawValue == "history.recent" }?.submenu?.items.first?.action,
+                       NSSelectorFromString("pasteHistory:"))
+        XCTAssertNotNil(menu.items.first { $0.identifier?.rawValue == "history.pasteLast" })
+        withExtendedLifetime((firstMenu, configuredMenu)) {}
+    }
+
     func testLastTranscriptAndTenRecentItemsUpdateAfterPublishedHistoryChanges() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let board = NSPasteboard.withUniqueName()

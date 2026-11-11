@@ -58,6 +58,7 @@ local Keychain, not the keyboard or settings file. The recipient controls retent
 after receiving text; removing a destination does not delete remote items.
 Existing explicit Share/export actions and paired Watch-to-iPhone audio transfers
 remain available. iCloud sync remains unimplemented.
+See [destination setup, verification and the remaining live receiver gate](docs/transcript-destination-verification.md).
 
 The full Mac hotkey/paste workflow uses the direct-download build and requires
 Microphone, Input Monitoring, and Accessibility permissions. The sandboxed Mac

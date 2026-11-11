@@ -35,6 +35,8 @@
 	<string>NSFileProtectionComplete</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Mumla uses the microphone for private on-device dictation.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Mumla connects to a destination on your network only when you send a transcript or a test.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSUbiquitousContainers</key>

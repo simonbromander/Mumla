@@ -13,7 +13,7 @@ final class VoiceNotes: ObservableObject {
 
     init() {
         #if DEBUG
-        if CommandLine.arguments.contains("--ui-testing") {
+        if CommandLine.arguments.contains("--ui-testing") || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaVoiceNotesUITests")
             if CommandLine.arguments.contains("--reset-ui-data") { try? FileManager.default.removeItem(at: directory) }
             store = VoiceNoteStore(directory: directory)
@@ -24,7 +24,7 @@ final class VoiceNotes: ObservableObject {
         #endif
         refresh()
         #if DEBUG
-        if CommandLine.arguments.contains("--ui-testing") { return }
+        if CommandLine.arguments.contains("--ui-testing") || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
         #endif
         connectivity = VoiceNoteConnectivity(store: store) { [weak self] message in
             Task { @MainActor in self?.refresh(message) }
@@ -38,6 +38,10 @@ final class VoiceNotes: ObservableObject {
 
     func delete(_ note: VoiceNote) {
         do { try store.delete(id: note.id); refresh() } catch { self.error = error.localizedDescription }
+    }
+
+    func markSent(_ id: UUID, at date: Date) throws {
+        try store.markSent(id: id, at: date); refresh()
     }
 
     #if DEBUG
@@ -63,6 +67,7 @@ final class VoiceNotes: ObservableObject {
 
 struct VoiceNotesSection: View {
     @ObservedObject var inbox: VoiceNotes
+    var destination: TranscriptDestinationController
     var playbackAllowed: Bool
     @State private var query = ""
     @State private var selected: VoiceNote?
@@ -119,13 +124,15 @@ struct VoiceNotesSection: View {
                 }
             }
         }.padding(.top, 8)
-            .sheet(item: $selected) { note in VoiceNoteSheet(note: note, inbox: inbox, playbackAllowed: playbackAllowed) }
+            .sheet(item: $selected) { note in VoiceNoteSheet(initialNote: note, inbox: inbox, destination: destination, playbackAllowed: playbackAllowed) }
     }
 }
 
 private struct VoiceNoteSheet: View {
-    let note: VoiceNote
+    let initialNote: VoiceNote
+    private var note: VoiceNote { inbox.notes.first(where: { $0.id == initialNote.id }) ?? initialNote }
     @ObservedObject var inbox: VoiceNotes
+    var destination: TranscriptDestinationController
     var playbackAllowed: Bool
     @StateObject private var player = VoiceNotePlayer()
     @Environment(\.dismiss) private var dismiss
@@ -168,6 +175,10 @@ private struct VoiceNoteSheet: View {
                                 .frame(maxWidth: .infinity, minHeight: 44)
                         }
                     }.font(.subheadline).buttonStyle(MumlaKeyStyle())
+                    TranscriptSendAction(controller: destination, id: note.id,
+                                         transcript: try? note.outgoingTranscript(version: TranscriptDestinationController.version), sentAt: note.sentAt) {
+                        try inbox.markSent(note.id, at: $0)
+                    }
                     ShareLink(item: inbox.store.audioURL(for: note.id)) {
                         Label(mText("Dela inspelning", "Share recording"), systemImage: "waveform")
                             .frame(maxWidth: .infinity, minHeight: 44)

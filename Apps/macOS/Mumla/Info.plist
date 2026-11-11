@@ -34,6 +34,8 @@
 	<string>Mumla reads your dictation key and DJI microphone button to start and stop dictation.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Mumla uses the microphone for private on-device dictation and meeting transcription.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Mumla connects to a destination on your network only when you send a transcript or a test.</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>Mumla captures audio from your selected meeting app for private on-device transcription.</string>
 	<key>NSPrincipalClass</key>

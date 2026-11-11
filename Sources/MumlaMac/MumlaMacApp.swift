@@ -28,6 +28,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         #if DEBUG
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
         if let index = CommandLine.arguments.firstIndex(of: "--design-snapshot"),
            CommandLine.arguments.indices.contains(index + 1) {
             captureDesign(at: CommandLine.arguments[index + 1])

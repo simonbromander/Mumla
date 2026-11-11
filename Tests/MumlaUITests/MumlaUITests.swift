@@ -3,6 +3,82 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testDestinationSettingsSaveTestRemove() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 10)); app.buttons["Settings"].tap()
+        let name = app.textFields["Name"]
+        for _ in 0..<5 where !name.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        XCTAssertTrue(name.isHittable); name.tap(); name.typeText("My destination\n")
+        let address = app.textFields["HTTPS address"]
+        address.tap(); address.typeText("https:" + "//receiver.invalid/transcript\n")
+        let token = app.secureTextFields["destination.token"]
+        for _ in 0..<3 where !token.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        token.tap(); token.typeText(UUID().uuidString + "\n")
+        let save = app.buttons["destination.save"]
+        for _ in 0..<3 where !save.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        save.tap()
+        let status = app.staticTexts["destination.status"]
+        XCTAssertTrue(status.waitForExistence(timeout: 3)); XCTAssertEqual(status.label, "Saved. Nothing was sent.")
+        capture("82-destination-settings", app: app)
+        app.buttons["destination.test"].tap(); XCTAssertEqual(status.label, "Sent")
+        app.buttons["destination.remove"].tap()
+        app.sheets.buttons["Remove"].tap()
+        XCTAssertEqual(status.label, "Destination and token removed.")
+        XCTAssertFalse(app.buttons["destination.test"].isEnabled)
+    }
+
+    func testDestinationVoiceNoteSendsTextBesideShareWithoutReplacingAudioShare() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-voice-notes", "--seed-destination", "-AppleLanguages", "(en)"]
+        app.launch(); app.buttons["tab.voiceNotes"].tap()
+        let note = app.buttons["voiceNotes.note"].firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 5)); note.tap()
+        let send = app.buttons["transcript.send"]
+        XCTAssertTrue(send.waitForExistence(timeout: 5)); send.tap()
+        let status = app.staticTexts["transcript.send.status"]
+        XCTAssertTrue(status.waitForExistence(timeout: 3)); XCTAssertEqual(status.label, "Sent")
+        XCTAssertTrue(app.buttons["Share recording"].exists)
+        send.tap(); XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 3))
+        app.alerts.buttons["Cancel"].tap()
+        capture("83-destination-voice-note", app: app)
+    }
+
+    func testDestinationSendIsHiddenWithoutConfiguration() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+        XCTAssertTrue(app.buttons["transcript.share"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["transcript.send"].exists)
+        capture("80-destination-unconfigured", app: app)
+    }
+
+    func testDestinationSendNamesRecipientAndConfirmsRepeat() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "--seed-destination", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.buttons["showLatestTranscript"].waitForExistence(timeout: 10))
+        app.buttons["showLatestTranscript"].tap()
+        let send = app.buttons["transcript.send"]
+        XCTAssertTrue(send.waitForExistence(timeout: 5))
+        XCTAssertEqual(send.label, "Send to Test destination")
+        XCTAssertGreaterThanOrEqual(send.frame.minX, 0)
+        XCTAssertLessThanOrEqual(send.frame.maxX, app.frame.maxX)
+        XCTAssertTrue(send.isHittable)
+        send.tap()
+        let status = app.staticTexts["transcript.send.status"]
+        XCTAssertTrue(status.waitForExistence(timeout: 5)); XCTAssertEqual(status.label, "Sent")
+        capture("81-destination-sent", app: app)
+        send.tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.alerts.firstMatch.label.contains("Test destination"))
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertEqual(status.label, "Sent")
+    }
+
     func testVoiceNotesEmptyState() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(en)"]

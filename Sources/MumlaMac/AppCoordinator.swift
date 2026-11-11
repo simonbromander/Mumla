@@ -29,6 +29,16 @@ final class AppCoordinator: ObservableObject {
     @Published private(set) var settingsOpenRequest: UUID?
     @Published private(set) var meetingsOpenRequest: UUID?
     @Published private(set) var isMeetingActive = false
+    lazy var transcriptDestination: TranscriptDestinationController = {
+        let controller = TranscriptDestinationController(settings: settingsStore)
+        controller.settingsChanged = { [weak self] in self?.settings = $0 }
+        controller.activityChanged = { [weak self] in self?.refreshUpdateActivity() }
+        return controller
+    }()
+
+    func markTranscriptSent(_ id: UUID, at date: Date) throws {
+        history = try historyStore.markSent(recordID: id, at: date)
+    }
     private var isMeetingProcessing = false
     lazy var meetings: MeetingCoordinator = {
         let result = MeetingCoordinator(directory: historyStore.directory, modelDirectory: { [weak self] in self?.modelDirectory })
@@ -190,7 +200,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     private func refreshUpdateActivity() {
-        let busy = activeMode != nil || pendingStartID != nil || inFlightOperations > 0 || modelInstallTask != nil || isMeetingActive || isMeetingProcessing
+        let busy = activeMode != nil || pendingStartID != nil || inFlightOperations > 0 || modelInstallTask != nil || isMeetingActive || isMeetingProcessing || transcriptDestination.isSending
         if isBusyForAppUpdate != busy { isBusyForAppUpdate = busy }
     }
 

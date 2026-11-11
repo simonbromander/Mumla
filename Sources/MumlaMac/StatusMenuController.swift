@@ -3,6 +3,7 @@ import Combine
 import MumlaAudio
 import MumlaCore
 import MumlaUI
+import SwiftUI
 
 @MainActor
 final class StatusMenuController: NSObject, NSMenuDelegate {
@@ -11,6 +12,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let updater: MacUpdateController
     private var cancellables: Set<AnyCancellable> = []
     private var menuTarget: FocusedTextTargetSnapshot?
+    private var sendResultPopover: NSPopover?
     private let captureTarget: @MainActor () -> FocusedTextTargetSnapshot?
 
     init(coordinator: AppCoordinator, updater: MacUpdateController, statusItem: NSStatusItem? = nil,
@@ -30,6 +32,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
         rebuildMenu()
         coordinator.$history
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
+        coordinator.transcriptDestination.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
@@ -208,6 +214,21 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         historyItem.submenu = historyMenu
         menu.addItem(historyItem)
 
+        if let destination = coordinator.transcriptDestination.destination {
+            let sendMenu = NSMenu(); sendMenu.autoenablesItems = false
+            for record in coordinator.history.prefix(10) {
+                let item = menuItem(String(record.text.split(whereSeparator: \.isWhitespace).joined(separator: " ").prefix(64)), action: #selector(sendHistory(_:)))
+                item.representedObject = record.id.uuidString
+                item.isEnabled = !coordinator.transcriptDestination.isSending
+                sendMenu.addItem(item)
+            }
+            let sendItem = NSMenuItem(title: mText("Skicka till ", "Send to ") + destination.name, action: nil, keyEquivalent: "")
+            sendItem.submenu = sendMenu
+            sendItem.isEnabled = !coordinator.history.isEmpty && !coordinator.transcriptDestination.isSending
+            sendItem.identifier = .init("history.send")
+            menu.addItem(sendItem)
+        }
+
         menu.addItem(.separator())
         menu.addItem(menuItem("Open Mumla", action: #selector(openMainWindow)))
         menu.addItem(menuItem(mText("Inställningar...", "Settings..."), action: #selector(openSettings)))
@@ -271,6 +292,46 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             let record = coordinator.history.first(where: { $0.id == id })
         else { return }
         pasteAfterMenuCloses(record)
+    }
+
+    @objc private func sendHistory(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let id = UUID(uuidString: raw),
+              let record = coordinator.history.first(where: { $0.id == id }),
+              let destination = coordinator.transcriptDestination.destination,
+              let transcript = try? record.outgoingTranscript(version: TranscriptDestinationController.version) else { return }
+        Task { @MainActor [weak self] in
+            await withCheckedContinuation { continuation in
+                RunLoop.main.perform(inModes: [.default]) { continuation.resume() }
+            }
+            guard let self, !coordinator.transcriptDestination.isSending else { return }
+            if coordinator.transcriptDestination.wasSent(id, sentAt: record.sentAt) {
+                let alert = NSAlert()
+                alert.messageText = mText("Skicka igen till ", "Send again to ") + destination.name + "?"
+                alert.informativeText = mText("Det här transkriptet har redan skickats. Ett nytt exemplar kan skapas.",
+                                             "This transcript was already sent. Another item may be created.")
+                alert.addButton(withTitle: mText("Avbryt", "Cancel"))
+                alert.addButton(withTitle: mText("Skicka igen", "Send again"))
+                guard alert.runModal() == .alertSecondButtonReturn else { return }
+            }
+            guard coordinator.history.contains(where: { $0.id == id && $0.text == record.text }) else { return }
+            showSendResult(mText("Skickar till ", "Sending to ") + destination.name)
+            _ = await coordinator.transcriptDestination.send(transcript, id: id, approvedDestination: destination) {
+                try self.coordinator.markTranscriptSent(id, at: $0)
+            }
+            showSendResult(coordinator.transcriptDestination.results[id] ?? mText("Sändningen avbröts.", "Send cancelled."))
+        }
+    }
+
+    private func showSendResult(_ message: String) {
+        guard let button = statusItem.button else { return }
+        sendResultPopover?.close()
+        let popover = NSPopover(); popover.behavior = .transient
+        popover.contentViewController = NSHostingController(rootView:
+            Text(message).font(.system(.body, design: .monospaced))
+                .fixedSize(horizontal: false, vertical: true).padding(20).frame(width: 300)
+                .background(MumlaStyle.background).mumlaAppearance())
+        sendResultPopover = popover
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     }
 
     func menuWillOpen(_ menu: NSMenu) {

@@ -39,7 +39,7 @@ struct MumlaHomeView: View {
                         Group {
                             if tab == .history { history }
                             else if tab == .voiceNotes {
-                                VoiceNotesSection(inbox: voiceNotes, playbackAllowed: session.state == .idle && !session.keyboardSnapshot.isAlive())
+                                VoiceNotesSection(inbox: voiceNotes, destination: session.transcriptDestination, playbackAllowed: session.state == .idle && !session.keyboardSnapshot.isAlive())
                             }
                             else { dictionary }
                         }.padding(.bottom, 16)
