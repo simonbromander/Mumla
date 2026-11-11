@@ -17,6 +17,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     private var djiMicMonitor: DJIMicButtonMonitor!
     private var updater: MacUpdateController!
     private var hotkeyIsSuspended = false
+    private var quitConfirmationIsShowing = false
 
     static func main() {
         let app = NSApplication.shared
@@ -28,6 +29,10 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         #if DEBUG
+        if CommandLine.arguments.contains("--meeting-ui-testing") {
+            launchMeetingUITests()
+            return
+        }
         if let index = CommandLine.arguments.firstIndex(of: "--design-snapshot"),
            CommandLine.arguments.indices.contains(index + 1) {
             captureDesign(at: CommandLine.arguments[index + 1])
@@ -180,29 +185,51 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if coordinator?.meetings.isCapturing == true {
-            let alert = NSAlert()
-            alert.messageText = mText("Ett möte spelas in", "A meeting is recording")
-            alert.addButton(withTitle: mText("Stoppa, spara och avsluta", "Stop, save and quit"))
-            alert.addButton(withTitle: mText("Fortsätt spela in", "Keep recording"))
-            guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
-            coordinator.meetings.stop()
-        }
-        if coordinator?.meetings.isProcessing == true, coordinator?.hasNonMeetingActivity == false {
-            let alert = NSAlert()
-            alert.messageText = mText("Pausa transkriberingen och avsluta?", "Pause transcription and quit?")
-            alert.informativeText = mText("Inspelningen är sparad. Du kan fortsätta transkribera senare.", "The recording is saved. You can resume transcription later.")
-            alert.addButton(withTitle: mText("Pausa och avsluta", "Pause and quit"))
-            alert.addButton(withTitle: mText("Fortsätt", "Continue"))
-            guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
-            coordinator.meetings.suspendProcessing()
-            return .terminateNow
+        let recording = coordinator?.meetings.isCapturing == true
+        let processing = coordinator?.meetings.isProcessing == true && coordinator?.hasNonMeetingActivity == false
+        if recording || processing {
+            guard !quitConfirmationIsShowing else { return .terminateLater }
+            guard let mainWindowController else { return .terminateCancel }
+            quitConfirmationIsShowing = true
+            mainWindowController.confirmMeetingExit(recording ? .recording : .transcribing) { [weak self] confirmed in
+                guard let self else { return }
+                if confirmed {
+                    self.coordinator.meetings.stop()
+                    self.coordinator.meetings.suspendProcessing()
+                }
+                self.quitConfirmationIsShowing = false
+                NSApp.reply(toApplicationShouldTerminate: confirmed)
+            }
+            return .terminateLater
         }
         guard coordinator?.isBusyForAppUpdate != true else { return .terminateCancel }
         return .terminateNow
     }
 
     #if DEBUG
+    private func launchMeetingUITests() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaMeetingUITests", isDirectory: true)
+        if CommandLine.arguments.contains("--reset-ui-data") { try? FileManager.default.removeItem(at: directory) }
+        coordinator = AppCoordinator(recorder: MicrophoneRecorder(), transcriber: nil,
+            historyStore: DictationHistoryStore(directory: directory), dictionaryStore: DictionaryStore(directory: directory),
+            settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil)
+        coordinator.meetings = MeetingCoordinator(directory: directory, modelDirectory: { nil }, capture: MeetingUICapture(), permission: { true },
+            processor: { _, _, _ in [] })
+        if CommandLine.arguments.contains("--seed-meeting") { _ = try? MeetingDesignFixtures.seed(coordinator.meetings, long: CommandLine.arguments.contains("--long-meeting")) }
+        else { coordinator.meetings.reload(); coordinator.meetings.selectedID = coordinator.meetings.records.first?.id }
+        updater = MacUpdateController()
+        mainWindowController = MainWindowController(coordinator: coordinator, updater: updater, initialSection: "meetings")
+        if CommandLine.arguments.contains("--compact-window") { mainWindowController.setTestingSize(NSSize(width: 820, height: 560)) }
+        NSApp.setActivationPolicy(.regular)
+        let menu = NSMenu()
+        let applicationItem = NSMenuItem()
+        let applicationMenu = NSMenu()
+        let quit = NSMenuItem(title: "Quit Mumla", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        quit.target = NSApp; applicationMenu.addItem(quit)
+        applicationItem.submenu = applicationMenu; menu.addItem(applicationItem); NSApp.mainMenu = menu
+        mainWindowController.show()
+    }
+
     private func captureDesign(at path: String) {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaDesignSnapshot-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -215,18 +242,14 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         let sectionIndex = CommandLine.arguments.firstIndex(of: "--snapshot-section")
         let section = sectionIndex.flatMap { CommandLine.arguments.indices.contains($0 + 1) ? CommandLine.arguments[$0 + 1] : nil } ?? "dictate"
         let isPill = section.hasPrefix("pill-")
-        if section == "meetings-transcript" {
-            let meeting = MeetingRecord(title: "Produktgenomgång", sourceName: "Meeting app", microphoneOnly: false)
-            try? snapshotCoordinator.meetings.store.create(meeting)
-            _ = try? snapshotCoordinator.meetings.store.update(meeting.id) {
-                $0.capture = .saved; $0.processing = .ready; $0.duration = 1485
-                $0.speakerNames = ["system-0": "Anna", "microphone": "Me"]
-                $0.segments = [
-                    MeetingSegment(id: "example-0", chunkID: "example", track: .microphone, start: 12, end: 20, speaker: "microphone", text: "Vi börjar med inspelningen. Ljudet och transkriptet stannar på den här Macen."),
-                    MeetingSegment(id: "example-1", chunkID: "example", track: .system, start: 21, end: 29, speaker: "system-0", text: "Bra. Jag vill kunna gå tillbaka till det vi faktiskt sa, med tydliga tider och talare."),
-                    MeetingSegment(id: "example-2", chunkID: "example", track: .microphone, start: 31, end: 38, speaker: "microphone", text: "Då testar vi både hörlurar och högtalare innan vi släpper nästa version.")]
+        var fixture: MeetingRecord?
+        if section.hasPrefix("meetings-") {
+            fixture = try? MeetingDesignFixtures.seed(snapshotCoordinator.meetings, long: CommandLine.arguments.contains("--snapshot-long"))
+            guard fixture != nil else { return }
+            if let fixture, section == "meetings-live" || section == "meetings-paused" {
+                snapshotCoordinator.meetings.prepareRecordingDesignSnapshot(fixture.id, paused: section == "meetings-paused")
             }
-            snapshotCoordinator.meetings.reload(); snapshotCoordinator.meetings.selectedID = meeting.id
+            if section == "meetings-error" { snapshotCoordinator.meetings.error = "The selected input device is unavailable. Your meeting recording has been saved on this Mac." }
         }
         if CommandLine.arguments.contains("--snapshot-apple-text") { snapshotCoordinator.settings.textModelProvider = .appleIntelligence }
         if CommandLine.arguments.contains("--snapshot-minimal") { snapshotCoordinator.settings.dictationOverlayStyle = .minimal }
@@ -241,8 +264,12 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         }
         let compact = CommandLine.arguments.contains("--snapshot-compact")
         let light = CommandLine.arguments.contains("--snapshot-light")
-        let size = section == "text-model" ? NSSize(width: compact ? 320 : 480, height: 320)
+        let size = section == "meetings-quit" ? NSSize(width: 520, height: 340)
+            : section == "meetings-correction" ? NSSize(width: 520, height: 480)
+            : section.hasPrefix("meetings-delete") ? NSSize(width: 520, height: 400)
+            : section == "text-model" ? NSSize(width: compact ? 320 : 480, height: 320)
             : section == "about" ? NSSize(width: 580, height: 520) : isPill ? PillView.size(for: snapshotCoordinator.pillState, style: snapshotCoordinator.settings.dictationOverlayStyle)
+            : CommandLine.arguments.contains("--snapshot-wide") ? NSSize(width: 1280, height: 860)
             : NSSize(width: compact ? 820 : 960, height: compact ? 560 : 760)
         let view: NSView
         let window: NSWindow
@@ -252,7 +279,10 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             window.setContentSize(size)
             view = window.contentView!
         } else {
-            let root = section == "about" ? AnyView(MumlaAboutView())
+            let root = section == "meetings-quit" ? AnyView(MeetingExitSheet(reason: .recording, confirm: {}, cancel: {}))
+                : section == "meetings-correction" ? AnyView(MeetingCorrectionSheet(segment: fixture!.segments[1], speaker: fixture!.speakerName("system-0"), save: { _, _ in }))
+                : section.hasPrefix("meetings-delete") ? AnyView(MeetingDeletionSheet(meeting: fixture!, audioOnly: section == "meetings-delete-audio", delete: { nil }))
+                : section == "about" ? AnyView(MumlaAboutView())
                 : section == "text-model" ? AnyView(QwenTextModelControls(model: snapshotCoordinator.textModel)
                     .padding(24).frame(width: size.width, height: size.height, alignment: .topLeading)
                     .buttonStyle(MumlaKeyStyle()).background(MumlaStyle.background))

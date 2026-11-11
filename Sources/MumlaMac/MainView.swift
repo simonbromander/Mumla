@@ -30,7 +30,7 @@ struct MainView: View {
             MumlaBackdrop()
             HStack(spacing: 0) {
                 sidebar.frame(width: 210)
-                VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: selection == .meetings ? 18 : 28) {
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(selection.title).font(.system(size: 28, weight: .semibold, design: .monospaced))

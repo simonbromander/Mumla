@@ -4,9 +4,10 @@ import SwiftUI
 @MainActor
 final class MainWindowController {
     private let window: NSWindow
+    private var meetingExitPanel: NSWindow?
 
-    init(coordinator: AppCoordinator, updater: MacUpdateController) {
-        let contentView = MainView(coordinator: coordinator, updater: updater)
+    init(coordinator: AppCoordinator, updater: MacUpdateController, initialSection: String = "dictate") {
+        let contentView = MainView(coordinator: coordinator, updater: updater, initialSection: initialSection)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -30,4 +31,26 @@ final class MainWindowController {
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
+
+    func confirmMeetingExit(_ reason: MeetingExitReason, completion: @escaping (Bool) -> Void) {
+        guard meetingExitPanel == nil else { return }
+        show()
+        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 340), styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
+        panel.titleVisibility = .hidden; panel.titlebarAppearsTransparent = true
+        panel.isReleasedWhenClosed = false
+        var parent = window
+        while let sheet = parent.attachedSheet { parent = sheet }
+        let finish: (Bool) -> Void = { [weak self, weak panel, weak parent] approved in
+            guard let self, let panel, let parent else { return }
+            parent.endSheet(panel); self.meetingExitPanel = nil
+            completion(approved)
+        }
+        panel.contentView = NSHostingView(rootView: MeetingExitSheet(reason: reason, confirm: { finish(true) }, cancel: { finish(false) }))
+        meetingExitPanel = panel
+        parent.beginSheet(panel)
+    }
+
+    #if DEBUG
+    func setTestingSize(_ size: NSSize) { window.setContentSize(size) }
+    #endif
 }
