@@ -5,6 +5,22 @@ import MumlaCore
 
 @MainActor
 enum MeetingDesignFixtures {
+    static func suggestion(long: Bool = false) -> MeetingSuggestion {
+        MeetingSuggestion(candidate: MeetingDetectionCandidate(id: UUID(), app: DetectedMeetingApp(id: ProcessInfo.processInfo.processIdentifier,
+            bundleID: "app.mumla.fixture.meeting", kind: .teams), expiresAt: Date().addingTimeInterval(60)),
+            title: long ? String(repeating: "Planering och återkoppling från produktteamet. ", count: 4) : "Produktgenomgång")
+    }
+
+    static func detection(start: @escaping @MainActor (DetectedMeetingApp, String?) async -> Void) -> MeetingDetectionCoordinator {
+        var date = Date()
+        let monitor = MeetingUIActivityMonitor()
+        let model = MeetingDetectionCoordinator(monitor: monitor, calendar: MeetingUICalendar(), now: { date })
+        model.onStart = start
+        model.configure(enabled: true, useCalendar: true)
+        date.addTimeInterval(2); model.refresh()
+        return model
+    }
+
     static func seed(_ model: MeetingCoordinator, long: Bool = false) throws -> MeetingRecord {
         let record = MeetingRecord(title: long ? "Planering av nästa produktversion och återkoppling från användare" : "Produktgenomgång",
             sourceName: long ? "Mötesapp med ett långt namn för produktteamets videokonferenser" : "Meeting app", microphoneOnly: false,
@@ -28,5 +44,20 @@ final class MeetingUICapture: MeetingCapturing {
                onChunk: @escaping @Sendable () -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {}
     func stop() {}
     func level(_ track: MeetingTrack) -> Double { 0.3 }
+}
+
+@MainActor
+private final class MeetingUIActivityMonitor: MeetingActivityMonitoring {
+    var onChange: (([DetectedMeetingApp], Bool) -> Void)?
+    func start() { refresh() }
+    func refresh() { onChange?([MeetingDesignFixtures.suggestion().candidate.app], true) }
+    func stop() {}
+}
+
+@MainActor
+private final class MeetingUICalendar: MeetingCalendarProviding {
+    var access: MeetingCalendarAccess { .allowed }
+    func requestAccess() async -> Bool { true }
+    func title(for app: MeetingAppKind, now: Date) -> String? { "Produktgenomgång" }
 }
 #endif

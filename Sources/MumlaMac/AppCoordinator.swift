@@ -17,7 +17,7 @@ final class AppCoordinator: ObservableObject {
     @Published var dictionaryEntries: [DictionaryEntry] = []
     @Published var languageMode: LanguageMode = .automatic
     @Published var settings: AppSettings = .default
-    @Published var isOnboardingVisible = false
+    @Published var isOnboardingVisible = false { didSet { meetingDetection.activityChanged() } }
     @Published var onboardingStep: OnboardingStep = .value
     @Published var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
     @Published var modelDirectory: URL?
@@ -30,6 +30,28 @@ final class AppCoordinator: ObservableObject {
     @Published private(set) var meetingsOpenRequest: UUID?
     @Published private(set) var isMeetingActive = false
     private var isMeetingProcessing = false
+    lazy var meetingDetection: MeetingDetectionCoordinator = {
+        let result = MeetingDetectionCoordinator()
+        result.canSuggest = { [weak self] in
+            guard let self else { return false }
+            return !self.isInstallingAppUpdate && !self.hasNonMeetingActivity && !self.meetings.isCapturing &&
+                !self.isMeetingProcessing && !self.isOnboardingVisible && !IsSecureEventInputEnabled() &&
+                self.meetings.availabilityMessage == nil
+        }
+        result.onStart = { [weak self] detected, title in
+            guard let self, !self.hasNonMeetingActivity, !self.meetings.isCapturing, !self.isInstallingAppUpdate else { return }
+            self.meetings.refreshSources()
+            guard self.meetings.sources.contains(where: { $0.id == detected.id && $0.bundleID == detected.bundleID }) else {
+                self.meetings.error = mText("Mötesappen är inte längre tillgänglig.", "The meeting app is no longer available.")
+                self.openMeetings(); return
+            }
+            self.meetings.sourcePID = detected.id
+            self.meetings.title = title ?? ""
+            await self.meetings.start()
+            if !self.meetings.isCapturing { self.openMeetings() }
+        }
+        return result
+    }()
     lazy var meetings: MeetingCoordinator = {
         let result = MeetingCoordinator(directory: historyStore.directory, modelDirectory: { [weak self] in self?.modelDirectory })
         result.microphoneUID = { [weak self] in self?.settings.pinnedInputDevice?.uid }
@@ -160,6 +182,8 @@ final class AppCoordinator: ObservableObject {
             onboardingStep = .value
             showMainWindow?()
         }
+        meetingDetection.configure(enabled: settings.suggestMeetingRecording && meetings.availabilityMessage == nil,
+                                   useCalendar: settings.useMeetingCalendar)
     }
 
     var isInstallingModel: Bool {
@@ -187,11 +211,13 @@ final class AppCoordinator: ObservableObject {
     func setAppUpdateInstallationInProgress(_ inProgress: Bool) {
         isInstallingAppUpdate = inProgress
         if inProgress { meetings.suspendProcessing() } else { meetings.resumeProcessing() }
+        meetingDetection.activityChanged()
     }
 
     private func refreshUpdateActivity() {
         let busy = activeMode != nil || pendingStartID != nil || inFlightOperations > 0 || modelInstallTask != nil || isMeetingActive || isMeetingProcessing
         if isBusyForAppUpdate != busy { isBusyForAppUpdate = busy }
+        meetingDetection.activityChanged(recordingMeeting: isMeetingActive)
     }
 
     var hasNonMeetingActivity: Bool {
@@ -563,6 +589,29 @@ final class AppCoordinator: ObservableObject {
         } catch {
             statusText = "Settings save failed"
         }
+    }
+
+    func setSuggestMeetingRecording(_ enabled: Bool) {
+        guard !enabled || meetings.availabilityMessage == nil else { return }
+        var updated = settings
+        updated.suggestMeetingRecording = enabled
+        do {
+            try settingsStore.save(updated); settings = updated
+            meetingDetection.configure(enabled: enabled && meetings.availabilityMessage == nil, useCalendar: settings.useMeetingCalendar)
+        } catch { statusText = mText("Inställningen kunde inte sparas", "Couldn't save the setting") }
+    }
+
+    func setUseMeetingCalendar(_ enabled: Bool) async {
+        guard !enabled || meetings.availabilityMessage == nil else { return }
+        if enabled, !settings.useMeetingCalendar {
+            guard await meetingDetection.requestCalendarAccess() else { return }
+        }
+        var updated = settings
+        updated.useMeetingCalendar = enabled
+        do {
+            try settingsStore.save(updated); settings = updated
+            meetingDetection.configure(enabled: settings.suggestMeetingRecording && meetings.availabilityMessage == nil, useCalendar: enabled)
+        } catch { statusText = mText("Inställningen kunde inte sparas", "Couldn't save the setting") }
     }
 
     func setFormatDictationBeforePasting(_ enabled: Bool) {

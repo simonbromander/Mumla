@@ -29,7 +29,9 @@ final class AppSettingsStoreTests: XCTestCase {
             djiMicButtonEnabled: true,
             formatDictationBeforePasting: true,
             dictationOverlayStyle: .minimal,
-            textModelProvider: .appleIntelligence
+            textModelProvider: .appleIntelligence,
+            suggestMeetingRecording: true,
+            useMeetingCalendar: true
         )
 
         try store.save(settings)
@@ -60,5 +62,7 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertFalse(settings.formatDictationBeforePasting)
         XCTAssertEqual(settings.dictationOverlayStyle, .recorder)
         XCTAssertEqual(settings.textModelProvider, .qwen)
+        XCTAssertFalse(settings.suggestMeetingRecording)
+        XCTAssertFalse(settings.useMeetingCalendar)
     }
 }

@@ -36,6 +36,8 @@
     <string>Mumla uses the microphone for private on-device dictation and meeting transcription.</string>
     <key>NSAudioCaptureUsageDescription</key>
     <string>Mumla captures audio from your selected meeting app for private on-device transcription.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Mumla reads nearby calendar events to suggest a title when Slack or Teams uses your microphone. Calendar access is optional. Mumla never changes events or uploads calendar data.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>MumlaDistribution</key>

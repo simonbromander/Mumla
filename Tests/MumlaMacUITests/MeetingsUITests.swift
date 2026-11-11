@@ -95,6 +95,32 @@ final class MeetingsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["meeting.new"].isEnabled)
     }
 
+    func testMeetingSuggestionWaitsForExplicitStart() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--meeting-ui-testing", "--reset-ui-data", "--suggest-meeting", "-AppleLanguages", "(en)"]
+        app.launch()
+        let start = app.buttons["meeting.suggestion.start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["meeting.stop"].exists)
+        capture("meetings-suggestion", app)
+        start.click()
+        XCTAssertTrue(app.buttons["meeting.stop"].waitForExistence(timeout: 5))
+        XCTAssertFalse(start.exists)
+        app.buttons["meeting.stop"].click()
+    }
+
+    func testMeetingSuggestionDismissalDoesNotRecord() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--meeting-ui-testing", "--reset-ui-data", "--suggest-meeting", "-AppleLanguages", "(en)"]
+        app.launch()
+        let dismiss = app.buttons["meeting.suggestion.dismiss"]
+        XCTAssertTrue(dismiss.waitForExistence(timeout: 10))
+        dismiss.click()
+        XCTAssertFalse(dismiss.exists)
+        XCTAssertFalse(app.buttons["meeting.stop"].exists)
+        XCTAssertTrue(app.buttons["meeting.start"].exists)
+    }
+
     private func capture(_ name: String, _ app: XCUIApplication) {
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name
         attachment.lifetime = .keepAlways; add(attachment)

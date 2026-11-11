@@ -87,7 +87,7 @@ final class MeetingCoordinator: ObservableObject {
     func refreshSources() {
         #if DEBUG
         if CommandLine.arguments.contains("--meeting-ui-testing") || CommandLine.arguments.contains("--design-snapshot") {
-            sources = [.init(id: 1, name: "Meeting app", bundleID: "app.mumla.fixture.meeting")]
+            sources = [.init(id: ProcessInfo.processInfo.processIdentifier, name: "Meeting app", bundleID: "app.mumla.fixture.meeting")]
             return
         }
         #endif

@@ -31,6 +31,10 @@ There is no guaranteed response-time SLA or bug-bounty program.
 - Secure input and password fields must not be read or recorded.
 - Direct Mac builds require explicit OS permissions. App Store sandbox restrictions
   are not bypassed.
+- Optional Mac meeting suggestions observe process input activity without recording.
+  They never start capture without the user's Start action. Optional Calendar
+  context is read locally, never uploaded or edited; only an accepted meeting title
+  is saved with the recording. Denying Calendar does not disable manual recording.
 - Signing keys, update-signing keys, provisioning profiles, and release API
   credentials are maintainer-only and must never enter Git or contributor CI.
 
