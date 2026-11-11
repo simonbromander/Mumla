@@ -38,6 +38,8 @@ struct MumlaSettingsSheet: View {
                         .accessibilityIdentifier("settings.keyboard")
                     action(mText("Textpreferenser", "Text preferences"), symbol: "text.badge.star") { showTextPreferences = true }
                         .accessibilityIdentifier("settings.text-preferences")
+                    Divider()
+                    TranscriptDestinationSettings(controller: session.transcriptDestination)
                     Divider().padding(.vertical, 4)
                     sectionTitle(mText("Om Mumla", "About Mumla"))
                     readout("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
@@ -97,6 +99,10 @@ struct TranscriptSheet: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(alignment: .leading, spacing: 12) {
+                TranscriptSendAction(controller: session.transcriptDestination, id: currentRecord.id,
+                                     transcript: try? currentRecord.outgoingTranscript(version: TranscriptDestinationController.version),
+                                     sentAt: currentRecord.sentAt) { try session.markTranscriptSent(record.id, at: $0) }
             HStack(spacing: 16) {
                 if currentRecord.originalText != nil {
                     MumlaIconButton("arrow.uturn.backward", label: mText("Återställ original", "Restore original")) {
@@ -118,6 +124,7 @@ struct TranscriptSheet: View {
                     Image(systemName: session.copiedID == record.id ? "checkmark" : "doc.on.doc")
                         .font(.system(size: 18, weight: .medium, design: .monospaced)).frame(width: 44, height: 44)
                 }.buttonStyle(MumlaKeyStyle(feedback: false)).accessibilityLabel(mText("Kopiera transkript", "Copy transcript")).accessibilityIdentifier("transcript.copy")
+            }
             }.padding(24).background(MumlaStyle.background).overlay(alignment: .top) { Divider() }
         }
         .background { MumlaBackdrop() }.tint(MumlaStyle.accent)

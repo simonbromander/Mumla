@@ -28,6 +28,19 @@ final class DictationSession: ObservableObject {
     @Published var copiedID: UUID?
     private let historyStore: DictationHistoryStore
     private let dictionaryStore: DictionaryStore
+    lazy var transcriptDestination: TranscriptDestinationController = {
+        let settings = AppSettingsStore(directory: historyStore.directory)
+        #if DEBUG
+        if CommandLine.arguments.contains("--ui-testing") || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return .uiFixture(settings: settings, configured: CommandLine.arguments.contains("--seed-destination"))
+        }
+        #endif
+        return TranscriptDestinationController(settings: settings)
+    }()
+
+    func markTranscriptSent(_ id: UUID, at date: Date) throws {
+        history = try historyStore.markSent(recordID: id, at: date)
+    }
     private let installer = ModelInstaller()
     private let recorder = MicrophoneRecorder()
     private let pendingURL: URL
@@ -43,7 +56,7 @@ final class DictationSession: ObservableObject {
     init() {
         let audioDirectory: URL = {
             #if DEBUG
-            if CommandLine.arguments.contains("--ui-testing") {
+            if CommandLine.arguments.contains("--ui-testing") || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
                 return FileManager.default.temporaryDirectory.appendingPathComponent("MumlaUITests", isDirectory: true)
             }
             #endif
@@ -52,7 +65,7 @@ final class DictationSession: ObservableObject {
         pendingURL = audioDirectory.appendingPathComponent("pending-dictation.wav")
         keyboardPendingURL = audioDirectory.appendingPathComponent("pending-keyboard.caf")
         #if DEBUG
-        if CommandLine.arguments.contains("--ui-testing") {
+        if CommandLine.arguments.contains("--ui-testing") || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaUITests", isDirectory: true)
             if CommandLine.arguments.contains("--reset-ui-data") { try? FileManager.default.removeItem(at: directory) }
             historyStore = DictationHistoryStore(directory: directory)
@@ -100,6 +113,9 @@ final class DictationSession: ObservableObject {
                 }
             }
         }
+        #endif
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
         #endif
         recoverKeyboardClip()
         hasPendingAudio = FileManager.default.fileExists(atPath: pendingURL.path) || FileManager.default.fileExists(atPath: keyboardPendingURL.path)

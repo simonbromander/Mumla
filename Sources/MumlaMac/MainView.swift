@@ -115,7 +115,11 @@ struct MainView: View {
                     } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc").frame(width: 44, height: 44) }
                         .accessibilityLabel(mText("Kopiera", "Copy")).help(mText("Kopiera", "Copy"))
                 }.buttonStyle(MumlaKeyStyle())
-            }.padding(28).frame(width: 540, height: 400).background { MumlaBackdrop() }
+                TranscriptSendAction(controller: coordinator.transcriptDestination, id: current.id,
+                                     transcript: try? current.outgoingTranscript(version: TranscriptDestinationController.version), sentAt: current.sentAt) {
+                    try coordinator.markTranscriptSent(current.id, at: $0)
+                }
+            }.padding(28).frame(width: 580, height: 500).background { MumlaBackdrop() }
                 .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
                 .sheet(item: $textRequest) { request in
                     TranscriptFormattingView(record: request.record, action: request.action,
@@ -314,6 +318,8 @@ struct MainView: View {
                 settingRow(mText("Utseende", "Appearance"), symbol: "circle.lefthalf.filled") {
                     MumlaAppearancePicker()
                 }
+                TranscriptDestinationSettings(controller: coordinator.transcriptDestination).padding(.vertical, 24)
+                Divider().opacity(0.6)
                 DictationTextSettingsView(coordinator: coordinator) { showTextPreferences = true }
                 Divider().opacity(0.6)
                 settingRow(mText("Dikteringsruta", "Dictation overlay"), symbol: "rectangle.bottomthird.inset.filled") {

@@ -66,6 +66,21 @@ jobs:
           xcodebuild -project Mumla.xcodeproj -scheme MumlaMacDirect -configuration Debug \
             -destination 'platform=macOS' -derivedDataPath .build/CI-Mac \
             CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= build
+      - name: Hosted sandboxed Mac destination tests
+        run: |
+          xcodebuild -project Mumla.xcodeproj -scheme MumlaMacTests -configuration Debug \
+            -destination 'platform=macOS' -derivedDataPath .build/CI-Mac \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= test
+      - name: Hosted iOS and destination UI tests
+        run: |
+          xcodebuild -project Mumla.xcodeproj -scheme Mumla -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath .build/CI-iOS \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            -only-testing:MumlaIOSTests \
+            -only-testing:MumlaUITests/MumlaUITests/testDestinationSendIsHiddenWithoutConfiguration \
+            -only-testing:MumlaUITests/MumlaUITests/testDestinationSendNamesRecipientAndConfirmsRepeat \
+            -only-testing:MumlaUITests/MumlaUITests/testDestinationSettingsSaveTestRemove \
+            -only-testing:MumlaUITests/MumlaUITests/testDestinationVoiceNoteSendsTextBesideShareWithoutReplacingAudioShare test
       - name: Build Watch app for physical devices without signing
         run: |
           xcodebuild -project Mumla.xcodeproj -scheme MumlaWatch -configuration Release \
