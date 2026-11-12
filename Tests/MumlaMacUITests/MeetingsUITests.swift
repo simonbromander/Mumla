@@ -2,6 +2,21 @@ import XCTest
 
 @MainActor
 final class MeetingsUITests: XCTestCase {
+    func testInterruptedMeetingStaysClearlyMarkedAfterTranscriptIsReady() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--meeting-ui-testing", "--reset-ui-data", "--seed-meeting", "--interrupted-meeting",
+                               "--compact-window", "-AppleLanguages", "(en)", "-mumla.appearance", "light"]
+        app.launch()
+        let document = app.staticTexts["meeting.document.title"]
+        XCTAssertTrue(document.waitForExistence(timeout: 10))
+        // SwiftUI combines adjacent document labels into a single accessible text.
+        XCTAssertTrue((document.value as? String ?? document.label).contains("Recording was interrupted"))
+        let status = app.staticTexts["meeting.status"]
+        XCTAssertEqual(status.value as? String ?? status.label, "Interrupted · partial recording")
+        XCTAssertTrue(app.buttons["meeting.actions"].isHittable)
+        capture("meetings-interrupted-compact", app)
+    }
+
     private func launch(compact: Bool = false, long: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--meeting-ui-testing", "--reset-ui-data", "--seed-meeting", "-AppleLanguages", "(en)", "-mumla.appearance", "light"]

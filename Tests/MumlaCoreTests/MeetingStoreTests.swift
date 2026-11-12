@@ -18,6 +18,18 @@ final class MeetingStoreTests: XCTestCase {
         return chunk
     }
 
+    func testInterruptionReasonIsOptionalForOldHistoryAndPersistsWithoutAudioOrText() throws {
+        var record = MeetingRecord(title: "Synthetic", sourceName: "Synthetic", microphoneOnly: true)
+        record.capture = .interrupted; record.interruptionReason = .captureFailure
+        let encoded = try JSONEncoder().encode(record)
+        XCTAssertEqual(try JSONDecoder().decode(MeetingRecord.self, from: encoded).interruptionReason, .captureFailure)
+        var old = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        old.removeValue(forKey: "interruptionReason")
+        let decoded = try JSONDecoder().decode(MeetingRecord.self, from: JSONSerialization.data(withJSONObject: old))
+        XCTAssertNil(decoded.interruptionReason)
+        XCTAssertEqual(decoded.capture, .interrupted)
+    }
+
     func testChunksCannotEscapeMeetingDirectory() throws {
         try withStore { store in
             let record = try create(store)

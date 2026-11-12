@@ -172,7 +172,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     @objc private func refreshDJIMicMonitor(_ notification: Notification) { djiMicMonitor?.refresh() }
 
     @objc private func suspendHotkeyMonitor(_ notification: Notification) {
-        if notification.name == NSWorkspace.willSleepNotification { coordinator?.meetings.stop(interrupted: true) }
+        if notification.name == NSWorkspace.willSleepNotification { coordinator?.meetings.stop(interrupted: true, reason: .systemSleep) }
         hotkeyIsSuspended = true
         hotkeyMonitor?.stop()
         djiMicMonitor?.suspend()
@@ -228,6 +228,10 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             processor: { _, _, _ in [] })
         if CommandLine.arguments.contains("--seed-meeting") { _ = try? MeetingDesignFixtures.seed(coordinator.meetings, long: CommandLine.arguments.contains("--long-meeting")) }
         else { coordinator.meetings.reload(); coordinator.meetings.selectedID = coordinator.meetings.records.first?.id }
+        if CommandLine.arguments.contains("--interrupted-meeting"), let id = coordinator.meetings.selectedID {
+            _ = try? coordinator.meetings.store.update(id) { $0.capture = .interrupted; $0.interruptionReason = .captureFailure }
+            coordinator.meetings.reload()
+        }
         updater = MacUpdateController()
         mainWindowController = MainWindowController(coordinator: coordinator, updater: updater, initialSection: "meetings")
         if CommandLine.arguments.contains("--compact-window") { mainWindowController.setTestingSize(NSSize(width: 820, height: 560)) }
@@ -268,6 +272,10 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         if section.hasPrefix("meetings-") {
             fixture = try? MeetingDesignFixtures.seed(snapshotCoordinator.meetings, long: CommandLine.arguments.contains("--snapshot-long"))
             guard fixture != nil else { return }
+            if let fixture, section == "meetings-interrupted" {
+                _ = try? snapshotCoordinator.meetings.store.update(fixture.id) { $0.capture = .interrupted; $0.interruptionReason = .captureFailure }
+                snapshotCoordinator.meetings.reload()
+            }
             if let fixture, section == "meetings-live" || section == "meetings-paused" {
                 snapshotCoordinator.meetings.prepareRecordingDesignSnapshot(fixture.id, paused: section == "meetings-paused")
             }

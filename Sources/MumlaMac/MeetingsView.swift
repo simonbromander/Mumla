@@ -251,6 +251,10 @@ struct MeetingsView: View {
                             MeetingRecordingReadout(paused: meetings.isPaused, elapsed: meetings.elapsed,
                                 microphone: meetings.microphoneLevel, system: meeting.microphoneOnly ? nil : meetings.systemLevel)
                         }
+                        if meeting.capture == .interrupted {
+                            notice(mText("Inspelningen avbröts. Transkriptet kan vara ofullständigt.",
+                                         "Recording was interrupted. The transcript may be incomplete."), symbol: "exclamationmark.triangle")
+                        }
                         if !speakerFilter.isEmpty {
                             Label(meeting.speakerName(speakerFilter), systemImage: "person")
                                 .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
@@ -367,6 +371,9 @@ struct MeetingsView: View {
     }
 
     private func status(_ meeting: MeetingRecord) -> String {
+        if meeting.capture == .interrupted && meeting.processing == .ready {
+            return mText("Avbruten · delvis inspelat", "Interrupted · partial recording")
+        }
         if meeting.audioDeleted { return mText("Ljud raderat", "Audio deleted") }
         if meeting.speakerLabelsUnavailable == true { return mText("Talarmodell saknas · ljudkällor visas", "Speaker labels unavailable · showing sources") }
         if meeting.processing == .ready { return mText("Klart · på den här Macen", "Ready · on this Mac") }

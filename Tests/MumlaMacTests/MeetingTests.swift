@@ -66,6 +66,55 @@ final class MeetingTests: XCTestCase {
         XCTAssertFalse(capture.stopped)
     }
 
+    func testSmallAudioCallbacksSurviveHalfSecondWriterStallWithoutLosingSamples() throws {
+        let store = MeetingStore(directory: directory)
+        let record = MeetingRecord(title: "Synthetic pressure test", sourceName: "System audio", microphoneOnly: false)
+        try store.create(record)
+        let control = try store.create(.init(title: "Unstalled control", sourceName: "Synthetic", microphoneOnly: false))
+        let samples = (0..<24_000).map { Float(sin(Double($0) * 0.013)) * 0.125 }
+        for track in [MeetingTrack.microphone, .system] {
+            try MeetingCapture.writeFixture(samples, track: track, store: store, meetingID: record.id,
+                sampleRate: 48_000, channels: 2, callbackFrames: 128, bufferCallbacks: true)
+            try MeetingCapture.writeFixture(samples, track: track, store: store, meetingID: control.id,
+                sampleRate: 48_000, channels: 2, callbackFrames: 128)
+        }
+        let saved = try store.load(record.id)
+        for track in [MeetingTrack.microphone, .system] {
+            let chunks = saved.chunks.filter { $0.track == track }
+            XCTAssertFalse(chunks.isEmpty, "Buffered audio must be saved, not discarded when disk work is delayed")
+            let frames = try chunks.reduce(Int64(0)) { total, chunk in
+                total + (try AVAudioFile(forReading: store.audioURL(chunk, meetingID: record.id))).length
+            }
+            let controlFrames = try store.load(control.id).chunks.filter { $0.track == track }.reduce(Int64(0)) { total, chunk in
+                total + (try AVAudioFile(forReading: store.audioURL(chunk, meetingID: control.id))).length
+            }
+            XCTAssertEqual(frames, controlFrames)
+            XCTAssertEqual(frames, 8_000, accuracy: 16) // Resampler priming is under one millisecond.
+            func read(_ chunks: [MeetingAudioChunk], meetingID: UUID) throws -> [Float] {
+                try chunks.sorted { $0.start < $1.start }.flatMap { chunk -> [Float] in
+                    let file = try AVAudioFile(forReading: store.audioURL(chunk, meetingID: meetingID))
+                    let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)))
+                    try file.read(into: buffer)
+                    return Array(UnsafeBufferPointer(start: try XCTUnwrap(buffer.floatChannelData?[0]), count: Int(buffer.frameLength)))
+                }
+            }
+            XCTAssertEqual(try read(chunks, meetingID: record.id),
+                           try read(store.load(control.id).chunks.filter { $0.track == track }, meetingID: control.id))
+        }
+    }
+
+    func testTrueOverloadStillDrainsAllAcceptedAudioBeforeStopping() throws {
+        let store = MeetingStore(directory: directory)
+        let record = try store.create(.init(title: "Synthetic overload", sourceName: "Synthetic", microphoneOnly: true))
+        try MeetingCapture.writeFixture([Float](repeating: 0.125, count: 60_000), track: .microphone,
+            store: store, meetingID: record.id, callbackFrames: 128, bufferCallbacks: true)
+        let chunks = try store.load(record.id).chunks
+        let frames = try chunks.reduce(Int64(0)) { total, chunk in
+            total + (try AVAudioFile(forReading: store.audioURL(chunk, meetingID: record.id))).length
+        }
+        XCTAssertEqual(frames, 38_400, "The bounded 24-slot queue must drain its accepted 2.4 seconds even after overflow")
+    }
+
     func testMicrophoneOnlyRemainsAnExplicitChoice() async throws {
         let capture = FixtureMeetingCapture(); let model = make(capture)
         model.sourcePID = 0
@@ -238,7 +287,22 @@ final class MeetingTests: XCTestCase {
         capture.failure?("Device disconnected")
         try await waitUntil { model.activeID == nil }
         XCTAssertEqual(try model.store.load(id).capture, .interrupted)
+        XCTAssertEqual(try model.store.load(id).interruptionReason, .captureFailure)
         XCTAssertEqual(try model.store.load(id).chunks.count, 1); XCTAssertTrue(capture.stopped)
+    }
+
+    func testUnexpectedStopShowsWarningButNormalStopStillHidesPill() {
+        let app = AppCoordinator(recorder: MicrophoneRecorder(), transcriber: nil,
+            historyStore: DictationHistoryStore(directory: directory), dictionaryStore: DictionaryStore(directory: directory),
+            settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil)
+        var shown = 0; var hidden = 0
+        app.showPill = { shown += 1 }; app.hidePill = { hidden += 1 }
+        app.meetings.onRecordingEnded?(true)
+        guard case .message = app.pillState else { return XCTFail("An unexpected stop must not silently hide the recorder") }
+        XCTAssertEqual(shown, 1); XCTAssertEqual(hidden, 0)
+        app.meetings.onRecordingEnded?(false)
+        XCTAssertEqual(app.pillState, .hidden)
+        XCTAssertEqual(hidden, 1)
     }
 
     func testRealWriterProducesBoundedRecoverablePCMChunks() throws {
@@ -304,7 +368,7 @@ final class MeetingTests: XCTestCase {
         XCTAssertEqual(presentations, 2)
         app.meetings.onRecordingUpdate?(5, 0.3, false)
         XCTAssertEqual(presentations, 3)
-        app.meetings.onRecordingEnded?()
+        app.meetings.onRecordingEnded?(false)
         XCTAssertEqual(app.pillState, .hidden)
     }
 
