@@ -101,7 +101,7 @@ struct MeetingsView: View {
                             Button { sourcesOpen.toggle() } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: meetings.sourcePID == 0 ? "mic" : "speaker.wave.2")
-                                    Text(meetings.sourcePID == 0 ? mText("Endast mikrofon", "Microphone only") : meetings.sources.first(where: { $0.id == meetings.sourcePID })?.name ?? mText("Appen är inte tillgänglig", "App unavailable"))
+                                    Text(meetings.sourceName)
                                         .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
                                     Image(systemName: "chevron.down").font(.system(size: 11))
                                 }.padding(14).frame(maxWidth: .infinity, minHeight: 44)
@@ -110,9 +110,12 @@ struct MeetingsView: View {
                                     MeetingPopover(title: mText("Ljudkälla", "Audio source")) {
                                         ScrollView {
                                             VStack(spacing: 8) {
+                                                choice(mText("Systemljud + mikrofon", "System audio + microphone"), symbol: "speaker.wave.2", selected: meetings.audioSource == .systemAudio) {
+                                                    meetings.sourcePID = MeetingAudioSource.systemAudio.id; sourcesOpen = false
+                                                }.accessibilityIdentifier("meeting.source.system")
                                                 choice(mText("Endast mikrofon", "Microphone only"), symbol: "mic", selected: meetings.sourcePID == 0) {
                                                     meetings.sourcePID = 0; sourcesOpen = false
-                                                }
+                                                }.accessibilityIdentifier("meeting.source.microphone")
                                                 ForEach(meetings.sources) { source in
                                                     choice(source.name, symbol: "speaker.wave.2", selected: meetings.sourcePID == source.id) {
                                                         meetings.sourcePID = source.id; sourcesOpen = false
@@ -125,7 +128,9 @@ struct MeetingsView: View {
                             MumlaIconButton("arrow.clockwise", label: mText("Uppdatera appar", "Refresh apps")) { meetings.refreshSources() }
                             MumlaIconButton("mic", label: mText("Välj mikrofon", "Choose microphone")) { app.openSettings() }
                         }
-                        if meetings.sourcePID != 0 {
+                        if meetings.audioSource == .systemAudio {
+                            notice(mText("Spelar in din mikrofon och allt systemljud, även ljud från andra appar.", "Records your microphone and all system audio, including sounds from other apps."), symbol: "info.circle")
+                        } else if meetings.sourcePID != 0 {
                             notice(mText("Webbläsarens andra flikar kan också höras.", "Other browser tabs may also be captured."), symbol: "info.circle")
                         }
                     }

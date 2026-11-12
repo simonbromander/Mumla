@@ -17,11 +17,29 @@ public enum MeetingCaptureError: Error, LocalizedError {
     }
 }
 
-public struct MeetingAudioSource: Identifiable, Equatable, Sendable {
-    public let id: Int32
-    public let name: String
-    public let bundleID: String
-    public init(id: Int32, name: String, bundleID: String) { self.id = id; self.name = name; self.bundleID = bundleID }
+public enum MeetingAudioSource: Identifiable, Equatable, Sendable {
+    case systemAudio
+    case application(id: Int32, name: String, bundleID: String)
+
+    public init(id: Int32, name: String, bundleID: String) { self = .application(id: id, name: name, bundleID: bundleID) }
+    public var id: Int32 {
+        switch self {
+        case .systemAudio: -1
+        case .application(let id, _, _): id
+        }
+    }
+    public var name: String {
+        switch self {
+        case .systemAudio: "System audio"
+        case .application(_, let name, _): name
+        }
+    }
+    public var bundleID: String {
+        switch self {
+        case .systemAudio: ""
+        case .application(_, _, let bundleID): bundleID
+        }
+    }
 }
 
 /// Owns both sources. File conversion and commits use bounded serial writer queues.
@@ -76,6 +94,22 @@ public final class MeetingCapture: MeetingCapturing, @unchecked Sendable {
     }
 
     public func level(_ track: MeetingTrack) -> Double { writers[track]?.level ?? 0 }
+
+    @available(macOS 14.2, *)
+    static func tapDescription(for source: MeetingAudioSource, processObjectIDs: [AudioObjectID]) throws -> CATapDescription {
+        let description: CATapDescription
+        switch source {
+        case .systemAudio:
+            // Mumla may not have a HAL process until its first audio stream starts.
+            description = CATapDescription(stereoGlobalTapButExcludeProcesses: processObjectIDs)
+        case .application:
+            guard !processObjectIDs.isEmpty else { throw MeetingCaptureError.sourceUnavailable }
+            description = CATapDescription(stereoMixdownOfProcesses: processObjectIDs)
+        }
+        description.isPrivate = true
+        description.muteBehavior = .unmuted
+        return description
+    }
 
     #if DEBUG
     static func writeFixture(_ samples: [Float], track: MeetingTrack, store: MeetingStore,
@@ -318,9 +352,7 @@ private final class MeetingSystemInput: MeetingSystemCapturing {
         self.writer = writer
         do {
             let processes = try Self.processes(for: source)
-            guard !processes.isEmpty else { throw MeetingCaptureError.sourceUnavailable }
-            let description = CATapDescription(stereoMixdownOfProcesses: processes)
-            description.isPrivate = true; description.muteBehavior = .unmuted
+            let description = try MeetingCapture.tapDescription(for: source, processObjectIDs: processes)
             try meetingAudioCheck(AudioHardwareCreateProcessTap(description, &tap))
             var address = AudioObjectPropertyAddress(mSelector: kAudioTapPropertyFormat, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
             var stream = AudioStreamBasicDescription(); var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
@@ -362,6 +394,7 @@ private final class MeetingSystemInput: MeetingSystemCapturing {
             var property = AudioObjectPropertyAddress(mSelector: kAudioProcessPropertyPID, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
             var pid: pid_t = 0; var count: UInt32 = 4
             guard AudioObjectGetPropertyData(object, &property, 0, nil, &count, &pid) == noErr else { return false }
+            if source == .systemAudio { return pid == ProcessInfo.processInfo.processIdentifier }
             if pid == source.id { return true }
             property.mSelector = kAudioProcessPropertyBundleID
             var bundle: Unmanaged<CFString>?; count = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)

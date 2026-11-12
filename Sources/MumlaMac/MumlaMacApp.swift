@@ -234,9 +234,9 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--suggest-meeting") {
             coordinator.settings.suggestMeetingRecording = true
             coordinator.settings.useMeetingCalendar = true
-            coordinator.meetingDetection = MeetingDesignFixtures.detection { [weak coordinator] app, title in
+            coordinator.meetingDetection = MeetingDesignFixtures.detection { [weak coordinator] _, title in
                 guard let coordinator else { return }
-                coordinator.meetings.sourcePID = app.id; coordinator.meetings.title = title ?? ""
+                coordinator.meetings.prepareSuggestedMeeting(title: title)
                 await coordinator.meetings.start()
             }
             meetingPromptController = MeetingPromptWindowController(detection: coordinator.meetingDetection)

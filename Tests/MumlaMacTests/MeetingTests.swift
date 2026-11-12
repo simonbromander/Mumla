@@ -1,5 +1,6 @@
 import AppKit
 import AVFoundation
+import CoreAudio
 import MumlaCore
 import XCTest
 @testable import MumlaAudio
@@ -11,14 +12,18 @@ private final class FixtureMeetingCapture: MeetingCapturing {
     var callback: (@Sendable () -> Void)?
     var failure: (@Sendable (String) -> Void)?
     var stopped = false
+    var source: MeetingAudioSource?
+    var microphoneUID: String?
+    var starts = 0
     func start(store: MeetingStore, meetingID: UUID, microphoneUID: String?, source: MeetingAudioSource?,
                offset: TimeInterval, onChunk: @escaping @Sendable () -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {
         self.store = store; id = meetingID; callback = onChunk; failure = onFailure; stopped = false
+        self.source = source; self.microphoneUID = microphoneUID; starts += 1
     }
     func stop() { stopped = true }
     func level(_ track: MeetingTrack) -> Double { 0.2 }
-    func emit(_ start: Double) throws {
-        let chunk = MeetingAudioChunk(id: "fixture-" + UUID().uuidString, track: .microphone, start: start, duration: 3)
+    func emit(_ start: Double, track: MeetingTrack = .microphone) throws {
+        let chunk = MeetingAudioChunk(id: "fixture-" + UUID().uuidString, track: track, start: start, duration: 3)
         let store = try XCTUnwrap(store); let id = try XCTUnwrap(id)
         try Data([1]).write(to: store.audioURL(chunk, meetingID: id))
         try store.appendChunk(chunk, meetingID: id); callback?()
@@ -41,8 +46,119 @@ final class MeetingTests: XCTestCase {
         MeetingCoordinator(directory: directory, modelDirectory: { nil }, capture: capture, permission: { granted },
             processor: { chunk, _, _ in
                 [MeetingSegment(id: chunk.id + "-0", chunkID: chunk.id, track: chunk.track,
-                    start: chunk.start, end: chunk.start + 2, speaker: "microphone", text: "Live transcript")]
+                    start: chunk.start, end: chunk.start + 2, speaker: chunk.track.rawValue, text: "Live transcript")]
             })
+    }
+
+    func testDefaultCapturesSystemAudioAndSelectedMicrophoneAndDoesNotMonitorASystemPID() async throws {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        model.microphoneUID = { "fixture-microphone" }
+        XCTAssertEqual(model.audioSource, .systemAudio)
+        await model.start()
+        defer { model.stop() }
+        let id = try XCTUnwrap(model.activeID)
+        XCTAssertEqual(capture.source, .systemAudio)
+        XCTAssertEqual(capture.microphoneUID, "fixture-microphone")
+        XCTAssertFalse(try model.store.load(id).microphoneOnly)
+        XCTAssertEqual(try model.store.load(id).sourceName, model.sourceName)
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(model.activeID, id)
+        XCTAssertFalse(capture.stopped)
+    }
+
+    func testMicrophoneOnlyRemainsAnExplicitChoice() async throws {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        model.sourcePID = 0
+        await model.start()
+        defer { model.stop() }
+        let id = try XCTUnwrap(model.activeID)
+        XCTAssertNil(capture.source)
+        XCTAssertTrue(try model.store.load(id).microphoneOnly)
+    }
+
+    func testResumeKeepsOriginalSystemSourceEvenIfSetupSelectionChanges() async throws {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        await model.start()
+        defer { model.stop() }
+        _ = try XCTUnwrap(model.activeID)
+        model.togglePause(); model.sourcePID = 0; model.togglePause()
+        XCTAssertEqual(capture.starts, 2)
+        XCTAssertEqual(capture.source, .systemAudio)
+        XCTAssertFalse(model.isPaused)
+    }
+
+    func testSuggestedMeetingUsesSystemAudioWithoutStartingAutomatically() {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        model.sourcePID = 123
+        model.prepareSuggestedMeeting(title: "Synthetic meeting")
+        XCTAssertEqual(model.audioSource, .systemAudio)
+        XCTAssertEqual(model.title, "Synthetic meeting")
+        XCTAssertNil(model.activeID)
+        XCTAssertEqual(capture.starts, 0)
+    }
+
+    func testMissingApplicationDoesNotSilentlyBroadenCaptureToSystemAudio() async {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        model.sourcePID = .max
+        await model.start()
+        XCTAssertNil(model.activeID)
+        XCTAssertEqual(capture.starts, 0)
+        XCTAssertTrue(model.records.isEmpty)
+        XCTAssertNotNil(model.error)
+    }
+
+    func testSystemAndMicrophoneChunksBothReachTheLiveTranscript() async throws {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        await model.start()
+        defer { model.stop() }
+        _ = try XCTUnwrap(model.activeID)
+        for track in [MeetingTrack.microphone, .system] {
+            try capture.emit(0, track: track); try capture.emit(3, track: track)
+        }
+        model.stop()
+        try await waitUntil { model.selected?.processing == .ready }
+        let record = try XCTUnwrap(model.selected)
+        XCTAssertEqual(record.segments.filter { $0.track == .microphone }.count, 2)
+        XCTAssertEqual(record.segments.filter { $0.track == .system }.count, 2)
+        XCTAssertEqual(record.speakerName(MeetingTrack.microphone.rawValue), "Me")
+        XCTAssertEqual(record.speakerName(MeetingTrack.system.rawValue), "Them")
+    }
+
+    func testSystemTapCapturesAllOutputExceptMumlaWithoutMutingPlayback() throws {
+        guard #available(macOS 14.2, *) else { throw XCTSkip("System taps require macOS 14.2") }
+        let description = try MeetingCapture.tapDescription(for: .systemAudio, processObjectIDs: [42])
+        XCTAssertTrue(description.isExclusive)
+        XCTAssertTrue(description.isMixdown)
+        XCTAssertFalse(description.isMono)
+        XCTAssertTrue(description.isPrivate)
+        XCTAssertEqual(description.processes, [42])
+        XCTAssertEqual(description.muteBehavior, .unmuted)
+        let idleDescription = try MeetingCapture.tapDescription(for: .systemAudio, processObjectIDs: [])
+        XCTAssertTrue(idleDescription.isExclusive)
+        XCTAssertTrue(idleDescription.processes.isEmpty)
+    }
+
+    func testApplicationTapRemainsLimitedToSelectedProcessesWithoutGlobalFallback() throws {
+        guard #available(macOS 14.2, *) else { throw XCTSkip("System taps require macOS 14.2") }
+        let source = MeetingAudioSource(id: 7, name: "Meeting app", bundleID: "app.mumla.fixture.meeting")
+        let description = try MeetingCapture.tapDescription(for: source, processObjectIDs: [11, 12])
+        XCTAssertFalse(description.isExclusive)
+        XCTAssertEqual(description.processes, [11, 12])
+        XCTAssertThrowsError(try MeetingCapture.tapDescription(for: source, processObjectIDs: [])) {
+            guard case MeetingCaptureError.sourceUnavailable = $0 else { return XCTFail("Must not broaden a missing app to global capture") }
+        }
+    }
+
+    func testPlaybackCannotStartDuringCaptureEvenOutsideTheUI() async throws {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        await model.start()
+        defer { model.stop() }
+        let record = try XCTUnwrap(model.selected)
+        let segment = MeetingSegment(id: "fixture", chunkID: "missing", track: .system,
+                                     start: 0, end: 1, speaker: "system", text: "Fixture")
+        model.play(segment, meeting: record)
+        XCTAssertNil(model.playingSegmentID)
+        XCTAssertNil(model.error)
     }
 
     func testLiveTranscriptArrivesBeforeStopAndFinishesTailAfterStop() async throws {

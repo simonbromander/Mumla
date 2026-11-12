@@ -22,7 +22,7 @@ final class MeetingCoordinator: ObservableObject {
     @Published private(set) var speakerDownload: Double?
     @Published private(set) var speakersInstalled = false
     @Published private(set) var sources: [MeetingAudioSource] = []
-    @Published var sourcePID: Int32 = 0
+    @Published var sourcePID: Int32 = MeetingAudioSource.systemAudio.id
     @Published var title = ""
     @Published var liveTranscription = true
     @Published var keepAudio = true
@@ -67,6 +67,14 @@ final class MeetingCoordinator: ObservableObject {
 
     var isCapturing: Bool { activeID != nil || isStarting }
     var selected: MeetingRecord? { records.first { $0.id == selectedID } }
+    var audioSource: MeetingAudioSource? {
+        sourcePID == MeetingAudioSource.systemAudio.id ? .systemAudio : sources.first { $0.id == sourcePID }
+    }
+    var sourceName: String {
+        if sourcePID == 0 { return mText("Endast mikrofon", "Microphone only") }
+        if audioSource == .systemAudio { return mText("Systemljud + mikrofon", "System audio + microphone") }
+        return audioSource?.name ?? mText("Appen är inte tillgänglig", "App unavailable")
+    }
     var availabilityMessage: String? {
         #if !arch(arm64)
         return mText("Möten kräver Apple Silicon i den här betan.", "Meetings require Apple Silicon in this beta.")
@@ -96,6 +104,11 @@ final class MeetingCoordinator: ObservableObject {
                   let name = app.localizedName, let bundle = app.bundleIdentifier else { return nil }
             return MeetingAudioSource(id: app.processIdentifier, name: name, bundleID: bundle)
         }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    func prepareSuggestedMeeting(title: String?) {
+        sourcePID = MeetingAudioSource.systemAudio.id
+        self.title = title ?? ""
     }
 
     #if DEBUG
@@ -142,11 +155,11 @@ final class MeetingCoordinator: ObservableObject {
         guard await permission() else { error = mText("Tillåt mikrofonen i Systeminställningar.", "Allow microphone access in System Settings."); return }
         guard startGeneration == generation else { return }
         refreshSources()
-        let source = sources.first { $0.id == sourcePID }
+        let source = audioSource
         guard sourcePID == 0 || source != nil else { error = "The selected meeting app is no longer available."; return }
         let record = MeetingRecord(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? mText("Möte", "Meeting") + " " + Date().formatted(date: .abbreviated, time: .shortened) : String(title.prefix(200)),
-            sourceName: source?.name ?? mText("Mikrofon", "Microphone"), microphoneOnly: source == nil)
+            sourceName: sourceName, microphoneOnly: source == nil)
         do {
             try store.create(record)
             _ = try store.update(record.id) { $0.deleteAudioWhenReady = !keepAudio }
@@ -221,7 +234,8 @@ final class MeetingCoordinator: ObservableObject {
         elapsed = ProcessInfo.processInfo.systemUptime - startedAt
         microphoneLevel = capture.level(.microphone); systemLevel = capture.level(.system)
         onRecordingUpdate?(elapsed, microphoneLevel, isPaused)
-        if let selectedSource, NSRunningApplication(processIdentifier: selectedSource.id)?.isTerminated != false {
+        if case .application(let pid, _, _) = selectedSource,
+           NSRunningApplication(processIdentifier: pid)?.isTerminated != false {
             stop(interrupted: true); error = mText("Mötesappen stängdes. Inspelningen är sparad.", "Meeting app closed. Recording saved.")
         }
     }
@@ -365,6 +379,7 @@ final class MeetingCoordinator: ObservableObject {
     }
 
     func play(_ segment: MeetingSegment, meeting: MeetingRecord) {
+        guard !isCapturing else { return }
         if playingSegmentID == segment.id { stopPlayback(); return }
         do {
             guard !meeting.audioDeleted, let chunk = meeting.chunks.first(where: { $0.id == segment.chunkID }) else { throw MeetingStoreError.audioUnavailable }

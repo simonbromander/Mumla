@@ -39,8 +39,9 @@ model, and permission acceptance; do not imply they are supported by this beta.
 
 ### Included
 
-- Explicit microphone and selected meeting-application audio capture, without a bot
-  or virtual audio driver. Microphone-only recording is an explicit source choice.
+- Explicit microphone and system-audio capture, without a bot or virtual audio
+  driver. System audio + microphone is the default; selected-application and
+  microphone-only recording remain explicit source choices.
 - Durable local recordings, separate source tracks, pause/resume, Stop and Save,
   recovery after an interrupted app, and a visible recording indicator.
 - Swedish transcription with the existing verified Pianissimo artifact, timestamped
@@ -71,8 +72,9 @@ model, and permission acceptance; do not imply they are supported by this beta.
 ### Start And Record
 
 1. Open Start Meeting from the menu bar or choose Meeting in the full recorder.
-2. Select the meeting application plus microphone, or explicitly Microphone only.
-   Reuse the existing microphone picker and pinned-device preference.
+2. Start with System audio + microphone, or select a meeting application plus
+   microphone, or Microphone only. Reuse the existing microphone picker and
+   pinned-device preference. Show the broader system-audio scope before Record.
 3. Leave Live transcription enabled, or turn it off for this
    meeting. Remember the last choice without adding another onboarding flow.
 4. Review the selected sources, see the consent-message copy action, and press
@@ -86,10 +88,12 @@ model, and permission acceptance; do not imply they are supported by this beta.
 The consent message is a convenience, not a claim that copying it obtains
 everyone's consent. Do not post it into another app automatically.
 
-Application capture is preferable to all-system capture. If process selection
-cannot isolate the chosen call, explain the limitation before recording. Browser
-process audio may include other tabs; do not promise tab-level isolation. Never
-silently broaden capture to every application or switch to another microphone.
+System audio includes output from other apps and browser tabs; disclose that in
+setup and the meeting-start suggestion. Application capture is still available
+for narrower output capture. If process selection cannot isolate the chosen call,
+explain the limitation before recording. Browser process audio may include other
+tabs; do not promise tab-level isolation. Never silently broaden a selected-app
+recording to every application or switch to another microphone.
 
 ### Stop And Transcribe
 

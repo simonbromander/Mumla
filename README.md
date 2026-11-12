@@ -28,9 +28,11 @@ targets still need evaluation on real, consented recordings.
 ### Mac Meetings (Experimental Beta)
 
 The direct Mac beta includes experimental meeting recording with live, on-device Swedish
-transcription. Open Meetings from the menu bar or recorder, select the meeting
-app plus microphone (or Microphone only), and start recording explicitly. Audio
-is saved in short chunks while the transcript updates. Pause/resume, per-meeting
+transcription. Open Meetings from the menu bar or recorder and start recording
+explicitly. The default source is System audio + microphone: your microphone and
+all Mac output are recorded as separate tracks. Other apps' sounds may also be
+included. Select a specific meeting app to limit output capture, or choose
+Microphone only. Audio is saved in short chunks while the transcript updates. Pause/resume, per-meeting
 speaker names, text corrections, clip playback, and text/Markdown/JSON export are
 available. No meeting summary or chat model is required or contacted.
 
@@ -41,7 +43,7 @@ is a heuristic, not proof that a meeting has started. See
 [meeting suggestions and acceptance checks](docs/meeting-detection.md).
 
 Optional speaker separation uses a separately downloaded, verified 45 MB LS-EEND
-model. Without it, source labels distinguish microphone and meeting-app audio.
+model. Without it, source labels distinguish microphone and computer audio.
 You can turn live transcription off and transcribe the saved recording later.
 Audio is retained for seven days after transcription, or deleted when it finishes,
 depending on the recording's retention choice. Pending audio remains available

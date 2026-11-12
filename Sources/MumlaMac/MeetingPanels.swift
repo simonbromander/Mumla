@@ -135,15 +135,15 @@ struct MeetingRecordingReadout: View {
                 Spacer()
                 Text(MeetingRecord.timestamp(elapsed)).font(.system(size: 28, weight: .light, design: .monospaced)).monospacedDigit()
             }
-            meter("MIC", level: microphone)
-            if let system { meter("APP", level: system) }
+            meter("MIC", label: mText("Mikrofon", "Microphone"), level: microphone)
+            if let system { meter("SYS", label: mText("Datorljud", "Computer audio"), level: system) }
         }.foregroundStyle(MumlaStyle.lcdInk).padding(16)
             .background(RoundedRectangle(cornerRadius: 7).fill(LinearGradient(colors: [MumlaStyle.lcd, MumlaStyle.lcdEnd], startPoint: .top, endPoint: .bottom)))
             .mumlaDisplayLens().padding(6).mumlaRecess(radius: 8)
             .accessibilityElement(children: .combine)
     }
 
-    private func meter(_ title: String, level: Double) -> some View {
+    private func meter(_ title: String, label: String, level: Double) -> some View {
         HStack(spacing: 12) {
             Text(title).font(.system(size: 11, design: .monospaced)).frame(width: 30, alignment: .leading)
             HStack(spacing: 2) {
@@ -151,7 +151,7 @@ struct MeetingRecordingReadout: View {
                     Rectangle().fill(!paused && Double(index) / 28 < level ? MumlaStyle.lcdInk : MumlaStyle.lcdInk.opacity(0.16))
                 }
             }.frame(height: 8).accessibilityHidden(true)
-        }.accessibilityElement(children: .ignore).accessibilityLabel(title)
+        }.accessibilityElement(children: .ignore).accessibilityLabel(label)
             .accessibilityValue("\(Int(max(0, min(1, level)) * 100)) %")
     }
 }
