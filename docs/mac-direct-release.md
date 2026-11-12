@@ -1,5 +1,47 @@
 # Full-Capability Mac Distribution
 
+## Meeting Recording Reliability Beta: 2026-11-12
+
+- Universal direct `1.0.1 (48)` is published as a prerelease in Mumla and
+  Mumla-Releases from `a34acfdebb764996007b67c832e43a00cfb44e8d` (PR #14).
+- Small callbacks now fill bounded 100 ms batches instead of exhausting the
+  capture pool during brief saving delays. Accepted audio drains after overload;
+  converter input memory is kept separate and the resampler tail is flushed.
+  Interrupted recordings retain a warning even after transcription or restart.
+- Local checks completed 340 tests with nine optional skips and zero failures;
+  all 35 release-helper tests passed (84 assertions). The exact release branch's
+  accelerated two-hour writer check retained full duration on both tracks across
+  4,800 bounded files and passed recovery in approximately 283 seconds. This is
+  generated audio, not a real call or real-time ASR acceptance.
+- Exact-source Contributor CI `43204840272` passed full-history secret scanning,
+  package/helper tests, iOS/Mac/Watch builds and Watch test compilation. The Mac
+  UI-test target compiled locally; actual native UI-test execution remains unverified.
+- Developer ID signing, hardened runtime, arm64/x86_64, matching dSYMs, microphone
+  and Calendar entitlements, permission descriptions, updater metadata, MLX kernels
+  and speaker attribution passed local and fresh anonymous-download audits.
+  Model weights, debug UI fixtures and the separate cloud-summary interface are absent.
+- Apple notarization `84e81364-a429-4b9f-8886-ddd4bab374b9` was Accepted. Stapling,
+  ticket validation and Gatekeeper passed. ZIP size: 37,920,883 bytes. SHA-256:
+  `9e9fc59006f9d93c6339e48f27f36c811f3f4a219d210fd30b664b59c705f2a8`.
+  Only the notarized ZIP and checksum are release assets in both repositories.
+- Feed commit `2ae41b0`; the canonical live feed is byte-identical to signed
+  staging. Public enclosures and Ed25519 signatures for 48, 47 and 46 passed
+  before and after publication. Update discovery is available; actual replacement,
+  relaunch and preservation of populated user data remain target-Mac checks.
+- Website commit `c002986` updates the download links only. Its 17 unit and
+  40 browser checks and production-worker preflight passed locally. The
+  Git-connected production build succeeded; live JavaScript/CSS match the tested
+  build byte for byte. No domain or hosting configuration changed.
+- Real-call capture, permissions/routing, acoustic bleed, speaker quality, privacy
+  traffic auditing and live installation remain separate acceptance gates. There
+  is no 13-minute limit; the specific reported stop has not been attributed.
+  Audio that was not captured after a real stop cannot be reconstructed.
+- Evidence remains ignored under `.build/direct48-*` and
+  `.build/ReleaseAuditMac48-20261112/`. Existing user recordings were not modified.
+  Settings reorganization, CLI summaries, destination sending, Native/Classic
+  appearance, iOS and sandboxed Mac TestFlight are not part of this release.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-48).
+
 ## System Audio Meetings Beta: 2026-11-12
 
 - Universal direct `1.0.1 (47)` is published as a prerelease in Mumla and

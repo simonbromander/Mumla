@@ -79,6 +79,7 @@ for diagnosis. Real hardware/call acceptance remains a separate release gate.
   the same 9 optional skips; those features are not part of this release.
 - Explicit two-hour/two-track writer check: 4,800 bounded chunks, full duration
   on each track, recovery check passed in approximately 286 seconds of test time.
+  Repeated on the exact build-48 release branch in approximately 283 seconds.
   Each writer remains active across the full two-hour input, with resampling
   from 44.1/48 kHz and interleaved system audio rather than minute-long resets.
   This is accelerated synthetic input, not two hours of real-time call capture.
@@ -87,4 +88,6 @@ for diagnosis. Real hardware/call acceptance remains a separate release gate.
   minimum-window interaction/visual inspection confirmed the warning and partial
   status. Native XCTest UI execution remains unverified on this host; no new OS
   permission was granted to run it.
-- No release published and no existing user meeting files modified.
+- Published as direct Mac beta 1.0.1 (48); see the
+  [release verification](mac-direct-release.md#meeting-recording-reliability-beta-2026-11-12).
+  No existing user meeting files were modified. Real-call acceptance is still outstanding.
