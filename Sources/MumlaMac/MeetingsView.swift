@@ -15,6 +15,7 @@ struct MeetingsView: View {
     @State private var libraryOpen = false
     @State private var sourcesOpen = false
     @State private var speakersOpen = false
+    @State private var assigningSpeakerID: String?
     @State private var actionsOpen = false
     @State private var dialog: MeetingDialog?
 
@@ -45,7 +46,7 @@ struct MeetingsView: View {
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .onAppear { meetings.refreshSources() }
-        .onChange(of: meetings.selectedID) { _, _ in query = ""; speakerFilter = ""; copied = false }
+        .onChange(of: meetings.selectedID) { _, _ in query = ""; speakerFilter = ""; copied = false; assigningSpeakerID = nil }
         .sheet(item: $dialog) { item in
             switch item {
             case .correction(let meetingID, let segment, let speaker):
@@ -269,9 +270,7 @@ struct MeetingsView: View {
                                             Label(MeetingRecord.timestamp(segment.start), systemImage: meetings.playingSegmentID == segment.id ? "stop.fill" : "play.fill")
                                                 .font(.system(size: 12, design: .monospaced)).monospacedDigit().padding(10)
                                         }.buttonStyle(MumlaKeyStyle(radius: 6)).disabled(meeting.audioDeleted || meetings.isCapturing)
-                                        Text(meeting.speakerName(segment.speaker)).font(.system(size: 12, weight: .medium, design: .monospaced))
-                                            .foregroundStyle(MumlaStyle.secondary).fixedSize(horizontal: false, vertical: true)
-                                            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                                        speakerSelector(segment, meeting: meeting)
                                         MumlaIconButton("pencil", label: mText("Rätta text eller talare", "Correct text or speaker")) {
                                             dialog = .correction(meetingID: meeting.id, segment: segment, speaker: meeting.speakerName(segment.speaker))
                                         }.accessibilityIdentifier("meeting.correct.\(segment.id)")
@@ -289,7 +288,7 @@ struct MeetingsView: View {
                         }
                     }.padding(4).padding(.bottom, 8)
                 }.onChange(of: meeting.segments.count) { _, _ in
-                    if followLive && meetings.activeID == meeting.id && query.isEmpty && speakerFilter.isEmpty { proxy.scrollTo("live-end", anchor: .bottom) }
+                    if followLive && assigningSpeakerID == nil && meetings.activeID == meeting.id && query.isEmpty && speakerFilter.isEmpty { proxy.scrollTo("live-end", anchor: .bottom) }
                 }
             }.accessibilityIdentifier("meeting.transcript")
             Divider()
@@ -310,6 +309,35 @@ struct MeetingsView: View {
     private func statusLabel(_ meeting: MeetingRecord) -> some View {
         Text(status(meeting)).font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
             .accessibilityIdentifier("meeting.status")
+    }
+
+    private func speakerSelector(_ segment: MeetingSegment, meeting: MeetingRecord) -> some View {
+        let speakers = meeting.speakerKeys(for: segment.track)
+        return Button { assigningSpeakerID = segment.id } label: {
+            HStack(spacing: 8) {
+                Text(meeting.speakerName(segment.speaker)).fixedSize(horizontal: false, vertical: true)
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+            }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+        }.buttonStyle(.plain).font(.system(size: 12, weight: .medium, design: .monospaced))
+            .foregroundStyle(MumlaStyle.secondary)
+            .help(mText("Byt talare för det här avsnittet", "Change speaker for this passage"))
+            .accessibilityLabel(mText("Byt talare", "Change speaker") + ": " + meeting.speakerName(segment.speaker))
+            .accessibilityIdentifier("meeting.assign.\(segment.id)")
+            .popover(isPresented: Binding(get: { assigningSpeakerID == segment.id }, set: { if !$0 { assigningSpeakerID = nil } }), arrowEdge: .bottom) {
+                MeetingPopover(title: mText("Talare", "Speaker")) {
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            ForEach(speakers, id: \.self) { speaker in
+                                choice(meeting.speakerName(speaker), symbol: "person", selected: speaker == segment.speaker) {
+                                    do { try meetings.reassignSpeaker(segment, to: speaker, meetingID: meeting.id) }
+                                    catch { meetings.error = error.localizedDescription }
+                                    assigningSpeakerID = nil
+                                }.accessibilityIdentifier("meeting.assign.choice.\(speaker)")
+                            }
+                        }
+                    }.frame(height: min(300, CGFloat(speakers.count) * 56)).scrollBounceBehavior(.basedOnSize)
+                }
+            }
     }
 
     private func transcriptControls(_ meeting: MeetingRecord) -> some View {

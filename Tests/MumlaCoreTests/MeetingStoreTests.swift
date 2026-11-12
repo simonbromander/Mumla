@@ -30,6 +30,23 @@ final class MeetingStoreTests: XCTestCase {
         XCTAssertEqual(decoded.capture, .interrupted)
     }
 
+    func testLegacySourceSpeakerKeysDecodeWithoutInventingOrMergingPeople() throws {
+        var record = MeetingRecord(title: "Synthetic", sourceName: "System audio", microphoneOnly: false)
+        record.segments = [
+            .init(id: "unassigned", chunkID: "fixture", track: .system, start: 0, end: 1, speaker: "system", text: "First."),
+            .init(id: "identified", chunkID: "fixture", track: .system, start: 1, end: 2, speaker: "system-1", text: "Second.")]
+        var old = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(record)) as? [String: Any])
+        old.removeValue(forKey: "speakerLabelsUnavailable")
+        old.removeValue(forKey: "interruptionReason")
+        let decoded = try JSONDecoder().decode(MeetingRecord.self, from: JSONSerialization.data(withJSONObject: old))
+        XCTAssertEqual(decoded.segments, record.segments)
+        XCTAssertEqual(decoded.speakerName("system"), "Unassigned remote")
+        XCTAssertEqual(decoded.speakerName("system-1"), "Remote 2")
+        XCTAssertEqual(decoded.speakerKeys(for: .system), ["system", "system-1"])
+        record.speakerNames["system"] = "A user-chosen name"
+        XCTAssertEqual(record.speakerName("system"), "A user-chosen name")
+    }
+
     func testChunksCannotEscapeMeetingDirectory() throws {
         try withStore { store in
             let record = try create(store)

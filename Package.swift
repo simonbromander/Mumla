@@ -64,7 +64,10 @@ let package = Package(
                 .product(name: "FluidAudio", package: "FluidAudio")
             ]
         ),
-        .testTarget(name: "MumlaMacTests", dependencies: ["MumlaMac", "MumlaCore", "MumlaAudio", "MumlaUI"]),
+        .testTarget(name: "MumlaMacTests", dependencies: [
+            "MumlaMac", "MumlaCore", "MumlaAudio", "MumlaUI",
+            .product(name: "FluidAudio", package: "FluidAudio")
+        ]),
         .testTarget(name: "MumlaFormattingTests", dependencies: [
             "MumlaFormatting", "MumlaCore",
             .product(name: "MLX", package: "mlx-swift", condition: .when(platforms: [.macOS]))

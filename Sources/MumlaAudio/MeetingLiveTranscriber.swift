@@ -9,14 +9,28 @@ public actor MeetingLiveTranscriber {
     private let transcriber: LocalPianissimoTranscriber
     private let speakerModelURL: URL?
     private var activeMeetingID: UUID?
-    private var diarizers: [MeetingTrack: LSEENDDiarizer] = [:]
-    private var diarized: Set<String> = []
-    private var diarizerSeconds: [MeetingTrack: Double] = [:]
+    private let speakerFactory: @Sendable (URL) throws -> any MeetingSpeakerStreaming
+    private let injectedRecognition: (@Sendable ([Float]) async throws -> [MeetingWord])?
+    private var diarizers: [MeetingTrack: any MeetingSpeakerStreaming] = [:]
+    private var diarizerOffsets: [String: Int] = [:]
+    private var diarizerSamples: [MeetingTrack: Int] = [:]
+    private var paddedSpeakerTails: Set<String> = []
     public private(set) var speakerLabelsFailed = false
 
     public init(modelDirectory: URL, speakerModelURL: URL? = nil) {
         transcriber = LocalPianissimoTranscriber(modelDirectory: modelDirectory)
         self.speakerModelURL = speakerModelURL
+        speakerFactory = { try LSEENDMeetingSpeakerStream(modelURL: $0) }
+        injectedRecognition = nil
+    }
+
+    init(modelDirectory: URL, speakerModelURL: URL,
+         speakerFactory: @escaping @Sendable (URL) throws -> any MeetingSpeakerStreaming,
+         recognize: @escaping @Sendable ([Float]) async throws -> [MeetingWord]) {
+        transcriber = LocalPianissimoTranscriber(modelDirectory: modelDirectory)
+        self.speakerModelURL = speakerModelURL
+        self.speakerFactory = speakerFactory
+        injectedRecognition = recognize
     }
 
     public func prepare() async throws { try await transcriber.warmUp() }
@@ -24,13 +38,15 @@ public actor MeetingLiveTranscriber {
     public func process(chunk: MeetingAudioChunk, meeting: MeetingRecord, store: MeetingStore) async throws -> [MeetingSegment] {
         try Task.checkCancellation()
         if activeMeetingID != meeting.id {
-            activeMeetingID = meeting.id; diarizers.removeAll(); diarized.removeAll(); diarizerSeconds.removeAll(); speakerLabelsFailed = false
+            activeMeetingID = meeting.id; diarizers.removeAll(); diarizerOffsets.removeAll()
+            diarizerSamples.removeAll(); paddedSpeakerTails.removeAll(); speakerLabelsFailed = false
         }
         let trackChunks = meeting.chunks.filter { $0.track == chunk.track }.sorted { $0.start < $1.start }
         guard let index = trackChunks.firstIndex(where: { $0.id == chunk.id }) else { throw MeetingStoreError.invalidData }
         let current = try Self.read(try store.audioURL(chunk, meetingID: meeting.id))
         var prefix: [Float] = []
         var suffix: [Float] = []
+        var following: [Float]?
         if index > 0 {
             let previous = trackChunks[index - 1]
             if abs(previous.start + previous.duration - chunk.start) < 0.1 {
@@ -40,28 +56,47 @@ public actor MeetingLiveTranscriber {
         if index + 1 < trackChunks.count {
             let next = trackChunks[index + 1]
             if abs(chunk.start + chunk.duration - next.start) < 0.1 {
-                suffix = Array(try Self.read(try store.audioURL(next, meetingID: meeting.id)).prefix(16_000))
+                following = try Self.read(try store.audioURL(next, meetingID: meeting.id))
+                suffix = Array(following!.prefix(16_000))
             }
         }
         var diarizerBase = 0.0
         if let speakerModelURL, !speakerLabelsFailed {
             do {
                 if diarizers[chunk.track] == nil {
-                    try MeetingSpeakerModel.verifySource(for: speakerModelURL)
-                    let model = try LSEENDModel(modelURL: speakerModelURL)
-                    diarizers[chunk.track] = try LSEENDDiarizer(model: model,
-                        timelineConfig: DiarizerTimelineConfig(maxStoredFrames: 300))
+                    diarizers[chunk.track] = try speakerFactory(speakerModelURL)
                 }
                 if let diarizer = diarizers[chunk.track] {
-                    for item in trackChunks.prefix(index + 1) {
-                        if item.id == chunk.id { diarizerBase = diarizerSeconds[chunk.track, default: 0] }
-                        guard !diarized.contains(item.id) else { continue }
-                        let samples = item.id == chunk.id ? current : try Self.read(try store.audioURL(item, meetingID: meeting.id))
-                        try diarizer.addAudio(samples, sourceSampleRate: 16_000)
-                        _ = try diarizer.process()
-                        diarizerSeconds[chunk.track, default: 0] += Double(samples.count) / 16_000
-                        diarized.insert(item.id)
+                    let through = index + (following == nil ? 0 : 1)
+                    for itemIndex in 0...through {
+                        let item = trackChunks[itemIndex]
+                        guard diarizerOffsets[item.id] == nil else { continue }
+                        try Task.checkCancellation()
+                        if itemIndex > 0 {
+                            let previous = trackChunks[itemIndex - 1]
+                            if abs(previous.start + previous.duration - item.start) >= 0.1 {
+                                try drainSpeakerTail(previous, stream: diarizer)
+                            }
+                        }
+                        let samples: [Float]
+                        if item.id == chunk.id { samples = current }
+                        else if itemIndex == index + 1, let following { samples = following }
+                        else { samples = try Self.read(try store.audioURL(item, meetingID: meeting.id)) }
+                        let offset = diarizerSamples[chunk.track, default: 0]
+                        try diarizer.addAudio(samples)
+                        try diarizer.process()
+                        diarizerOffsets[item.id] = offset
+                        diarizerSamples[chunk.track, default: 0] += samples.count
                     }
+                    let tail = trackChunks[through]
+                    let atEnd = through == trackChunks.count - 1
+                    let gapAfter = !atEnd && abs(tail.start + tail.duration - trackChunks[through + 1].start) >= 0.1
+                    if atEnd && (meeting.capture == .saved || meeting.capture == .interrupted) {
+                        try diarizer.finish()
+                    } else if (atEnd && meeting.capture == .paused) || gapAfter {
+                        try drainSpeakerTail(tail, stream: diarizer)
+                    }
+                    diarizerBase = Double(diarizerOffsets[chunk.id, default: 0]) / 16_000
                 }
             } catch {
                 try Task.checkCancellation()
@@ -70,7 +105,9 @@ public actor MeetingLiveTranscriber {
         }
         // Pure digital silence must not produce invented words or load the ASR model.
         guard current.contains(where: { abs($0) > 0.00001 }) else { return [] }
-        let words = try await transcriber.transcribeMeeting(samples: prefix + current + suffix)
+        let words: [MeetingWord]
+        if let injectedRecognition { words = try await injectedRecognition(prefix + current + suffix) }
+        else { words = try await transcriber.transcribeMeeting(samples: prefix + current + suffix) }
         try Task.checkCancellation()
         let prefixSeconds = Double(prefix.count) / 16_000
         let absoluteWords = words.map { MeetingWord(text: $0.text, start: chunk.start + $0.start - prefixSeconds,
@@ -78,20 +115,17 @@ public actor MeetingLiveTranscriber {
         let previousWords = meeting.orderedSegments.filter { $0.track == chunk.track && $0.end >= chunk.start - 3 }
             .flatMap { $0.words ?? [] }
         let committed = MeetingTranscriptBoundary.committedPrefixCount(previous: previousWords, incoming: absoluteWords, boundary: chunk.start)
-        let speakers = diarizers[chunk.track]?.timeline.speakers ?? [:]
+        let regions = diarizers[chunk.track]?.regions(in: diarizerBase..<(diarizerBase + chunk.duration)) ?? []
         var segments: [MeetingSegment] = []
         for word in words.dropFirst(committed) {
             let midpoint = (word.start + word.end) / 2 - prefixSeconds
             guard midpoint >= 0, midpoint < chunk.duration else { continue }
-            let modelTime = diarizerBase + midpoint
-            let matching = speakers.values.filter { speaker in
-                (speaker.finalizedSegments + speaker.tentativeSegments).contains {
-                    modelTime >= Double($0.startTime) && modelTime <= Double($0.endTime)
-                }
-            }
-            let speaker = matching.count == 1 ? chunk.track.rawValue + "-" + String(matching[0].index) : chunk.track.rawValue
             let start = chunk.start + max(0, word.start - prefixSeconds)
             let end = chunk.start + min(chunk.duration, word.end - prefixSeconds)
+            let modelStart = diarizerBase + start - chunk.start
+            let modelEnd = diarizerBase + max(start + 1.0 / 16_000, end) - chunk.start
+            let assigned = MeetingSpeakerAlignment.index(in: modelStart..<modelEnd, regions: regions)
+            let speaker = assigned.map { chunk.track.rawValue + "-" + String($0) } ?? chunk.track.rawValue
             if let last = segments.last, last.speaker == speaker, end - last.start < 12 {
                 segments[segments.count - 1].text += " " + word.text
                 segments[segments.count - 1].originalText = segments[segments.count - 1].text
@@ -104,6 +138,15 @@ public actor MeetingLiveTranscriber {
             }
         }
         return segments
+    }
+
+    private func drainSpeakerTail(_ chunk: MeetingAudioChunk, stream: any MeetingSpeakerStreaming) throws {
+        guard !paddedSpeakerTails.contains(chunk.id) else { return }
+        guard stream.paddingSamples > 0, stream.paddingSamples <= 80_000 else { throw MeetingStoreError.invalidData }
+        try stream.addAudio([Float](repeating: 0, count: stream.paddingSamples))
+        try stream.process()
+        diarizerSamples[chunk.track, default: 0] += stream.paddingSamples
+        paddedSpeakerTails.insert(chunk.id)
     }
 
     static func read(_ url: URL) throws -> [Float] {
