@@ -6,7 +6,8 @@
   Mac's output are captured on separate tracks and transcribed locally.
 - Starting from a Slack/Teams meeting suggestion uses the same default. The
   prompt and setup screen explain that system audio includes sounds from other
-  apps and browser tabs. Nothing records before you choose Record or Start.
+  apps and browser tabs. The macOS audio-permission description also reflects
+  this scope. Nothing records before you choose Record or Start.
 - Select a specific meeting app for narrower output capture, or Microphone only.
   A missing selected app does not silently fall back to recording all apps.
 - Pause/resume preserves the original capture source. System-audio capture does

@@ -35,7 +35,7 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Mumla uses the microphone for private on-device dictation and meeting transcription.</string>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Mumla captures audio from your selected meeting app for private on-device transcription.</string>
+	<string>Mumla captures system audio, including other apps, or a selected meeting app for private on-device transcription. Recording starts only when you choose Start or Record.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>MumlaDistribution</key>

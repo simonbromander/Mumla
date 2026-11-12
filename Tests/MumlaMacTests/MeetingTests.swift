@@ -342,7 +342,10 @@ final class MeetingTests: XCTestCase {
         for filename in ["Info.plist", "Info-Direct.plist"] {
             let data = try Data(contentsOf: root.appendingPathComponent("Apps/macOS/Mumla/" + filename))
             let dictionary = try XCTUnwrap(PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any])
-            XCTAssertFalse(try XCTUnwrap(dictionary["NSAudioCaptureUsageDescription"] as? String).isEmpty)
+            let description = try XCTUnwrap(dictionary["NSAudioCaptureUsageDescription"] as? String)
+            XCTAssertTrue(description.contains("system audio"))
+            XCTAssertTrue(description.contains("other apps"))
+            XCTAssertTrue(description.contains("only when you choose"))
         }
     }
 
