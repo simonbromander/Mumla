@@ -76,7 +76,14 @@ final class AppCoordinator: ObservableObject {
             self.waveformSamples.removeFirst(); self.waveformSamples.append(level)
             if needsPresentation { self.showPill?() }
         }
-        result.onRecordingEnded = { [weak self] in self?.pillState = .hidden; self?.hidePill?() }
+        result.onRecordingEnded = { [weak self] interrupted in
+            guard let self else { return }
+            if interrupted {
+                self.pillState = .message(mText("Mötet avbröts · inspelningen sparad", "Meeting interrupted · recording saved"))
+                self.showPill?()
+                self.scheduleHidePill(after: .seconds(12))
+            } else { self.pillState = .hidden; self.hidePill?() }
+        }
         return result
     }()
     @Published private(set) var isBusyForAppUpdate = false

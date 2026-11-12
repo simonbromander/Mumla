@@ -12,6 +12,10 @@ public enum MeetingProcessingState: String, Codable, Sendable {
     case pending, live, processing, ready, failed
 }
 
+public enum MeetingInterruptionReason: String, Codable, Sendable {
+    case captureFailure, meetingAppClosed, systemSleep, unfinishedRecording, unknown
+}
+
 public struct MeetingAudioChunk: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var track: MeetingTrack
@@ -94,6 +98,7 @@ public struct MeetingRecord: Codable, Equatable, Identifiable, Sendable {
     public var completedAt: Date?
     public var deleteAudioWhenReady: Bool? = false
     public var speakerLabelsUnavailable: Bool?
+    public var interruptionReason: MeetingInterruptionReason?
 
     public init(id: UUID = UUID(), title: String, sourceName: String, microphoneOnly: Bool,
                 createdAt: Date = Date()) {
@@ -248,7 +253,10 @@ public final class MeetingStore: @unchecked Sendable {
                 }
             }
             if record.capture == .recording || record.capture == .paused {
-                _ = try update(record.id) { $0.capture = .interrupted; $0.processing = .pending }
+                _ = try update(record.id) {
+                    $0.capture = .interrupted; $0.processing = .pending
+                    if $0.interruptionReason == nil { $0.interruptionReason = .unfinishedRecording }
+                }
             } else if record.processing == .processing || record.processing == .live {
                 _ = try update(record.id) { $0.processing = .pending }
             }

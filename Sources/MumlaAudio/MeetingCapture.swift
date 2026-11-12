@@ -114,23 +114,37 @@ public final class MeetingCapture: MeetingCapturing, @unchecked Sendable {
     #if DEBUG
     static func writeFixture(_ samples: [Float], track: MeetingTrack, store: MeetingStore,
                              meetingID: UUID, offset: Double = 0, sampleRate: Double = 16_000,
-                             channels: AVAudioChannelCount = 1) throws {
+                             channels: AVAudioChannelCount = 1, callbackFrames: Int = 1024,
+                             bufferCallbacks: Bool = false, interleaved: Bool = false,
+                             writerCapacity: AVAudioFrameCount = 2048, repetitions: Int = 1) throws {
         let writer = MeetingTrackWriter(store: store, meetingID: meetingID, track: track, offset: offset,
             onChunk: {}, onFailure: { _ in })
-        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: channels, interleaved: false)!
-        try writer.prepare(format: format, capacity: 2048)
+        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: channels, interleaved: interleaved)!
+        try writer.prepare(format: format, capacity: writerCapacity)
         writer.origin = ProcessInfo.processInfo.systemUptime
-        for position in stride(from: 0, to: samples.count, by: 1024) {
-            let count = min(1024, samples.count - position)
-            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count))!
-            buffer.frameLength = AVAudioFrameCount(count)
-            samples.withUnsafeBufferPointer { source in
-                for channel in 0..<Int(channels) { buffer.floatChannelData![channel].update(from: source.baseAddress! + position, count: count) }
+        if bufferCallbacks { writer.queue.suspend() }
+        for _ in 0..<repetitions {
+            for position in stride(from: 0, to: samples.count, by: callbackFrames) {
+                let count = min(callbackFrames, samples.count - position)
+                let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count))!
+                buffer.frameLength = AVAudioFrameCount(count)
+                samples.withUnsafeBufferPointer { source in
+                    if interleaved {
+                        let list = UnsafeMutableAudioBufferListPointer(buffer.mutableAudioBufferList)
+                        let destination = list[0].mData!.assumingMemoryBound(to: Float.self)
+                        for frame in 0..<count {
+                            for channel in 0..<Int(channels) { destination[frame * Int(channels) + channel] = source[position + frame] }
+                        }
+                    } else {
+                        for channel in 0..<Int(channels) { buffer.floatChannelData![channel].update(from: source.baseAddress! + position, count: count) }
+                    }
+                }
+                writer.receive(buffer.audioBufferList, frames: buffer.frameLength)
+                // The fixture has no real-time clock; drain each buffer deterministically.
+                if !bufferCallbacks { writer.queue.sync {} }
             }
-            writer.receive(buffer.audioBufferList, frames: buffer.frameLength)
-            // The fixture has no real-time clock; drain each buffer deterministically.
-            writer.queue.sync {}
         }
+        if bufferCallbacks { writer.queue.resume() }
         writer.finish()
     }
     #endif
@@ -141,8 +155,12 @@ private final class MeetingTrackWriter: @unchecked Sendable {
     var origin: TimeInterval = 0
     private let lock = NSLock()
     private var buffers: [AVAudioPCMBuffer] = []
+    private var pendingBuffer: AVAudioPCMBuffer?
+    private var pendingReceivedAt: TimeInterval = 0
+    private var batchFrameLimit: AVAudioFrameCount = 0
     private var format: AVAudioFormat?
     private var converter: AVAudioConverter?
+    private var conversionInput: AVAudioPCMBuffer?
     private let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
     private let store: MeetingStore
     private let meetingID: UUID
@@ -158,6 +176,7 @@ private final class MeetingTrackWriter: @unchecked Sendable {
     private var totalFrames = 0
     private var firstSampleOffset: TimeInterval?
     private var failed = false
+    private var writeFailed = false
     private var meter = 0.0
 
     init(store: MeetingStore, meetingID: UUID, track: MeetingTrack, offset: TimeInterval,
@@ -171,54 +190,133 @@ private final class MeetingTrackWriter: @unchecked Sendable {
     func prepare(format: AVAudioFormat, capacity: AVAudioFrameCount) throws {
         self.format = format
         converter = AVAudioConverter(from: format, to: target)
-        guard converter != nil else { throw MeetingCaptureError.sourceUnavailable }
+        conversionInput = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity)
+        guard converter != nil, conversionInput != nil else { throw MeetingCaptureError.sourceUnavailable }
+        // Fill roughly 100 ms per slot, not one slot per tiny hardware callback.
+        batchFrameLimit = min(capacity, max(1, AVAudioFrameCount(format.sampleRate / 10)))
         buffers = (0..<24).compactMap { _ in AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) }
         guard buffers.count == 24 else { throw MeetingCaptureError.sourceUnavailable }
     }
 
     func receive(_ data: UnsafePointer<AudioBufferList>, frames: AVAudioFrameCount) {
         guard frames > 0 else { return }
-        guard let buffer = lock.withLock({ buffers.popLast() }) else { fail(MeetingCaptureError.overloaded); return }
-        guard frames <= buffer.frameCapacity else {
-            lock.withLock { buffers.append(buffer) }; fail(MeetingCaptureError.overloaded); return
-        }
-        buffer.frameLength = frames
+        guard let format else { return }
+        let bytesPerFrame = Int(format.streamDescription.pointee.mBytesPerFrame)
         let source = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: data))
-        let destination = UnsafeMutableAudioBufferListPointer(buffer.mutableAudioBufferList)
-        guard source.count == destination.count else {
-            lock.withLock { buffers.append(buffer) }; fail(MeetingCaptureError.sourceUnavailable); return
-        }
-        for index in source.indices {
-            guard source[index].mDataByteSize >= destination[index].mDataByteSize,
-                  let input = source[index].mData, let output = destination[index].mData else {
-                lock.withLock { buffers.append(buffer) }; fail(MeetingCaptureError.sourceUnavailable); return
-            }
-            memcpy(output, input, Int(destination[index].mDataByteSize))
+        guard bytesPerFrame > 0, source.count == (format.isInterleaved ? 1 : Int(format.channelCount)),
+              source.allSatisfy({ $0.mData != nil && Int($0.mDataByteSize) >= Int(frames) * bytesPerFrame }) else {
+            fail(MeetingCaptureError.sourceUnavailable); return
         }
         let receivedAt = ProcessInfo.processInfo.systemUptime
+        lock.lock()
+        defer { lock.unlock() }
+        guard !failed else { return }
+        var position: AVAudioFrameCount = 0
+        while position < frames {
+            if pendingBuffer == nil {
+                guard let buffer = buffers.popLast() else {
+                    failed = true
+                    queue.async { [onFailure] in onFailure(MeetingCaptureError.overloaded.localizedDescription) }
+                    return
+                }
+                buffer.frameLength = 0
+                pendingBuffer = buffer
+            }
+            guard let buffer = pendingBuffer else { return }
+            let filled = buffer.frameLength
+            let count = min(batchFrameLimit - filled, frames - position)
+            let destination = UnsafeMutableAudioBufferListPointer(buffer.mutableAudioBufferList)
+            for index in source.indices {
+                memcpy(destination[index].mData!.advanced(by: Int(filled) * bytesPerFrame),
+                       source[index].mData!.advanced(by: Int(position) * bytesPerFrame), Int(count) * bytesPerFrame)
+            }
+            buffer.frameLength += count; position += count
+            pendingReceivedAt = receivedAt - Double(frames - position) / format.sampleRate
+            if buffer.frameLength == batchFrameLimit {
+                pendingBuffer = nil
+                submit(buffer, receivedAt: pendingReceivedAt)
+            }
+        }
+    }
+
+    private func submit(_ buffer: AVAudioPCMBuffer, receivedAt: TimeInterval) {
         queue.async { [self] in
             defer { lock.withLock { buffers.append(buffer) } }
-            guard !lock.withLock({ failed }) else { return }
-            do { try write(buffer, receivedAt: receivedAt) } catch { fail(error) }
+            // Overload stops accepting new input, but queued audio must still drain.
+            guard !writeFailed else { return }
+            do { try write(buffer, receivedAt: receivedAt) }
+            catch { writeFailed = true; fail(error) }
         }
     }
 
     func finish() {
-        queue.sync { do { try closeChunk() } catch { fail(error) } }
+        lock.withLock {
+            if let buffer = pendingBuffer {
+                pendingBuffer = nil
+                submit(buffer, receivedAt: pendingReceivedAt)
+            }
+        }
+        queue.sync {
+            do {
+                if !writeFailed { try finishConversion() }
+                try closeChunk()
+            } catch {
+                fail(error)
+                try? closeChunk()
+            }
+        }
     }
 
     private func write(_ input: AVAudioPCMBuffer, receivedAt: TimeInterval) throws {
-        guard let converter else { return }
+        guard let converter, let conversionInput else { throw MeetingCaptureError.sourceUnavailable }
         if firstSampleOffset == nil { firstSampleOffset = max(0, receivedAt - origin - Double(input.frameLength) / input.format.sampleRate) }
         let capacity = AVAudioFrameCount(ceil(Double(input.frameLength) * 16_000 / input.format.sampleRate)) + 64
         guard let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else { throw MeetingCaptureError.overloaded }
         let supply = MeetingConversionSupply()
-        var error: NSError?
-        converter.convert(to: output, error: &error) { _, status in
-            if supply.supplied { status.pointee = .noDataNow; return nil }
-            supply.supplied = true; status.pointee = .haveData; return input
+        while true {
+            output.frameLength = 0
+            var error: NSError?
+            let result = converter.convert(to: output, error: &error) { _, status in
+                if supply.supplied { status.pointee = .noDataNow; return nil }
+                supply.supplied = true
+                // The converter may retain input after returning. Refill its own buffer
+                // only when it asks for more, never recycle its memory to capture.
+                conversionInput.frameLength = input.frameLength
+                let source = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: input.audioBufferList))
+                let destination = UnsafeMutableAudioBufferListPointer(conversionInput.mutableAudioBufferList)
+                for index in source.indices {
+                    memcpy(destination[index].mData!, source[index].mData!, Int(source[index].mDataByteSize))
+                }
+                status.pointee = .haveData
+                return conversionInput
+            }
+            if let error { throw error }
+            if result == .error { throw MeetingCaptureError.sourceUnavailable }
+            try appendConverted(output)
+            if result != .haveData { break }
+            guard output.frameLength > 0 else { throw MeetingCaptureError.sourceUnavailable }
         }
-        if let error { throw error }
+    }
+
+    private func finishConversion() throws {
+        guard let converter else { return }
+        guard let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: 4096) else { throw MeetingCaptureError.overloaded }
+        for _ in 0..<16 {
+            output.frameLength = 0
+            var error: NSError?
+            let result = converter.convert(to: output, error: &error) { _, status in
+                status.pointee = .endOfStream
+                return nil
+            }
+            if let error { throw error }
+            if result == .error { throw MeetingCaptureError.sourceUnavailable }
+            try appendConverted(output)
+            if result == .endOfStream || output.frameLength == 0 { return }
+        }
+        throw MeetingCaptureError.sourceUnavailable
+    }
+
+    private func appendConverted(_ output: AVAudioPCMBuffer) throws {
         guard output.frameLength > 0, let samples = output.floatChannelData?[0] else { return }
         var sum: Float = 0
         for i in 0..<Int(output.frameLength) { sum += samples[i] * samples[i] }

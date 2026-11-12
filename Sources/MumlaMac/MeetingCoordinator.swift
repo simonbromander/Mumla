@@ -33,7 +33,7 @@ final class MeetingCoordinator: ObservableObject {
     var canProcess: () -> Bool = { true }
     var onActivityChanged: ((Bool, Bool) -> Void)?
     var onRecordingUpdate: ((TimeInterval, Double, Bool) -> Void)?
-    var onRecordingEnded: (() -> Void)?
+    var onRecordingEnded: ((Bool) -> Void)?
     private let capture: any MeetingCapturing
     private let modelDirectory: () -> URL?
     private let permission: () async -> Bool
@@ -177,8 +177,8 @@ final class MeetingCoordinator: ObservableObject {
             reload(); startTimer(); publishActivity()
         } catch {
             capture.stop(); activeID = nil
-            _ = try? store.update(record.id) { $0.capture = .interrupted }
-            reload(); self.error = error.localizedDescription; onRecordingEnded?()
+            _ = try? store.update(record.id) { $0.capture = .interrupted; $0.interruptionReason = .captureFailure }
+            reload(); self.error = error.localizedDescription; onRecordingEnded?(false)
         }
     }
 
@@ -190,7 +190,7 @@ final class MeetingCoordinator: ObservableObject {
             }, onFailure: { [weak self] message in
                 Task { @MainActor in
                     guard let self, self.activeID == id, self.captureGeneration == generation else { return }
-                    self.stop(interrupted: true); self.error = message
+                    self.stop(interrupted: true, reason: .captureFailure); self.error = message
                 }
             })
     }
@@ -209,16 +209,19 @@ final class MeetingCoordinator: ObservableObject {
         reload(); tick()
     }
 
-    func stop(interrupted: Bool = false) {
+    func stop(interrupted: Bool = false, reason: MeetingInterruptionReason? = nil) {
         startGeneration = UUID(); isStarting = false
         guard let id = activeID else { publishActivity(); return }
         captureGeneration = UUID()
         capture.stop(); timer?.invalidate(); timer = nil
         elapsed = max(elapsed, ProcessInfo.processInfo.systemUptime - startedAt)
-        do { _ = try store.update(id) { $0.capture = interrupted ? .interrupted : .saved; $0.duration = max($0.duration, elapsed) } }
+        do { _ = try store.update(id) {
+            $0.capture = interrupted ? .interrupted : .saved; $0.duration = max($0.duration, elapsed)
+            $0.interruptionReason = interrupted ? reason ?? .unknown : nil
+        } }
         catch { self.error = mText("Ljudet finns på disken men mötet kunde inte uppdateras.", "Audio is on disk but meeting metadata could not be updated.") }
         activeID = nil; isPaused = false; microphoneLevel = 0; systemLevel = 0
-        reload(); publishActivity(); onRecordingEnded?()
+        reload(); publishActivity(); onRecordingEnded?(interrupted)
         if liveIDs.contains(id) { enqueue(id) }
     }
 
@@ -236,7 +239,7 @@ final class MeetingCoordinator: ObservableObject {
         onRecordingUpdate?(elapsed, microphoneLevel, isPaused)
         if case .application(let pid, _, _) = selectedSource,
            NSRunningApplication(processIdentifier: pid)?.isTerminated != false {
-            stop(interrupted: true); error = mText("Mötesappen stängdes. Inspelningen är sparad.", "Meeting app closed. Recording saved.")
+            stop(interrupted: true, reason: .meetingAppClosed); error = mText("Mötesappen stängdes. Inspelningen är sparad.", "Meeting app closed. Recording saved.")
         }
     }
 
