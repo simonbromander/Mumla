@@ -30,6 +30,9 @@
   production-worker preflight, website CI and Git-connected Cloudflare build
   passed. Live JavaScript/CSS match the tested build byte for byte. No DNS or
   hosting configuration changed.
+- The duplicate website push-CI run needed one rerun after the existing mobile
+  text-example test exceeded its 30-second budget; the other CI run and local
+  suite passed initially. The rerun passed without code or timeout changes.
 - Real two-sided calls, signed-app permissions, routing, acoustic bleed, speaker
   quality and traffic auditing remain target-Mac acceptance gates. Silent fixtures
   and a compiled native UI-test target do not replace those checks. The production
