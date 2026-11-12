@@ -67,3 +67,11 @@ build adds the Calendar permission description and entitlement, not a remote API
 - Real Slack/Teams calls, Calendar permission grant/denial/revocation, screen lock,
   full-screen placement and idle-cost measurement remain unverified. No production
   build, update feed or installed app has been replaced by this work.
+
+## Release Status (2026-11-12)
+
+Included in experimental direct Mac `1.0.1 (46)` after exact-source CI, Developer
+ID signing, notarization and anonymous download/feed verification. The real-call,
+permission and hardware gates above remain outstanding; distribution verification
+is not a claim of meeting-detection accuracy. See
+[release notes](releases/macos-direct-1.0.1-46.md).

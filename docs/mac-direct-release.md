@@ -1,5 +1,42 @@
 # Full-Capability Mac Distribution
 
+## Meeting Suggestions Beta: 2026-11-12
+
+- Universal direct `1.0.1 (46)` is published as a prerelease in Mumla and
+  Mumla-Releases from `2166ed0a0a111e09c4ede63c3ac6124dabdf91aa`.
+- Includes the meeting layout/dialog improvements from PR #11 and opt-in
+  Slack/Teams input-activity prompts from PR #12. Calendar titles are separately
+  opt-in. Detection does not record; capture still requires an explicit Start.
+  Destination sending (PR #10), iOS and sandboxed Mac TestFlight are unchanged.
+- Local checks completed 326 tests with nine optional model/hardware skips and
+  zero failures. All 35 release-helper tests passed (84 assertions). Exact-source
+  Contributor CI `43162378765` passed full-history secret scanning, package/helper
+  tests, iOS/Mac/Watch builds and Watch test compilation.
+- Developer ID signature, hardened runtime, arm64/x86_64, matching dSYMs,
+  microphone plus Calendar entitlements, all three permission descriptions,
+  updater metadata, MLX kernels and speaker attribution passed local and fresh
+  anonymous-download audits. Debug UI fixtures and model weights are not bundled.
+- Notarization `b98c0565-5400-423d-9d1c-62523d937d36` was Accepted. The stapled
+  ticket and Gatekeeper passed. ZIP size: 37,907,670 bytes. SHA-256:
+  `69c7de975ffc1ce68111eb32f92dfdc92855a608c0febbcd344776785626032b`.
+  Anonymous ZIP/checksum downloads from both official repositories match staging.
+- Feed commit `83a7a4a`; the live feed is byte-identical to signed staging.
+  Anonymous enclosure downloads and Ed25519 signatures for 46, 45 and 44 passed
+  before and after publication. In-app update discovery is available; live
+  replacement/relaunch and populated-data preservation remain separate checks.
+- Website commit `536fc67` updates the download and bilingual meeting/Calendar
+  guidance. Its 17 unit and 40 browser checks passed locally. The Git-connected
+  production worker build succeeded; live JavaScript/CSS match the tested build
+  byte for byte. No DNS or hosting configuration was changed.
+- Real Slack/Teams calls, Calendar grant/denial/revocation, screen lock,
+  full-screen placement, idle cost, audio/speaker quality and privacy traffic
+  auditing remain target-Mac acceptance gates. Native UI-test execution is still
+  blocked by local UI Automation authorization; silent fixtures and passing
+  build-for-testing do not replace real-call acceptance. This remains experimental.
+- Evidence remains ignored under `.build/direct46-*` and
+  `.build/ReleaseAuditMac46-20261112/`. Only ZIP/checksum are release assets.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-46).
+
 ## Experimental Live Meetings Beta: 2026-11-11
 
 - Universal direct `1.0.1 (45)` is published as a prerelease in Mumla and
