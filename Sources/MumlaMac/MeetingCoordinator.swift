@@ -85,12 +85,27 @@ final class MeetingCoordinator: ObservableObject {
     }
 
     func refreshSources() {
+        #if DEBUG
+        if CommandLine.arguments.contains("--meeting-ui-testing") || CommandLine.arguments.contains("--design-snapshot") {
+            sources = [.init(id: 1, name: "Meeting app", bundleID: "app.mumla.fixture.meeting")]
+            return
+        }
+        #endif
         sources = NSWorkspace.shared.runningApplications.compactMap { app in
             guard app.activationPolicy == .regular, app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
                   let name = app.localizedName, let bundle = app.bundleIdentifier else { return nil }
             return MeetingAudioSource(id: app.processIdentifier, name: name, bundleID: bundle)
         }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
+
+    #if DEBUG
+    func prepareRecordingDesignSnapshot(_ id: UUID, paused: Bool) {
+        activeID = id; selectedID = id; isPaused = paused; elapsed = 1485
+        microphoneLevel = 0.5; systemLevel = 0.3
+        _ = try? store.update(id) { $0.capture = paused ? .paused : .recording; $0.processing = .live }
+        reload()
+    }
+    #endif
 
     func reload() {
         do { records = try store.list(); scheduleRetention() } catch { self.error = error.localizedDescription }

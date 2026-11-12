@@ -59,6 +59,27 @@ targetTemplates:
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         MUMLA_DISTRIBUTION: app-store
 targets:
+  MumlaMacUITestHost:
+    templates:
+      - MacApp
+    settings:
+      base:
+        PRODUCT_NAME: MumlaMacUITestHost
+        PRODUCT_BUNDLE_IDENTIFIER: com.mumla.app.mac.uitesthost
+        CODE_SIGN_ENTITLEMENTS: Apps/macOS/Mumla/MumlaDirect.entitlements
+        MUMLA_DISTRIBUTION: direct
+  MumlaMacUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: Tests/MumlaMacUITests
+    dependencies:
+      - target: MumlaMacUITestHost
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mumla.app.mac.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: MumlaMacUITestHost
   MumlaWatchTests:
     type: bundle.unit-test
     platform: watchOS
@@ -201,6 +222,16 @@ targets:
         INFOPLIST_FILE: Apps/iOS/Mumla/Info.plist
         CODE_SIGN_ENTITLEMENTS: Apps/iOS/Mumla/Mumla.entitlements
 schemes:
+  MumlaMeetingsUI:
+    build:
+      targets:
+        MumlaMacUITestHost: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - MumlaMacUITests
   MumlaWatch:
     build:
       targets:

@@ -10,280 +10,364 @@ struct MeetingsView: View {
     @ObservedObject var app: AppCoordinator
     @State private var query = ""
     @State private var speakerFilter = ""
-    @State private var editing: MeetingSegment?
-    @State private var editedText = ""
-    @State private var editedSpeaker = ""
-    @State private var editingMeetingID: UUID?
     @State private var followLive = true
-    @State private var deleting: UUID?
     @State private var copied = false
+    @State private var libraryOpen = false
+    @State private var sourcesOpen = false
+    @State private var speakersOpen = false
+    @State private var actionsOpen = false
+    @State private var dialog: MeetingDialog?
+
+    static func showsLibrary(at width: CGFloat) -> Bool { width >= 720 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if let message = meetings.availabilityMessage {
-                Label(message, systemImage: "info.circle").font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-            }
-            if let error = meetings.error {
-                HStack(alignment: .top) {
-                    Label(error, systemImage: "exclamationmark.triangle").font(.system(size: 12, design: .monospaced))
-                    Spacer(minLength: 4)
-                    MumlaIconButton("xmark", label: mText("Stäng", "Close")) { meetings.error = nil }
-                }.padding(10).mumlaRecess(radius: 6)
-            }
-            HStack(spacing: 12) {
-                Text("\(meetings.records.count) " + mText("möten", "meetings")).font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                Spacer()
-                if let id = meetings.activeID {
-                    Button { meetings.selectedID = id } label: { Label(mText("Pågående möte", "Current meeting"), systemImage: "record.circle") }
-                        .buttonStyle(MumlaKeyStyle()).disabled(meetings.selectedID == id)
+        GeometryReader { geometry in
+            VStack(alignment: .leading, spacing: 14) {
+                if let message = meetings.availabilityMessage { notice(message, symbol: "info.circle") }
+                if let error = meetings.error {
+                    HStack(alignment: .top, spacing: 12) {
+                        notice(error, symbol: "exclamationmark.triangle")
+                        Spacer(minLength: 0)
+                        MumlaIconButton("xmark", label: mText("Stäng", "Close")) { meetings.error = nil }
+                    }.padding(12).mumlaRecess(radius: 8)
                 }
-                MumlaIconButton("plus", label: mText("Nytt möte", "New meeting")) {
-                    meetings.selectedID = nil; meetings.refreshSources(); query = ""; speakerFilter = ""
-                }.disabled(meetings.isCapturing)
-            }
-            if meetings.selected == nil { setup }
-            else {
-                HStack(alignment: .top, spacing: 14) {
-                    library.frame(width: 155)
-                    Divider()
-                    if let meeting = meetings.selected { transcript(meeting).frame(maxWidth: .infinity, maxHeight: .infinity) }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .onAppear { meetings.refreshSources() }
-        .sheet(item: $editing) { segment in
-            VStack(alignment: .leading, spacing: 18) {
-                Text(mText("Rätta transkript", "Correct transcript")).font(.system(size: 20, weight: .semibold, design: .monospaced))
-                TextField(mText("Talare", "Speaker"), text: $editedSpeaker).textFieldStyle(.plain).padding(12).mumlaRecess(radius: 6)
-                TextEditor(text: $editedText).scrollContentBackground(.hidden).padding(10).mumlaRecess(radius: 6)
-                HStack {
-                    Button(mText("Avbryt", "Cancel")) { editing = nil }.buttonStyle(MumlaKeyStyle())
-                    Spacer()
-                    Button(mText("Spara", "Save")) {
-                        if let id = editingMeetingID {
-                            do {
-                                try meetings.applyCorrection(segment, text: editedText, speakerName: editedSpeaker, meetingID: id)
-                                editing = nil
-                            } catch { meetings.error = error.localizedDescription }
+                toolbar
+                if meetings.selected == nil { setup }
+                else {
+                    HStack(alignment: .top, spacing: 20) {
+                        if Self.showsLibrary(at: geometry.size.width) {
+                            library.frame(width: 200)
+                            Divider()
                         }
-                    }.buttonStyle(MumlaKeyStyle()).keyboardShortcut(.defaultAction)
+                        if let meeting = meetings.selected { transcript(meeting) }
+                    }
                 }
-            }.padding(24).frame(width: 480, height: 340).background(MumlaStyle.background)
-                .font(.system(.body, design: .monospaced))
+            }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .confirmationDialog(mText("Radera mötet och allt ljud?", "Delete meeting and all audio?"), isPresented: Binding(
-            get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
-                Button(mText("Radera", "Delete"), role: .destructive) { if let deleting { meetings.delete(deleting) }; deleting = nil }
+        .onAppear { meetings.refreshSources() }
+        .onChange(of: meetings.selectedID) { _, _ in query = ""; speakerFilter = ""; copied = false }
+        .sheet(item: $dialog) { item in
+            switch item {
+            case .correction(let meetingID, let segment, let speaker):
+                MeetingCorrectionSheet(segment: segment, speaker: speaker) { text, name in
+                    try meetings.applyCorrection(segment, text: text, speakerName: name, meetingID: meetingID)
+                }
+            case .deletion(let meeting, let audioOnly):
+                MeetingDeletionSheet(meeting: meeting, audioOnly: audioOnly) {
+                    guard meetings.activeID != meeting.id else { return mText("Stoppa inspelningen först.", "Stop recording first.") }
+                    meetings.error = nil
+                    if audioOnly { meetings.deleteAudio(meeting.id) } else { meetings.delete(meeting.id) }
+                    return meetings.error
+                }
             }
+        }
+    }
+
+    private var toolbar: some View {
+        HStack(spacing: 10) {
+            Text("\(meetings.records.count) " + (meetings.records.count == 1 ? mText("möte", "meeting") : mText("möten", "meetings")))
+                .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+            Spacer(minLength: 0)
+            if let id = meetings.activeID {
+                MumlaIconButton("record.circle", label: mText("Pågående möte", "Current meeting")) { meetings.selectedID = id }
+                    .disabled(meetings.selectedID == id)
+            }
+            MumlaIconButton("tray.full", label: mText("Sparade möten", "Saved meetings")) { libraryOpen.toggle() }
+                .disabled(meetings.records.isEmpty).accessibilityIdentifier("meeting.library")
+                .popover(isPresented: $libraryOpen, arrowEdge: .trailing) {
+                    MeetingPopover(title: mText("Sparade möten", "Saved meetings")) { library.frame(height: 360) }
+                }
+            MumlaIconButton("plus", label: mText("Nytt möte", "New meeting")) {
+                meetings.selectedID = nil; meetings.refreshSources()
+            }.disabled(meetings.isCapturing).accessibilityIdentifier("meeting.new")
+        }
     }
 
     private var setup: some View {
         VStack(alignment: .leading, spacing: 12) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Label("STANDBY", systemImage: "record.circle").font(.system(size: 12, weight: .medium, design: .monospaced))
-                Spacer()
-                Image(systemName: "lock.fill")
-                Text("SV / PCM").font(.system(size: 11, design: .monospaced))
-            }.foregroundStyle(MumlaStyle.secondary)
-            TextField(mText("Mötets namn", "Meeting title"), text: $meetings.title)
-                .font(.system(size: 22, design: .monospaced)).textFieldStyle(.plain).padding(14).mumlaRecess(radius: 7)
-            HStack {
-                Menu {
-                    Button(mText("Endast mikrofon", "Microphone only")) { meetings.sourcePID = 0 }
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Label("STANDBY", systemImage: "record.circle")
+                        Spacer()
+                        Label("SV / PCM", systemImage: "lock.fill")
+                    }.font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    TextField(mText("Mötets namn", "Meeting title"), text: $meetings.title, axis: .vertical)
+                        .textFieldStyle(.plain).font(.system(size: 18, design: .monospaced))
+                        .lineLimit(1...4).padding(16).mumlaRecess(radius: 8).accessibilityIdentifier("meeting.title")
+                        .accessibilityLabel(mText("Mötets namn", "Meeting title"))
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Button { sourcesOpen.toggle() } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: meetings.sourcePID == 0 ? "mic" : "speaker.wave.2")
+                                    Text(meetings.sourcePID == 0 ? mText("Endast mikrofon", "Microphone only") : meetings.sources.first(where: { $0.id == meetings.sourcePID })?.name ?? mText("Appen är inte tillgänglig", "App unavailable"))
+                                        .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
+                                    Image(systemName: "chevron.down").font(.system(size: 11))
+                                }.padding(14).frame(maxWidth: .infinity, minHeight: 44)
+                            }.buttonStyle(MumlaKeyStyle(radius: 8)).accessibilityIdentifier("meeting.source")
+                                .popover(isPresented: $sourcesOpen) {
+                                    MeetingPopover(title: mText("Ljudkälla", "Audio source")) {
+                                        ScrollView {
+                                            VStack(spacing: 8) {
+                                                choice(mText("Endast mikrofon", "Microphone only"), symbol: "mic", selected: meetings.sourcePID == 0) {
+                                                    meetings.sourcePID = 0; sourcesOpen = false
+                                                }
+                                                ForEach(meetings.sources) { source in
+                                                    choice(source.name, symbol: "speaker.wave.2", selected: meetings.sourcePID == source.id) {
+                                                        meetings.sourcePID = source.id; sourcesOpen = false
+                                                    }
+                                                }
+                                            }.padding(4)
+                                        }.frame(maxHeight: 320)
+                                    }
+                                }
+                            MumlaIconButton("arrow.clockwise", label: mText("Uppdatera appar", "Refresh apps")) { meetings.refreshSources() }
+                            MumlaIconButton("mic", label: mText("Välj mikrofon", "Choose microphone")) { app.openSettings() }
+                        }
+                        if meetings.sourcePID != 0 {
+                            notice(mText("Webbläsarens andra flikar kan också höras.", "Other browser tabs may also be captured."), symbol: "info.circle")
+                        }
+                    }
                     Divider()
-                    ForEach(meetings.sources) { source in Button(source.name) { meetings.sourcePID = source.id } }
-                } label: {
-                    Label(meetings.sources.first(where: { $0.id == meetings.sourcePID })?.name ?? mText("Endast mikrofon", "Microphone only"), systemImage: "speaker.wave.2")
-                        .frame(maxWidth: .infinity, alignment: .leading).padding(12)
-                }.menuStyle(.borderlessButton).padding(.horizontal, 12)
-                    .frame(maxWidth: .infinity, minHeight: 44).mumlaSurface(radius: 6)
-                MumlaIconButton("arrow.clockwise", label: mText("Uppdatera appar", "Refresh apps")) { meetings.refreshSources() }
-                MumlaIconButton("mic", label: mText("Välj mikrofon", "Choose microphone")) { app.openSettings() }
-            }
-            if meetings.sourcePID != 0 {
-                Text(mText("Webbläsarens andra flikar kan också höras.", "Other browser tabs may also be captured."))
-                    .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-            }
-            Toggle(mText("Transkribera live", "Live transcription"), isOn: $meetings.liveTranscription).toggleStyle(MumlaSwitchStyle())
-            Toggle(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"), isOn: $meetings.keepAudio)
-                .toggleStyle(MumlaSwitchStyle()).font(.system(size: 12, design: .monospaced))
-            HStack {
-                Image(systemName: meetings.speakersInstalled ? "person.2.fill" : "person.2")
-                Text(meetings.speakersInstalled ? mText("Talarmodell installerad", "Speaker model installed") : mText("Talarmodell · 45 MB", "Speaker model · 45 MB"))
-                    .font(.system(size: 12, design: .monospaced))
-                Spacer()
-                if let fraction = meetings.speakerDownload {
-                    ProgressView(value: fraction).frame(width: 90)
-                } else if !meetings.speakersInstalled {
-                    MumlaIconButton("arrow.down", label: mText("Hämta talarmodell", "Download speaker model")) { meetings.installSpeakers() }
-                        .disabled(meetings.isProcessing)
-                } else { Image(systemName: "checkmark").foregroundStyle(MumlaStyle.accent) }
-            }
-            if app.modelDirectory == nil {
-                Button { app.installModel() } label: {
-                    Label(mText("Hämta svensk språkmodell", "Download Swedish speech model"), systemImage: "arrow.down.circle")
-                        .padding(.horizontal, 12).frame(minHeight: 44)
-                }
-                    .buttonStyle(MumlaKeyStyle()).disabled(app.isInstallingModel)
-            }
-                }.padding(4)
+                    Toggle(isOn: $meetings.liveTranscription) {
+                        Text(mText("Transkribera live", "Live transcription")).fixedSize(horizontal: false, vertical: true)
+                    }.toggleStyle(MumlaSwitchStyle()).font(.system(size: 13, design: .monospaced))
+                    Toggle(isOn: $meetings.keepAudio) {
+                        Text(mText("Behåll ljud i 7 dagar", "Keep audio for 7 days"))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }.toggleStyle(MumlaSwitchStyle()).font(.system(size: 13, design: .monospaced))
+                        .help(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"))
+                        .accessibilityLabel(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"))
+                    Divider()
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: meetings.speakersInstalled ? "person.2.fill" : "person.2").padding(.top, 3)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(meetings.speakersInstalled ? mText("Talarmodell installerad", "Speaker model installed") : mText("Talarmodell · 45 MB", "Speaker model · 45 MB"))
+                                .font(.system(size: 13, design: .monospaced)).fixedSize(horizontal: false, vertical: true)
+                            if let fraction = meetings.speakerDownload {
+                                MumlaDownloadGauge(fraction: fraction)
+                                Text("\(Int(fraction * 100)) %").font(.system(size: 12, design: .monospaced)).monospacedDigit()
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        if meetings.speakerDownload == nil && !meetings.speakersInstalled {
+                            MumlaIconButton("arrow.down", label: mText("Hämta talarmodell", "Download speaker model")) { meetings.installSpeakers() }
+                                .disabled(meetings.isProcessing)
+                        } else if meetings.speakersInstalled { Image(systemName: "checkmark").foregroundStyle(MumlaStyle.accent) }
+                    }
+                    if app.modelDirectory == nil {
+                        choice(mText("Hämta svensk språkmodell", "Download Swedish speech model"), symbol: "arrow.down.circle", selected: false) { app.installModel() }
+                            .disabled(app.isInstallingModel)
+                    }
+                }.padding(4).padding(.bottom, 12)
             }
             Divider()
-            HStack {
-                Menu {
-                    Button(mText("Kopiera samtyckesmeddelande", "Copy consent message")) {
-                        copy(mText("Jag vill transkribera vårt möte lokalt med Mumla. Är alla okej med det?", "I'd like to transcribe our meeting locally with Mumla. Is everyone comfortable with that?"))
-                    }
-                } label: { Image(systemName: "person.crop.circle.badge.checkmark").frame(width: 40, height: 40) }
-                    .menuStyle(.borderlessButton).help(mText("Samtycke", "Consent"))
-                Spacer()
+            HStack(spacing: 12) {
+                MumlaIconButton(copied ? "checkmark" : "person.crop.circle.badge.checkmark", label: mText("Kopiera samtyckesmeddelande", "Copy consent message")) {
+                    copy(mText("Jag vill transkribera vårt möte lokalt med Mumla. Är alla okej med det?", "I'd like to transcribe our meeting locally with Mumla. Is everyone comfortable with that?"))
+                }
+                Spacer(minLength: 0)
                 Button { Task { await meetings.start() } } label: {
                     Label(meetings.isStarting ? mText("Förbereder", "Preparing") : mText("Spela in möte", "Record meeting"), systemImage: "record.circle.fill")
-                        .foregroundStyle(MumlaStyle.recording).padding(.horizontal, 18).frame(height: 48)
-                }.buttonStyle(MumlaKeyStyle()).disabled(meetings.isStarting || meetings.isCapturing || meetings.availabilityMessage != nil)
-                    .accessibilityIdentifier("meeting.start")
+                        .foregroundStyle(MumlaStyle.recording).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 18).padding(.vertical, 14)
+                }.buttonStyle(MumlaKeyStyle(radius: 8))
+                    .disabled(meetings.isCapturing || meetings.availabilityMessage != nil).accessibilityIdentifier("meeting.start")
             }
-            if !meetings.records.isEmpty {
-                Button { meetings.selectedID = meetings.records.first?.id } label: { Label(mText("Sparade möten", "Saved meetings"), systemImage: "clock") }
-                    .buttonStyle(MumlaKeyStyle())
-            }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .disabled(meetings.isStarting)
+        }.disabled(meetings.isStarting)
     }
 
     private var library: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 8) {
+            LazyVStack(alignment: .leading, spacing: 10) {
                 ForEach(meetings.records) { meeting in
-                    Button { meetings.selectedID = meeting.id; query = ""; speakerFilter = ""; copied = false } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(meeting.title).font(.system(size: 12, weight: .medium, design: .monospaced)).lineLimit(2)
-                            Text(meeting.createdAt.formatted(date: .abbreviated, time: .shortened))
-                                .font(.system(size: 10, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                            Text(meeting.id == meetings.activeID ? (meetings.isPaused ? "PAUSE" : "REC") : MeetingRecord.timestamp(meeting.duration))
-                                .font(.system(size: 11, design: .monospaced)).foregroundStyle(meeting.id == meetings.activeID ? MumlaStyle.recording : MumlaStyle.secondary)
-                        }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
-                    }.buttonStyle(MumlaKeyStyle()).overlay(alignment: .leading) {
-                        if meetings.selectedID == meeting.id { Rectangle().fill(MumlaStyle.accent).frame(width: 3).padding(.vertical, 10) }
-                    }
+                    Button { meetings.selectedID = meeting.id; libraryOpen = false } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(meeting.title).font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(meeting.createdAt.formatted(date: .abbreviated, time: .omitted))
+                                .fixedSize(horizontal: false, vertical: true)
+                            HStack {
+                                Text(meeting.createdAt.formatted(date: .omitted, time: .shortened))
+                                Spacer(minLength: 4)
+                                Text(meeting.id == meetings.activeID ? (meetings.isPaused ? "PAUSE" : "REC") : MeetingRecord.timestamp(meeting.duration))
+                                    .foregroundStyle(meeting.id == meetings.activeID ? MumlaStyle.recording : MumlaStyle.secondary)
+                            }.monospacedDigit()
+                        }.font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+                    }.buttonStyle(MumlaKeyStyle(radius: 8))
+                        .overlay(alignment: .leading) {
+                            if meetings.selectedID == meeting.id { Rectangle().fill(MumlaStyle.activeKey).frame(width: 3).padding(.vertical, 12) }
+                        }.accessibilityAddTraits(meetings.selectedID == meeting.id ? .isSelected : [])
                 }
-            }.padding(.bottom, 4)
-        }.scrollClipDisabled()
+            }.padding(4)
+        }.accessibilityIdentifier("meeting.library.list")
     }
 
     private func transcript(_ meeting: MeetingRecord) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(meeting.title).font(.system(size: 17, weight: .semibold, design: .monospaced)).lineLimit(2)
-                    Text(meeting.sourceName + " · " + MeetingRecord.timestamp(meeting.id == meetings.activeID ? meetings.elapsed : meeting.duration))
-                        .font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                }
-                Spacer(minLength: 4)
-                Menu {
-                    Button(mText("Kopiera text", "Copy text")) { copy(meeting.transcript(timestamps: false)) }
-                    Button(mText("Kopiera med talare och tider", "Copy with speakers and times")) { copy(meeting.transcript()) }
-                    Button("Markdown") { export(meeting, json: false) }
-                    Button("JSON") { export(meeting, json: true) }
-                    Button(mText("Radera endast ljud", "Delete audio only"), role: .destructive) { meetings.deleteAudio(meeting.id) }
-                        .disabled(meeting.id == meetings.activeID || meeting.audioDeleted)
-                    Divider()
-                    Button(mText("Radera möte", "Delete meeting"), role: .destructive) { deleting = meeting.id }
-                        .disabled(meeting.id == meetings.activeID)
-                } label: { Image(systemName: "ellipsis").frame(width: 30, height: 32) }.menuStyle(.borderlessButton)
-                    .accessibilityLabel(mText("Mötesåtgärder", "Meeting actions"))
-            }
-            if meetings.activeID == meeting.id {
+            HStack(spacing: 10) {
                 HStack(spacing: 10) {
-                    MumlaRecordingLight(recording: !meetings.isPaused)
-                    Text(meetings.isPaused ? "PAUSE" : "REC").font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    Spacer()
-                    MumlaIconButton(meetings.isPaused ? "play.fill" : "pause.fill", label: mText("Pausa / fortsätt", "Pause / resume")) { meetings.togglePause() }
-                    MumlaIconButton("stop.fill", label: mText("Stoppa och spara", "Stop and save")) { meetings.stop() }
-                        .accessibilityIdentifier("meeting.stop")
-                }
-                meter("MIC", level: meetings.microphoneLevel)
-                if !meeting.microphoneOnly { meter("APP", level: meetings.systemLevel) }
-            }
-            HStack {
-                TextField(mText("Sök i transkript", "Search transcript"), text: $query).textFieldStyle(.plain).font(.system(size: 12, design: .monospaced))
-                Menu {
-                    Button(mText("Alla talare", "All speakers")) { speakerFilter = "" }
-                    ForEach(Array(Set(meeting.segments.map(\.speaker))).sorted(), id: \.self) { speaker in
-                        Button(meeting.speakerName(speaker)) { speakerFilter = speaker }
+                    Image(systemName: "magnifyingglass").foregroundStyle(MumlaStyle.secondary)
+                    TextField(mText("Sök i transkript", "Search transcript"), text: $query)
+                        .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced)).accessibilityIdentifier("meeting.search")
+                }.padding(12).frame(minHeight: 44).mumlaRecess(radius: 8)
+                MumlaIconButton(speakerFilter.isEmpty ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill", label: mText("Filtrera talare", "Filter speakers")) { speakersOpen.toggle() }
+                    .accessibilityIdentifier("meeting.speakers")
+                    .popover(isPresented: $speakersOpen, arrowEdge: .trailing) {
+                        MeetingPopover(title: mText("Talare", "Speakers")) {
+                            ScrollView {
+                                VStack(spacing: 8) {
+                                    choice(mText("Alla talare", "All speakers"), symbol: "person.2", selected: speakerFilter.isEmpty) { speakerFilter = ""; speakersOpen = false }
+                                    ForEach(Array(Set(meeting.segments.map(\.speaker))).sorted(), id: \.self) { speaker in
+                                        choice(meeting.speakerName(speaker), symbol: "person", selected: speakerFilter == speaker) { speakerFilter = speaker; speakersOpen = false }
+                                    }
+                                }.padding(4)
+                            }.frame(maxHeight: 280)
+                        }
                     }
-                } label: { Image(systemName: speakerFilter.isEmpty ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill") }
-                    .menuStyle(.borderlessButton).frame(width: 28).accessibilityLabel(mText("Filtrera talare", "Filter speakers"))
-            }.padding(10).mumlaRecess(radius: 6)
+                MumlaIconButton("ellipsis", label: mText("Mötesåtgärder", "Meeting actions")) { actionsOpen.toggle() }
+                    .accessibilityIdentifier("meeting.actions")
+                    .popover(isPresented: $actionsOpen, arrowEdge: .trailing) { actions(meeting) }
+            }
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 16) {
-                        ForEach(meeting.orderedSegments.filter { (speakerFilter.isEmpty || $0.speaker == speakerFilter) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query)) }) { segment in
-                            VStack(alignment: .leading, spacing: 7) {
-                                HStack(spacing: 7) {
-                                    Button { meetings.play(segment, meeting: meeting) } label: {
-                                        Label(MeetingRecord.timestamp(segment.start), systemImage: meetings.playingSegmentID == segment.id ? "stop.fill" : "play.fill")
-                                    }.buttonStyle(.plain).disabled(meeting.audioDeleted || meetings.isCapturing)
-                                    Text(meeting.speakerName(segment.speaker)).lineLimit(1)
-                                    Spacer(minLength: 0)
-                                    Button {
-                                        editedText = segment.text; editedSpeaker = meeting.speakerName(segment.speaker)
-                                        editingMeetingID = meeting.id; editing = segment
-                                    } label: { Image(systemName: "pencil").frame(width: 24, height: 24) }
-                                        .buttonStyle(.plain).help(mText("Rätta text eller talare", "Correct text or speaker"))
-                                }.font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                                Text(segment.text).font(.system(size: 14, design: .monospaced)).lineSpacing(4).textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }.id(segment.id)
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(meeting.title).font(.system(size: 20, weight: .semibold, design: .monospaced))
+                                .fixedSize(horizontal: false, vertical: true).accessibilityIdentifier("meeting.document.title")
+                            Text(meeting.sourceName + " · " + MeetingRecord.timestamp(meeting.id == meetings.activeID ? meetings.elapsed : meeting.duration))
+                                .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        Color.clear.frame(height: 1).id("live-end")
-                    }.padding(.vertical, 6)
-                    if meeting.segments.isEmpty {
-                        Text(meeting.audioDeleted ? mText("Ljudet har raderats.", "Audio has been deleted.")
-                             : meetings.activeID == meeting.id ? mText("Lyssnar…", "Listening…") : mText("Inspelning sparad", "Recording saved"))
-                            .font(.system(size: 13, design: .monospaced)).foregroundStyle(MumlaStyle.secondary).padding(.vertical, 24)
-                    }
-                }.onChange(of: meeting.segments.count) { _, _ in if followLive { proxy.scrollTo("live-end", anchor: .bottom) } }
+                        if meetings.activeID == meeting.id {
+                            MeetingRecordingReadout(paused: meetings.isPaused, elapsed: meetings.elapsed,
+                                microphone: meetings.microphoneLevel, system: meeting.microphoneOnly ? nil : meetings.systemLevel)
+                        }
+                        if !speakerFilter.isEmpty {
+                            Label(meeting.speakerName(speakerFilter), systemImage: "person")
+                                .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        let segments = meeting.orderedSegments.filter { (speakerFilter.isEmpty || $0.speaker == speakerFilter) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query)) }
+                        LazyVStack(alignment: .leading, spacing: 22) {
+                            ForEach(segments) { segment in
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack(alignment: .top, spacing: 12) {
+                                        Button { meetings.play(segment, meeting: meeting) } label: {
+                                            Label(MeetingRecord.timestamp(segment.start), systemImage: meetings.playingSegmentID == segment.id ? "stop.fill" : "play.fill")
+                                                .font(.system(size: 12, design: .monospaced)).monospacedDigit().padding(10)
+                                        }.buttonStyle(MumlaKeyStyle(radius: 6)).disabled(meeting.audioDeleted || meetings.isCapturing)
+                                        Text(meeting.speakerName(segment.speaker)).font(.system(size: 12, weight: .medium, design: .monospaced))
+                                            .foregroundStyle(MumlaStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                                            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                                        MumlaIconButton("pencil", label: mText("Rätta text eller talare", "Correct text or speaker")) {
+                                            dialog = .correction(meetingID: meeting.id, segment: segment, speaker: meeting.speakerName(segment.speaker))
+                                        }.accessibilityIdentifier("meeting.correct.\(segment.id)")
+                                    }
+                                    Text(segment.text).font(.system(size: 14, design: .monospaced)).lineSpacing(5)
+                                        .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .accessibilityIdentifier("meeting.passage.\(segment.id)")
+                                }.id(segment.id)
+                            }
+                            if segments.isEmpty {
+                                notice(emptyMessage(meeting), symbol: "waveform").padding(.vertical, 20)
+                            }
+                            Color.clear.frame(height: 1).id("live-end")
+                        }
+                    }.padding(4).padding(.bottom, 8)
+                }.onChange(of: meeting.segments.count) { _, _ in
+                    if followLive && meetings.activeID == meeting.id && query.isEmpty && speakerFilter.isEmpty { proxy.scrollTo("live-end", anchor: .bottom) }
+                }
             }.accessibilityIdentifier("meeting.transcript")
             Divider()
-            HStack(spacing: 10) {
-                Text(status(meeting)).font(.system(size: 10, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                Spacer(minLength: 0)
-                if meetings.activeID == meeting.id {
-                    Toggle(mText("Följ", "Follow"), isOn: $followLive).toggleStyle(MumlaSwitchStyle()).font(.system(size: 11, design: .monospaced))
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    statusLabel(meeting).fixedSize()
+                    Spacer(minLength: 0)
+                    transcriptControls(meeting).fixedSize()
                 }
+                VStack(alignment: .leading, spacing: 10) {
+                    statusLabel(meeting).fixedSize(horizontal: false, vertical: true)
+                    transcriptControls(meeting).frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func statusLabel(_ meeting: MeetingRecord) -> some View {
+        Text(status(meeting)).font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+            .accessibilityIdentifier("meeting.status")
+    }
+
+    private func transcriptControls(_ meeting: MeetingRecord) -> some View {
+        HStack(spacing: 10) {
+            if meetings.activeID == meeting.id {
+                Toggle(mText("Följ", "Follow"), isOn: $followLive).toggleStyle(MumlaSwitchStyle())
+                    .font(.system(size: 12, design: .monospaced)).fixedSize()
+                Spacer(minLength: 0)
+                MumlaIconButton(meetings.isPaused ? "play.fill" : "pause.fill", label: meetings.isPaused ? mText("Fortsätt inspelning", "Resume recording") : mText("Pausa inspelning", "Pause recording")) { meetings.togglePause() }
+                MumlaIconButton("stop.fill", label: mText("Stoppa och spara", "Stop and save")) { meetings.stop() }.accessibilityIdentifier("meeting.stop")
+            } else {
+                Spacer(minLength: 0)
                 if meeting.processing == .processing || meeting.processing == .live {
                     MumlaIconButton("pause.fill", label: mText("Pausa transkribering", "Pause transcription")) { meetings.cancelProcessing(meeting.id) }
                 } else if meeting.processedChunkIDs.count < meeting.chunks.count && !meeting.audioDeleted {
                     MumlaIconButton("waveform", label: mText("Transkribera", "Transcribe")) { meetings.transcribe(meeting.id) }
                 }
-                MumlaIconButton(copied ? "checkmark" : "doc.on.doc", label: mText("Kopiera transkript", "Copy transcript")) { copy(meeting.transcript()) }
-                    .disabled(meeting.segments.isEmpty)
+            }
+            MumlaIconButton(copied ? "checkmark" : "doc.on.doc", label: mText("Kopiera transkript", "Copy transcript")) { copy(meeting.transcript()) }.disabled(meeting.segments.isEmpty)
+        }
+    }
+
+    private func emptyMessage(_ meeting: MeetingRecord) -> String {
+        if !query.isEmpty || !speakerFilter.isEmpty { return mText("Inga matchande avsnitt", "No matching passages") }
+        if meeting.audioDeleted { return mText("Ljudet har raderats.", "Audio has been deleted.") }
+        if meetings.activeID == meeting.id { return meetings.isPaused ? mText("Inspelning pausad", "Recording paused") : mText("Lyssnar…", "Listening…") }
+        return mText("Inspelning sparad", "Recording saved")
+    }
+
+    private func actions(_ meeting: MeetingRecord) -> some View {
+        MeetingPopover(title: mText("Mötesåtgärder", "Meeting actions")) {
+            VStack(spacing: 10) {
+                choice(mText("Kopiera text", "Copy text"), symbol: "doc.on.doc", selected: false) { copy(meeting.transcript(timestamps: false)); actionsOpen = false }.disabled(meeting.segments.isEmpty)
+                choice(mText("Kopiera med talare och tider", "Copy with speakers and times"), symbol: "text.badge.plus", selected: false) { copy(meeting.transcript()); actionsOpen = false }.disabled(meeting.segments.isEmpty)
+                HStack(spacing: 10) {
+                    choice("Markdown", symbol: "square.and.arrow.up", selected: false) { actionsOpen = false; export(meeting, json: false) }
+                    choice("JSON", symbol: "square.and.arrow.up", selected: false) { actionsOpen = false; export(meeting, json: true) }
+                }
+                Divider().padding(.vertical, 4)
+                choice(mText("Radera endast ljud", "Delete audio only"), symbol: "waveform.slash", selected: false) { actionsOpen = false; dialog = .deletion(meeting: meeting, audioOnly: true) }.disabled(meeting.id == meetings.activeID || meeting.audioDeleted)
+                choice(mText("Radera möte", "Delete meeting"), symbol: "trash", selected: false) { actionsOpen = false; dialog = .deletion(meeting: meeting, audioOnly: false) }.disabled(meeting.id == meetings.activeID)
             }
         }
     }
 
-    private func meter(_ label: String, level: Double) -> some View {
-        HStack(spacing: 10) {
-            Text(label).font(.system(size: 10, design: .monospaced)).frame(width: 30, alignment: .leading)
-            GeometryReader { geometry in
-                HStack(spacing: 2) {
-                    ForEach(0..<28) { index in Rectangle().fill(!meetings.isPaused && Double(index) / 28 < level ? MumlaStyle.accent : MumlaStyle.meterOff) }
-                }.frame(width: geometry.size.width, height: 8)
-            }.frame(height: 8)
-        }.accessibilityElement(children: .ignore).accessibilityLabel(label).accessibilityValue("\(Int(level * 100))%")
+    private func choice(_ title: String, symbol: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: symbol).frame(width: 18)
+                Text(title).fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
+                if selected { Image(systemName: "checkmark").foregroundStyle(MumlaStyle.accent) }
+            }.font(.system(size: 13, design: .monospaced)).padding(14).frame(minHeight: 44)
+        }.buttonStyle(MumlaKeyStyle(radius: 8)).accessibilityLabel(title).accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func notice(_ text: String, symbol: String) -> some View {
+        Label(text, systemImage: symbol).font(.system(size: 13, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func status(_ meeting: MeetingRecord) -> String {
         if meeting.audioDeleted { return mText("Ljud raderat", "Audio deleted") }
         if meeting.speakerLabelsUnavailable == true { return mText("Talarmodell saknas · ljudkällor visas", "Speaker labels unavailable · showing sources") }
         if meeting.processing == .ready { return mText("Klart · på den här Macen", "Ready · on this Mac") }
+        if meetings.activeID == meeting.id { return meetings.isPaused ? mText("Inspelning pausad", "Recording paused") : mText("Spelar in · på den här Macen", "Recording · on this Mac") }
+        if meeting.processing == .failed { return mText("Transkribering avbruten · ljudet är sparat", "Transcription interrupted · audio is saved") }
         let total = meeting.chunks.reduce(0) { $0 + $1.duration }
         let done = meeting.chunks.filter { meeting.processedChunkIDs.contains($0.id) }.reduce(0) { $0 + $1.duration }
-        return "\(MeetingRecord.timestamp(done)) / \(MeetingRecord.timestamp(total))"
+        return mText("Transkriberat ", "Transcribed ") + "\(MeetingRecord.timestamp(done)) / \(MeetingRecord.timestamp(total))"
     }
 
     private func copy(_ text: String) { NSPasteboard.general.clearContents(); copied = NSPasteboard.general.setString(text, forType: .string) }
