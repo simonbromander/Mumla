@@ -1,5 +1,52 @@
 # Full-Capability Mac Distribution
 
+## Meeting Speaker Alignment Beta: 2026-11-12
+
+- Universal direct `1.0.1 (49)` is published as a prerelease in Mumla and
+  Mumla-Releases from `a0df71b56083a53d14c02eb996baaf0acf6a0522` (PR #15,
+  merged as `d50a3b0`). Available speaker lookahead, stable retry offsets and
+  final/pause context draining fix reproduced word-to-speaker timing defects.
+- Word-duration overlap replaces single-midpoint alignment. Uncertain or
+  overlapping speech stays unassigned. The old "Them" source label is now
+  "Unassigned remote", not another identified person. A branded per-passage
+  selector can correct one passage without merging other people or changing
+  text/timing. Existing recordings are not automatically relabelled.
+- Local checks completed 355 tests with nine optional skips and zero failures;
+  all 35 release-helper tests passed (84 assertions). Exact-source Contributor
+  CI `43222025893` passed history secret scanning, package/helper tests,
+  iOS/Mac/Watch builds and Watch test compilation. The Mac UI-test target
+  compiled; isolated compact light/dark interaction checks passed. Automated
+  native UI-runner execution remains unverified.
+- Developer ID signing, hardened runtime, both architectures, matching dSYMs,
+  microphone/Calendar entitlements, permission descriptions, updater metadata,
+  speaker attribution and MLX kernels passed local and fresh public-download
+  audits. Model weights, debug UI fixtures and the unreleased cloud-summary
+  interface are absent. Only the notarized ZIP and checksum are release assets.
+- Apple notarization `5928896a-4441-41d6-862f-cbd6d2b422a3` was Accepted.
+  Stapling, ticket validation and Gatekeeper passed. ZIP size: 37,960,018 bytes.
+  SHA-256: `1d83ee2c1de1d71fa0cb3d3233b92d05006dff83e5af699005dcf39759a1b274`.
+- Feed commit `46e4548`; the canonical live feed is byte-identical to signed
+  staging. Public archives and Ed25519 signatures for 49, 48 and 47 passed
+  before and after publication. Update discovery is available; installation,
+  relaunch and preservation of populated data remain target-Mac acceptance checks.
+- Website commit `1b1be66` adds bilingual meeting features and correction guidance,
+  an unchanged native sample-meeting screenshot with a verified provenance hash,
+  and build-49 download links. Its 18 unit and 42 browser checks passed locally;
+  production-worker preflight and the Git-connected production build passed.
+  Live JavaScript, CSS, screenshot and capture manifest match the tested build
+  byte for byte. No domain or hosting configuration changed.
+- Website CI `43226470650` and `43226478383` passed for that exact website
+  commit. The duplicate run initially exceeded the existing 30-second mobile
+  screenshot-test budget; its rerun passed without code or timeout changes.
+- Real group-call speaker quality, capture/routing, signed-app permissions,
+  privacy traffic auditing and live updater replacement remain separate checks.
+  This is an experimental beta, not a general speaker-accuracy guarantee.
+  Dictation/capture scope, iOS, sandboxed Mac TestFlight, destination sending,
+  CLI summaries and Native/Classic appearance are unchanged.
+- Evidence remains ignored under `.build/direct49-*` and
+  `.build/ReleaseAuditMac49-20261112/`. Existing user recordings were not opened
+  or modified. [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-49).
+
 ## Meeting Recording Reliability Beta: 2026-11-12
 
 - Universal direct `1.0.1 (48)` is published as a prerelease in Mumla and

@@ -63,6 +63,9 @@ acceptance check; synthetic tests do not prove acoustic speaker accuracy.
   meeting was opened, edited or recorded. The automated Mac UI runner was
   compiled but not executed; native UI Automation approval remains unverified.
 
-This fix is local, not in a published release. Existing recordings are not
-automatically repaired. Real group-call speaker accuracy still needs acceptance
-on a consented call; these tests establish alignment and editing behavior only.
+Published in direct Mac `1.0.1 (49)` after exact-source CI, Developer ID signing,
+Apple notarization, fresh public-download audits and signed feed verification.
+See the [release notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-49).
+Existing recordings are not automatically repaired. Real group-call speaker
+accuracy still needs acceptance on a consented call; these tests establish
+alignment and editing behavior only.
