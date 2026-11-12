@@ -113,10 +113,16 @@ public struct MeetingRecord: Codable, Equatable, Identifiable, Sendable {
     public func speakerName(_ key: String) -> String {
         if let name = speakerNames[key], !name.isEmpty { return name }
         if key == MeetingTrack.microphone.rawValue { return microphoneOnly ? "Microphone" : "Me" }
-        if key == MeetingTrack.system.rawValue { return "Them" }
+        if key == MeetingTrack.system.rawValue { return "Unassigned remote" }
         let parts = key.split(separator: "-")
         let number = parts.last.flatMap { Int($0) }.map { $0 + 1 } ?? 1
         return (key.hasPrefix("system-") ? "Remote " : "Speaker ") + String(number)
+    }
+
+    public func speakerKeys(for track: MeetingTrack) -> [String] {
+        let used = segments.filter { $0.track == track }.map(\.speaker)
+        let named = speakerNames.keys.filter { $0 == track.rawValue || $0.hasPrefix(track.rawValue + "-") }
+        return Set(used + named + [track.rawValue]).sorted()
     }
 
     public func transcript(timestamps: Bool = true) -> String {

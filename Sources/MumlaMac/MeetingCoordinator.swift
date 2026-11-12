@@ -353,6 +353,20 @@ final class MeetingCoordinator: ObservableObject {
         catch { self.error = error.localizedDescription }
     }
 
+    func reassignSpeaker(_ segment: MeetingSegment, to speaker: String, meetingID: UUID) throws {
+        _ = try store.update(meetingID) { record in
+            guard let index = record.segments.firstIndex(where: { $0.id == segment.id }),
+                  record.segments[index].text == segment.text,
+                  record.segments[index].speaker == segment.speaker,
+                  record.segments[index].track == segment.track else { throw MeetingStoreError.changed }
+            guard record.speakerKeys(for: segment.track).contains(speaker) else { throw MeetingStoreError.invalidData }
+            // Keep an identity available even if its last passage is reassigned.
+            if record.speakerNames[segment.speaker] == nil { record.speakerNames[segment.speaker] = "" }
+            record.segments[index].speaker = speaker
+        }
+        reload()
+    }
+
     func correct(_ segment: MeetingSegment, text: String, meetingID: UUID) {
         do { try store.correct(segment.id, meetingID: meetingID, expectedText: segment.text, text: text); reload() }
         catch { self.error = error.localizedDescription }

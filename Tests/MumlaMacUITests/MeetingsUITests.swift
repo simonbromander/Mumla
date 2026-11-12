@@ -66,6 +66,29 @@ final class MeetingsUITests: XCTestCase {
         XCTAssertFalse((passage.value as? String ?? passage.label).contains("Must not"))
     }
 
+    func testSpeakerSelectorAssignsOnlyTheChosenPassageAndCanRestoreItsPreviousSpeaker() {
+        let app = launch(compact: true)
+        let speaker = app.buttons["meeting.assign.example-1"]
+        XCTAssertTrue(speaker.waitForExistence(timeout: 3))
+        XCTAssertTrue(speaker.label.contains("Anna"))
+        speaker.click()
+        let unassigned = app.buttons["meeting.assign.choice.system"]
+        XCTAssertTrue(unassigned.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["meeting.assign.choice.microphone"].exists)
+        capture("meetings-speaker-selector", app)
+        unassigned.click()
+        XCTAssertTrue(speaker.label.contains("Unassigned remote"))
+        XCTAssertTrue(app.buttons["meeting.assign.example-0"].label.contains("Me"))
+        let passage = app.descendants(matching: .any).matching(identifier: "meeting.passage.example-1").firstMatch
+        XCTAssertTrue((passage.value as? String ?? passage.label).contains("Bra. Jag vill"))
+        speaker.click()
+        app.buttons["meeting.assign.choice.system-0"].click()
+        XCTAssertTrue(speaker.label.contains("Anna"))
+        speaker.click()
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(speaker.label.contains("Anna"))
+    }
+
     func testAudioDeletionKeepsTranscriptAndFullDeletionNeedsConfirmation() {
         let app = launch()
         app.buttons["meeting.actions"].click(); app.buttons["Delete audio only"].click()

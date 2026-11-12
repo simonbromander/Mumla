@@ -202,7 +202,7 @@ final class MeetingTests: XCTestCase {
         XCTAssertEqual(record.segments.filter { $0.track == .microphone }.count, 2)
         XCTAssertEqual(record.segments.filter { $0.track == .system }.count, 2)
         XCTAssertEqual(record.speakerName(MeetingTrack.microphone.rawValue), "Me")
-        XCTAssertEqual(record.speakerName(MeetingTrack.system.rawValue), "Them")
+        XCTAssertEqual(record.speakerName(MeetingTrack.system.rawValue), "Unassigned remote")
     }
 
     func testSystemTapCapturesAllOutputExceptMumlaWithoutMutingPlayback() throws {
