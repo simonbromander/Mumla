@@ -74,7 +74,9 @@ for diagnosis. Real hardware/call acceptance remains a separate release gate.
   samples to the unstalled control on both tracks.
 - Production-capacity interleaved conversion regression failed before the
   ownership/draining fix and passes after it, including exact frame counts.
-- Combined-branch Swift suite: 356 tests, 9 optional skips, zero failures.
+- Focused release-branch Swift suite: 340 tests, 9 optional skips, zero failures.
+  The separate settings/provider integration branch also passed 356 tests with
+  the same 9 optional skips; those features are not part of this release.
 - Explicit two-hour/two-track writer check: 4,800 bounded chunks, full duration
   on each track, recovery check passed in approximately 286 seconds of test time.
   Each writer remains active across the full two-hour input, with resampling
