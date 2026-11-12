@@ -55,3 +55,13 @@ tap used here. No virtual driver or call bot is added.
   The fixture used no microphone, system audio tap, calendar or model download.
 - Real-call capture and permissions remain unverified. No installed production
   app, public release or update feed was changed.
+
+## Release Status (2026-11-12)
+
+Included in experimental direct Mac `1.0.1 (47)` after exact-source CI, Developer
+ID signing, notarization, fresh public-download audits and signed live-feed
+verification. The release also corrects the system-audio permission description.
+The real-call and permission gates above remain open; distribution verification
+is not physical capture acceptance. The installed production app was not replaced.
+See [release notes](releases/macos-direct-1.0.1-47.md) and
+[publication evidence](mac-direct-release.md).

@@ -1,5 +1,44 @@
 # Full-Capability Mac Distribution
 
+## System Audio Meetings Beta: 2026-11-12
+
+- Universal direct `1.0.1 (47)` is published as a prerelease in Mumla and
+  Mumla-Releases from `102b0c266f00af6824e40bf68183cf2fbe8de7f5`.
+- Includes PR #13: System audio + microphone is the meeting default, including
+  explicit Start from a Slack/Teams suggestion. Setup, the suggestion and the
+  system permission description disclose other apps' audio. Selected-app and
+  microphone-only choices remain, with no silent fallback to broader capture.
+  Pause/resume retains scope; the system recording is not tied to one app's exit.
+- Local checks completed 335 tests with nine optional model/hardware skips and
+  zero failures. All 35 release-helper tests passed (84 assertions). Exact-source
+  Contributor CI `43175933343` passed history secret scanning, package/helper
+  tests, iOS/Mac/Watch builds and Watch test compilation.
+- Developer ID signing, hardened runtime, arm64/x86_64, matching dSYMs,
+  microphone plus Calendar entitlements, capture/calendar descriptions, pinned
+  updater settings, MLX kernels and speaker attribution passed both local and
+  fresh anonymous-download audits. Model weights and debug UI fixtures are absent.
+- Notarization `2698ae9f-a442-4a7e-8a79-9d018f71b2ec` was Accepted. The stapled
+  ticket and Gatekeeper passed. ZIP size: 37,911,833 bytes. SHA-256:
+  `aca02a31d76f0ac723a9b0f49d4e445600eea4cde06c30275f84fca1f97463c0`.
+  Anonymous ZIP/checksum downloads from both official repositories match staging.
+- Feed commit `c7c1993`; after cache propagation the canonical live feed is
+  byte-identical to signed staging. Public enclosures and Ed25519 signatures for
+  47, 46 and 45 passed before and after publication. Update discovery is available;
+  live app replacement/relaunch and populated-data preservation are separate checks.
+- Website commit `3fadbe2` updates the download link and bilingual system-audio
+  scope, consent and explicit Stop guidance. Its 17 unit and 40 browser checks,
+  production-worker preflight, website CI and Git-connected Cloudflare build
+  passed. Live JavaScript/CSS match the tested build byte for byte. No DNS or
+  hosting configuration changed.
+- Real two-sided calls, signed-app permissions, routing, acoustic bleed, speaker
+  quality and traffic auditing remain target-Mac acceptance gates. Silent fixtures
+  and a compiled native UI-test target do not replace those checks. The production
+  app installed on the user's Mac was not replaced by this release workflow.
+- Evidence remains ignored under `.build/direct47-*` and
+  `.build/ReleaseAuditMac47-20261112/`. Only ZIP/checksum are release assets.
+  iOS, Mac TestFlight, destination sending and Native/Classic design are unchanged.
+- [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-47).
+
 ## Meeting Suggestions Beta: 2026-11-12
 
 - Universal direct `1.0.1 (46)` is published as a prerelease in Mumla and
