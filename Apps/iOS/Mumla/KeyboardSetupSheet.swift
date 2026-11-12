@@ -3,6 +3,7 @@ import MumlaUI
 import SwiftUI
 
 struct KeyboardSetupSheet: View {
+    @MumlaTheme private var palette
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
     @State private var showDiscardAudio = false
@@ -20,7 +21,7 @@ struct KeyboardSetupSheet: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Label(session.keyboardPreparationTitle,
                               systemImage: session.keyboardSnapshot.isAlive() ? "checkmark.circle.fill" : "mic.fill")
-                            .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                            .mumlaFont(.subheadline, weight: .semibold)
                         Text(session.isStartingKeyboard
                              ? mText("Stanna i Mumla tills sessionen är redo. Första starten kan ta längre tid.", "Stay in Mumla until the session is ready. The first start may take longer.")
                              : session.keyboardSnapshot.isAlive()
@@ -28,21 +29,21 @@ struct KeyboardSetupSheet: View {
                              : session.isPreparingModel
                              ? mText("Språkmodellen förbereds. Mikrofonen är av tills du startar sessionen.", "Preparing the language model. The microphone is off until you start the session.")
                              : mText("Starta en session nedan.", "Start a session below."))
-                            .font(.system(.footnote, design: .monospaced)).fixedSize(horizontal: false, vertical: true)
+                            .mumlaFont(.footnote).fixedSize(horizontal: false, vertical: true)
                     }
-                    .foregroundStyle(MumlaStyle.lcdInk).padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(MumlaStyle.lcd).clipShape(RoundedRectangle(cornerRadius: 5))
+                    .foregroundStyle(palette.lcdInk).padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(palette.lcd).clipShape(RoundedRectangle(cornerRadius: 5))
                     .padding(4).mumlaRecess(radius: 8)
                     .accessibilityElement(children: .combine).accessibilityIdentifier("keyboard.preparation")
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(mText("Sessionstid", "Session duration")).font(.system(.subheadline, design: .monospaced))
+                        Text(mText("Sessionstid", "Session duration")).mumlaFont(.subheadline)
                         HStack(spacing: 5) {
                             ForEach(KeyboardSessionDuration.allCases, id: \.rawValue) { duration in
                                 Button {
                                     sessionMinutes = duration.rawValue
                                     MumlaFeedback.latch()
                                 } label: {
-                                    Text(durationTitle(duration)).font(.system(.subheadline, design: .monospaced))
+                                    Text(durationTitle(duration)).mumlaFont(.subheadline)
                                         .frame(maxWidth: .infinity)
                                 }.buttonStyle(MumlaStereoKeyStyle(isLatched: selectedDuration == duration, height: 48))
                                     .accessibilityIdentifier("keyboard.duration.\(duration.rawValue)")
@@ -52,7 +53,7 @@ struct KeyboardSetupSheet: View {
                             .disabled(session.keyboardSnapshot.sessionID != nil || session.isStartingKeyboard)
                     }
                     Text(mText("Diktera där du skriver.", "Dictate where you write."))
-                        .font(.system(.title2, design: .monospaced).weight(.semibold))
+                        .mumlaFont(.title2, weight: .semibold)
                     VStack(alignment: .leading, spacing: 16) {
                         step("01", mText("Lägg till Mumla under Inställningar → Allmänt → Tangentbord → Tangentbord.", "Add Mumla in Settings → General → Keyboard → Keyboards."))
                         step("02", mText("Aktivera Full åtkomst för Mumla. Det låter tangentbordet prata med appen på den här enheten. Ingenting skickas till en server.", "Enable Full Access for Mumla. This lets the keyboard communicate with the app on this device. Nothing is sent to a server."))
@@ -60,12 +61,12 @@ struct KeyboardSetupSheet: View {
                     }
                     if session.keyboardSnapshot.isAlive() {
                         Label(mText("Mikrofonen är aktiv tills sessionen avslutas. Ljud sparas bara när du trycker på inspelningsknappen.", "The microphone stays active until the session ends. Audio is saved only while the recording key is on."), systemImage: "mic.fill")
-                            .font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                            .mumlaFont(.subheadline).foregroundStyle(palette.secondary)
                         Text(session.keyboardSnapshot.expiresAt, style: .time)
-                            .font(.system(.headline, design: .monospaced)).accessibilityLabel(mText("Sessionen slutar", "Session ends"))
+                            .mumlaFont(.headline).accessibilityLabel(mText("Sessionen slutar", "Session ends"))
                     } else {
                         Text(mText("Mikrofonen hålls aktiv under vald sessionstid, vilket använder batteri. Låsning eller ett samtal avslutar sessionen. Vanlig textinmatning fungerar även utan Full åtkomst.", "The microphone stays active for the selected duration, using battery. Locking or a call ends the session. Regular typing works without Full Access."))
-                            .font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                            .mumlaFont(.subheadline).foregroundStyle(palette.secondary)
                     }
                     if !session.modelReady {
                         Button { Task { await session.install() } } label: {
@@ -77,9 +78,9 @@ struct KeyboardSetupSheet: View {
                     if session.hasPendingAudio && !session.keyboardSnapshot.isAlive() {
                         VStack(alignment: .leading, spacing: 14) {
                             Label(mText("Osparat klipp", "Unsaved clip"), systemImage: "waveform")
-                                .font(.system(.headline, design: .monospaced))
+                                .mumlaFont(.headline)
                             Text(mText("Ett tidigare klipp väntar på transkribering. Spara eller radera det innan du startar en ny session.", "A previous clip is waiting for transcription. Save or discard it before starting a new session."))
-                                .font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                                .mumlaFont(.subheadline).foregroundStyle(palette.secondary)
                             Button { Task { await session.transcribePending() } } label: {
                                 Label(mText("Spara transkript", "Save transcript"), systemImage: "arrow.clockwise")
                                     .frame(maxWidth: .infinity).padding(14)
@@ -96,12 +97,12 @@ struct KeyboardSetupSheet: View {
                     }
                     if let error = session.error {
                         Label(error, systemImage: "exclamationmark.triangle")
-                            .font(.system(.subheadline, design: .monospaced))
+                            .mumlaFont(.subheadline)
                             .accessibilityIdentifier("keyboard.error")
                     }
                     if !session.keyboardSnapshot.isAlive(), let reason = session.keyboardSnapshot.error {
                         Label(reason, systemImage: "exclamationmark.triangle")
-                            .font(.system(.subheadline, design: .monospaced))
+                            .mumlaFont(.subheadline)
                             .accessibilityIdentifier("keyboard.connectionError")
                     }
                     Button {
@@ -120,17 +121,17 @@ struct KeyboardSetupSheet: View {
             } label: {
                 Label(session.isStartingKeyboard ? session.keyboardPreparationTitle : session.keyboardSnapshot.isAlive() ? mText("Avsluta session", "End session") : mText("Starta session", "Start session"),
                       systemImage: session.keyboardSnapshot.isAlive() ? "power" : "mic.fill")
-                    .font(.system(.subheadline, design: .monospaced)).lineLimit(1).minimumScaleFactor(0.8)
+                    .mumlaFont(.subheadline).lineLimit(1).minimumScaleFactor(0.8)
                     .frame(maxWidth: .infinity).padding(18)
             }
             .buttonStyle(MumlaStereoKeyStyle(isLatched: session.keyboardSnapshot.isAlive(), height: 60))
             .disabled(!session.keyboardSnapshot.isAlive() && (!session.modelReady || session.hasPendingAudio || session.state != .idle || session.isStartingKeyboard))
             .accessibilityIdentifier("keyboard.session")
-            .padding(24).background(MumlaStyle.background)
+            .padding(24).background(palette.background)
         }
         .background { MumlaBackdrop() }.mumlaAppearance()
-        .font(.system(.body, design: .monospaced))
-        .presentationBackground(MumlaStyle.background)
+        .mumlaFont(.body)
+        .presentationBackground(palette.background)
         .alert(mText("Radera osparat ljud?", "Discard unsaved audio?"), isPresented: $showDiscardAudio) {
             Button(mText("Radera", "Discard"), role: .destructive) { session.discardPendingAudio() }
             Button(mText("Avbryt", "Cancel"), role: .cancel) {}
@@ -146,8 +147,8 @@ struct KeyboardSetupSheet: View {
     }
     private func step(_ number: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            Text(number).foregroundStyle(MumlaStyle.accent).font(.system(.caption, design: .monospaced).weight(.semibold))
-            Text(text).font(.system(.subheadline, design: .monospaced)).fixedSize(horizontal: false, vertical: true)
+            Text(number).foregroundStyle(palette.accent).mumlaFont(.caption, weight: .semibold)
+            Text(text).mumlaFont(.subheadline).fixedSize(horizontal: false, vertical: true)
         }
     }
 }

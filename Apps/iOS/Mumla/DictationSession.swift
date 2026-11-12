@@ -53,6 +53,9 @@ final class DictationSession: ObservableObject {
         keyboardPendingURL = audioDirectory.appendingPathComponent("pending-keyboard.caf")
         #if DEBUG
         if CommandLine.arguments.contains("--ui-testing") {
+            if CommandLine.arguments.contains("--reset-ui-style") {
+                UserDefaults.standard.removeObject(forKey: MumlaSkin.preferenceKey)
+            }
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaUITests", isDirectory: true)
             if CommandLine.arguments.contains("--reset-ui-data") { try? FileManager.default.removeItem(at: directory) }
             historyStore = DictationHistoryStore(directory: directory)

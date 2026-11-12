@@ -62,6 +62,7 @@ final class VoiceNotes: ObservableObject {
 }
 
 struct VoiceNotesSection: View {
+    @MumlaTheme private var palette
     @ObservedObject var inbox: VoiceNotes
     var playbackAllowed: Bool
     @State private var query = ""
@@ -73,10 +74,10 @@ struct VoiceNotesSection: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(mText("Röstanteckningar", "Voice Notes"))
-                    .font(.system(size: 30, weight: .semibold, design: .monospaced))
+                    .mumlaFont(size: 30, weight: .semibold)
                     .accessibilityAddTraits(.isHeader)
                 Label(mText("Från din Apple Watch", "From your Apple Watch"), systemImage: "applewatch")
-                    .font(.subheadline).foregroundStyle(MumlaStyle.secondary)
+                    .font(.subheadline).foregroundStyle(palette.secondary)
             }
             if let error = inbox.error {
                 VStack(alignment: .leading, spacing: 10) {
@@ -86,22 +87,22 @@ struct VoiceNotesSection: View {
             }
             if inbox.notes.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {
-                    Image(systemName: "waveform").font(.system(size: 30)).foregroundStyle(MumlaStyle.secondary)
+                    Image(systemName: "waveform").font(.system(size: 30)).foregroundStyle(palette.secondary)
                     Text(mText("Din nästa tanke börjar på handleden.", "Your next thought starts on your wrist."))
                         .font(.title3.weight(.medium))
                         .accessibilityIdentifier("voiceNotes.empty")
                     Text(mText("Spela in i Mumla på din Apple Watch. Klockan transkriberar lokalt och skickar anteckningen hit när din iPhone är tillgänglig.",
                                "Record in Mumla on your Apple Watch. Your Watch transcribes locally and sends the note here when your iPhone is available."))
-                        .foregroundStyle(MumlaStyle.secondary)
+                        .foregroundStyle(palette.secondary)
                     Text(mText("Upp till 60 sekunder per anteckning.", "Up to 60 seconds per note."))
-                        .font(.caption).foregroundStyle(MumlaStyle.secondary)
+                        .font(.caption).foregroundStyle(palette.secondary)
                 }.padding(24).frame(maxWidth: .infinity, alignment: .leading).mumlaSurface(radius: 10)
             } else {
                 TextField(mText("Sök i röstanteckningar", "Search voice notes"), text: $query)
                     .textFieldStyle(.plain).padding(14).mumlaRecess(radius: 10)
                     .accessibilityIdentifier("voiceNotes.search")
                 Text("\(inbox.notes.count) " + mText("sparade", "saved"))
-                    .font(.caption).foregroundStyle(MumlaStyle.secondary)
+                    .font(.caption).foregroundStyle(palette.secondary)
                 if filtered.isEmpty { Text(mText("Inga träffar", "No matches")) }
                 ForEach(filtered) { note in
                     Button { selected = note } label: {
@@ -111,7 +112,7 @@ struct VoiceNotesSection: View {
                                 Spacer()
                                 Text("\(Int(note.duration.rounded())) s")
                                 Image(systemName: "arrow.up.right")
-                            }.font(.caption).foregroundStyle(MumlaStyle.secondary)
+                            }.font(.caption).foregroundStyle(palette.secondary)
                             Text(note.transcript ?? "").lineLimit(3).multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }.padding(20).mumlaSurface(radius: 10)
@@ -124,6 +125,7 @@ struct VoiceNotesSection: View {
 }
 
 private struct VoiceNoteSheet: View {
+    @MumlaTheme private var palette
     let note: VoiceNote
     @ObservedObject var inbox: VoiceNotes
     var playbackAllowed: Bool
@@ -137,7 +139,7 @@ private struct VoiceNoteSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Label(note.createdAt.formatted(date: .abbreviated, time: .shortened), systemImage: "applewatch")
-                        .font(.caption).foregroundStyle(MumlaStyle.secondary)
+                        .font(.caption).foregroundStyle(palette.secondary)
                     HStack {
                         Button {
                             player.toggle(inbox.store.audioURL(for: note.id))
@@ -147,7 +149,7 @@ private struct VoiceNoteSheet: View {
                                 .padding(.horizontal, 14).frame(minHeight: 44)
                         }.buttonStyle(MumlaKeyStyle()).accessibilityIdentifier("voiceNotes.play").disabled(!playbackAllowed)
                         Spacer()
-                        Text("\(Int(note.duration.rounded())) s").monospacedDigit().foregroundStyle(MumlaStyle.secondary)
+                        Text("\(Int(note.duration.rounded())) s").monospacedDigit().foregroundStyle(palette.secondary)
                     }
                     if !playbackAllowed { Text(mText("Avsluta dikteringen för att spela upp.", "Finish dictation to play the recording.")).font(.caption) }
                     if let error = player.error { Text(error).foregroundStyle(.red) }
@@ -176,7 +178,7 @@ private struct VoiceNoteSheet: View {
                         .frame(minHeight: 44)
                         .accessibilityIdentifier("voiceNotes.delete")
                 }.padding(24)
-            }.background(MumlaStyle.background).navigationTitle(mText("Röstanteckning", "Voice note"))
+            }.background(palette.background).navigationTitle(mText("Röstanteckning", "Voice note"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button(mText("Klart", "Done")) { dismiss() } } }
                 .confirmationDialog(mText("Radera inspelningen och texten från denna iPhone?", "Delete the recording and text from this iPhone?"),
@@ -186,7 +188,7 @@ private struct VoiceNoteSheet: View {
                         if !inbox.notes.contains(where: { $0.id == note.id }) { dismiss() }
                     }
                 }
-        }.fontDesign(.monospaced).tint(MumlaStyle.accent).mumlaAppearance().onDisappear { player.stop() }
+        }.tint(palette.accent).mumlaAppearance().onDisappear { player.stop() }
             .onChange(of: scenePhase) { _, phase in if phase == .background { player.stop() } }
             .onChange(of: playbackAllowed) { _, allowed in if !allowed { player.stop() } }
             .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { _ in player.stop() }

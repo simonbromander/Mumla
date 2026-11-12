@@ -18,6 +18,7 @@ public struct TranscriptTextRequest: Identifiable {
 }
 
 public struct TranscriptFormattingView: View {
+    @MumlaTheme private var palette
     private let record: DictationRecord
     private let action: TranscriptTextAction
     private let formatter: LocalTranscriptFormatter
@@ -63,12 +64,12 @@ public struct TranscriptFormattingView: View {
                     HStack(spacing: 10) {
                         if result == nil { ProgressView().controlSize(.small) }
                         else { Image(systemName: canApply ? "checkmark" : "info.circle") }
-                        Text(status).font(.system(.callout, design: .monospaced))
+                        Text(status).mumlaFont(.callout)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("format.status")
-                    }.foregroundStyle(MumlaStyle.secondary)
+                    }.foregroundStyle(palette.secondary)
                     Text(preview)
-                        .font(.system(.body, design: .monospaced)).lineSpacing(6).textSelection(.enabled)
+                        .mumlaFont(.body).lineSpacing(6).textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading).padding(20).mumlaRecess(radius: 8)
                         .accessibilityIdentifier("format.preview")
                 }.padding(24)
@@ -79,7 +80,7 @@ public struct TranscriptFormattingView: View {
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
             footerLayout {
                 Label(mText("Lokalt", "On-device"), systemImage: "lock")
-                    .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    .mumlaFont(.caption).foregroundStyle(palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 12) {
                     Spacer(minLength: 0)
@@ -92,11 +93,11 @@ public struct TranscriptFormattingView: View {
                     }.disabled(!canApply || scenePhase != .active)
                         .accessibilityIdentifier("format.apply")
                 }
-            }.padding(24).background(MumlaStyle.background).overlay(alignment: .top) { Divider() }
+            }.padding(24).background(palette.background).overlay(alignment: .top) { Divider() }
         }
-        .background { MumlaBackdrop() }.tint(MumlaStyle.accent).mumlaAppearance()
-        .presentationBackground(MumlaStyle.background)
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .background { MumlaBackdrop() }.tint(palette.accent).mumlaAppearance()
+        .presentationBackground(palette.background)
+        .mumlaFont(.body)
         .task(id: Request(attempt: attempt, phase: scenePhase)) {
             result = nil
             saveFailed = false
@@ -127,13 +128,13 @@ public struct TranscriptFormattingView: View {
                     Image(systemName: contextExpanded ? "chevron.down" : "chevron.right")
                 }.frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("format.context-section")
-                .font(.system(.caption, design: .monospaced))
+                .mumlaFont(.caption)
                 .accessibilityValue(contextExpanded ? mText("Utökat", "Expanded") : mText("Minimerat", "Collapsed"))
             if contextExpanded {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(mText("Lägg till relevanta meddelanden, högst 600 tecken. Kontexten används bara i denna förhandsvisning.",
                                "Add relevant messages, up to 600 characters. The context stays in this preview."))
-                        .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        .mumlaFont(.caption).foregroundStyle(palette.secondary)
                     TextEditor(text: $precedingText).scrollContentBackground(.hidden)
                         .frame(minHeight: 80).padding(12).mumlaRecess(radius: 8)
                         .accessibilityLabel(mText("Föregående samtal", "Preceding conversation"))
@@ -168,7 +169,7 @@ public struct TranscriptFormattingView: View {
 
     private func modeKey(_ title: String, original: Bool) -> some View {
         Button { showOriginal = original } label: {
-            Text(title).font(.system(.caption, design: .monospaced)).lineLimit(1).minimumScaleFactor(0.8)
+            Text(title).mumlaFont(.caption).lineLimit(1).minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity)
         }.buttonStyle(MumlaStereoKeyStyle(isLatched: showOriginal == original, height: typeSize.isAccessibilitySize ? 100 : 48))
             .accessibilityAddTraits(showOriginal == original ? .isSelected : [])

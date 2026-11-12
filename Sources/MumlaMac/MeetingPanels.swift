@@ -15,20 +15,22 @@ enum MeetingDialog: Identifiable {
 }
 
 struct MeetingPopover<Content: View>: View {
+    @MumlaTheme private var palette
     let title: String
     @ViewBuilder var content: Content
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(title).font(.system(size: 15, weight: .semibold, design: .monospaced))
+            Text(title).mumlaFont(size: 15, weight: .semibold)
                 .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
             content
         }.padding(20).frame(width: 360)
-            .font(.system(.body, design: .monospaced)).foregroundStyle(MumlaStyle.ink)
-            .background { MumlaBackdrop() }.tint(MumlaStyle.accent).mumlaAppearance()
+            .mumlaFont(.body).foregroundStyle(palette.ink)
+            .background { MumlaBackdrop() }.tint(palette.accent).mumlaAppearance()
     }
 }
 
 struct MeetingCorrectionSheet: View {
+    @MumlaTheme private var palette
     @Environment(\.dismiss) private var dismiss
     @State private var text: String
     @State private var speaker: String
@@ -48,8 +50,8 @@ struct MeetingCorrectionSheet: View {
             MumlaPanelHeader(mText("Rätta transkript", "Correct transcript"), closeLabel: mText("Avbryt", "Cancel"), closeIdentifier: "meeting.edit.close") { dismiss() }
             VStack(alignment: .leading, spacing: 16) {
                 MumlaTextField(mText("Talare", "Speaker"), text: $speaker).accessibilityIdentifier("meeting.edit.speaker")
-                Text(mText("Transkript", "Transcript")).font(.system(size: 12, weight: .medium, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                TextEditor(text: $text).font(.system(size: 14, design: .monospaced)).scrollContentBackground(.hidden)
+                Text(mText("Transkript", "Transcript")).mumlaFont(size: 12, weight: .medium).foregroundStyle(palette.secondary)
+                TextEditor(text: $text).mumlaFont(size: 14).scrollContentBackground(.hidden)
                     .padding(12).frame(maxWidth: .infinity, maxHeight: .infinity).mumlaRecess(radius: 8)
                     .accessibilityLabel(mText("Transkript", "Transcript")).accessibilityIdentifier("meeting.edit.text")
                 if let error { MeetingPanelError(message: error) }
@@ -65,12 +67,13 @@ struct MeetingCorrectionSheet: View {
                     .disabled(!Self.canSave(text: text, speaker: speaker)).keyboardShortcut(.return, modifiers: .command)
                     .accessibilityIdentifier("meeting.edit.save")
             }.buttonStyle(MumlaKeyStyle(radius: 8)).padding(24)
-        }.frame(width: 520, height: 480).font(.system(.body, design: .monospaced)).foregroundStyle(MumlaStyle.ink)
-            .background { MumlaBackdrop() }.tint(MumlaStyle.accent).mumlaAppearance()
+        }.frame(width: 520, height: 480).mumlaFont(.body).foregroundStyle(palette.ink)
+            .background { MumlaBackdrop() }.tint(palette.accent).mumlaAppearance()
     }
 }
 
 struct MeetingDeletionSheet: View {
+    @MumlaTheme private var palette
     @Environment(\.dismiss) private var dismiss
     let meeting: MeetingRecord
     let audioOnly: Bool
@@ -85,13 +88,13 @@ struct MeetingDeletionSheet: View {
                 VStack(alignment: .leading, spacing: 20) {
                     Label(audioOnly ? mText("Endast inspelningen", "Recording only") : mText("Inspelning och transkript", "Recording and transcript"),
                           systemImage: audioOnly ? "waveform.slash" : "trash")
-                        .font(.system(size: 12, weight: .medium, design: .monospaced)).foregroundStyle(MumlaStyle.recording)
+                        .mumlaFont(size: 12, weight: .medium).foregroundStyle(palette.recording)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(meeting.title).font(.system(size: 17, weight: .semibold, design: .monospaced))
+                    Text(meeting.title).mumlaFont(size: 17, weight: .semibold)
                         .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
                     Text(audioOnly ? mText("Transkriptet finns kvar. Ljudet kan inte återställas.", "The transcript stays. The audio cannot be restored.")
                          : mText("Mötet, transkriptet och allt sparat ljud raderas från den här Macen. Det går inte att ångra.", "The meeting, transcript and all saved audio will be deleted from this Mac. This cannot be undone."))
-                        .font(.system(size: 13, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        .mumlaFont(size: 13).foregroundStyle(palette.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     if let error { MeetingPanelError(message: error) }
                 }.padding(24).frame(maxWidth: .infinity, alignment: .leading)
@@ -105,23 +108,24 @@ struct MeetingDeletionSheet: View {
                     if let message = delete() { error = message } else { dismiss() }
                 } label: {
                     Label(audioOnly ? mText("Radera ljud", "Delete audio") : mText("Radera möte", "Delete meeting"), systemImage: "trash")
-                        .foregroundStyle(MumlaStyle.recording).padding(.horizontal, 16).frame(minHeight: 44)
+                        .foregroundStyle(palette.recording).padding(.horizontal, 16).frame(minHeight: 44)
                 }.accessibilityIdentifier("meeting.delete.confirm")
             }.buttonStyle(MumlaKeyStyle(radius: 8)).padding(24)
-        }.frame(width: 520, height: 400).font(.system(.body, design: .monospaced)).foregroundStyle(MumlaStyle.ink)
-            .background { MumlaBackdrop() }.tint(MumlaStyle.accent).mumlaAppearance()
+        }.frame(width: 520, height: 400).mumlaFont(.body).foregroundStyle(palette.ink)
+            .background { MumlaBackdrop() }.tint(palette.accent).mumlaAppearance()
     }
 }
 
 private struct MeetingPanelError: View {
     let message: String
     var body: some View {
-        Label(message, systemImage: "exclamationmark.triangle").font(.system(size: 12, design: .monospaced))
+        Label(message, systemImage: "exclamationmark.triangle").mumlaFont(size: 12)
             .fixedSize(horizontal: false, vertical: true).accessibilityIdentifier("meeting.dialog.error")
     }
 }
 
 struct MeetingRecordingReadout: View {
+    @MumlaTheme private var palette
     let paused: Bool
     let elapsed: TimeInterval
     let microphone: Double
@@ -131,24 +135,24 @@ struct MeetingRecordingReadout: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 MumlaRecordingLight(recording: !paused)
-                Text(paused ? "PAUSE" : "REC").font(.system(size: 12, weight: .semibold, design: .monospaced))
+                Text(paused ? "PAUSE" : "REC").mumlaFont(size: 12, weight: .semibold)
                 Spacer()
-                Text(MeetingRecord.timestamp(elapsed)).font(.system(size: 28, weight: .light, design: .monospaced)).monospacedDigit()
+                Text(MeetingRecord.timestamp(elapsed)).mumlaFont(size: 28, weight: .light).monospacedDigit()
             }
             meter("MIC", label: mText("Mikrofon", "Microphone"), level: microphone)
             if let system { meter("SYS", label: mText("Datorljud", "Computer audio"), level: system) }
-        }.foregroundStyle(MumlaStyle.lcdInk).padding(16)
-            .background(RoundedRectangle(cornerRadius: 7).fill(LinearGradient(colors: [MumlaStyle.lcd, MumlaStyle.lcdEnd], startPoint: .top, endPoint: .bottom)))
+        }.foregroundStyle(palette.lcdInk).padding(16)
+            .background(RoundedRectangle(cornerRadius: 7).fill(LinearGradient(colors: [palette.lcd, palette.lcdEnd], startPoint: .top, endPoint: .bottom)))
             .mumlaDisplayLens().padding(6).mumlaRecess(radius: 8)
             .accessibilityElement(children: .combine)
     }
 
     private func meter(_ title: String, label: String, level: Double) -> some View {
         HStack(spacing: 12) {
-            Text(title).font(.system(size: 11, design: .monospaced)).frame(width: 30, alignment: .leading)
+            Text(title).mumlaFont(size: 11).frame(width: 30, alignment: .leading)
             HStack(spacing: 2) {
                 ForEach(0..<28) { index in
-                    Rectangle().fill(!paused && Double(index) / 28 < level ? MumlaStyle.lcdInk : MumlaStyle.lcdInk.opacity(0.16))
+                    Rectangle().fill(!paused && Double(index) / 28 < level ? palette.lcdInk : palette.lcdInk.opacity(0.16))
                 }
             }.frame(height: 8).accessibilityHidden(true)
         }.accessibilityElement(children: .ignore).accessibilityLabel(label)
@@ -161,6 +165,7 @@ enum MeetingExitReason {
 }
 
 struct MeetingExitSheet: View {
+    @MumlaTheme private var palette
     let reason: MeetingExitReason
     let confirm: () -> Void
     let cancel: () -> Void
@@ -171,11 +176,11 @@ struct MeetingExitSheet: View {
             VStack(alignment: .leading, spacing: 18) {
                 Label(reason == .recording ? mText("Ett möte spelas in", "A meeting is recording") : mText("Transkribering pågår", "Transcription in progress"),
                       systemImage: reason == .recording ? "record.circle" : "waveform")
-                    .font(.system(size: 16, weight: .medium, design: .monospaced)).fixedSize(horizontal: false, vertical: true)
+                    .mumlaFont(size: 16, weight: .medium).fixedSize(horizontal: false, vertical: true)
                 Text(reason == .recording
                      ? mText("Inspelningen stoppas och sparas på den här Macen innan Mumla avslutas.", "The recording will be stopped and saved on this Mac before Mumla quits.")
                      : mText("Ljudet är sparat. Du kan fortsätta transkribera nästa gång du öppnar Mumla.", "The audio is saved. You can resume transcription next time you open Mumla."))
-                    .font(.system(size: 13, design: .monospaced)).foregroundStyle(MumlaStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                    .mumlaFont(size: 13).foregroundStyle(palette.secondary).fixedSize(horizontal: false, vertical: true)
             }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             Divider()
             HStack(spacing: 12) {
@@ -187,7 +192,7 @@ struct MeetingExitSheet: View {
                         .fixedSize(horizontal: false, vertical: true).padding(.horizontal, 16).frame(minHeight: 44)
                 }.accessibilityIdentifier("meeting.quit.confirm")
             }.buttonStyle(MumlaKeyStyle(radius: 8)).padding(24)
-        }.frame(width: 520, height: 340).font(.system(.body, design: .monospaced)).foregroundStyle(MumlaStyle.ink)
-            .background { MumlaBackdrop() }.tint(MumlaStyle.accent).mumlaAppearance()
+        }.frame(width: 520, height: 340).mumlaFont(.body).foregroundStyle(palette.ink)
+            .background { MumlaBackdrop() }.tint(palette.accent).mumlaAppearance()
     }
 }

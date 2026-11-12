@@ -3,6 +3,7 @@ import MumlaUI
 import SwiftUI
 
 public struct QwenTextModelControls: View {
+    @MumlaTheme private var palette
     @ObservedObject private var model: QwenTextModel
     private var isInUse: Bool
     public init(model: QwenTextModel, isInUse: Bool = false) { self.model = model; self.isInUse = isInUse }
@@ -10,14 +11,14 @@ public struct QwenTextModelControls: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Qwen3.5 4B · 4-bit")
-                .font(.system(.callout, design: .monospaced))
+                .mumlaFont(.callout)
             Text(mText("Körs lokalt på Apple Silicon. Hämta cirka 3,1 GB en gång.",
                        "Runs locally on Apple Silicon. Download approximately 3.1 GB once."))
-                .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                .mumlaFont(.caption).foregroundStyle(palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Text(mText("Modellen använder cirka 3 GB minne efter första användningen.",
                        "The model uses approximately 3 GB of memory after first use."))
-                .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                .mumlaFont(.caption).foregroundStyle(palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if !model.supportsDevice {
                 Text(mText("Kräver en Mac med Apple Silicon", "Requires a Mac with Apple Silicon"))
@@ -43,7 +44,7 @@ public struct QwenTextModelControls: View {
             }
             if model.failed {
                 Text(mText("Åtgärden misslyckades. Försök igen.", "The operation failed. Try again."))
-                    .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    .mumlaFont(.caption).foregroundStyle(palette.secondary)
                     .accessibilityIdentifier("text-model.error")
             }
         }.frame(maxWidth: .infinity, alignment: .leading)

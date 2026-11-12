@@ -1,5 +1,13 @@
 # Mumla Recorder Design
 
+Mumla now offers **Classic** and **Native** styles in Settings, independently of
+System / Light / Dark appearance. Classic remains the default and retains the
+recorder design below. Native uses platform navigation, system typography,
+standard switches, neutral reading surfaces, and glass chrome on macOS/iOS 26+.
+Older systems use standard bordered controls and materials. Both styles keep
+recording behavior, history, and the minimal dictation overlay unchanged.
+See [interface styles](native-classic-skins.md) for scope and validation.
+
 The September 28 direction supersedes Liquid Glass. Mumla is a quiet digital
 recorder: graphite housing, a recessed sage LCD, mechanical transport keys, and
 small functional labels. The reference points are the supplied recorder images,

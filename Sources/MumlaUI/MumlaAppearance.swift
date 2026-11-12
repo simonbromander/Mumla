@@ -44,11 +44,25 @@ public enum MumlaAppearance: String, CaseIterable, Identifiable {
 }
 
 public struct MumlaAppearancePicker: View {
+    @Environment(\.mumlaSkin) private var skin
     @AppStorage(MumlaAppearance.preferenceKey) private var appearance = MumlaAppearance.system.rawValue
     @Environment(\.dynamicTypeSize) private var typeSize
     private var selection: MumlaAppearance { MumlaAppearance(rawValue: appearance) ?? .system }
     public init() {}
     public var body: some View {
+        if skin == .native {
+            Picker(mText("Utseende", "Appearance"), selection: Binding(
+                get: { selection }, set: { appearance = $0.rawValue }
+            )) {
+                ForEach(MumlaAppearance.allCases) { option in
+                    Label(option.title, systemImage: option.symbol).tag(option)
+                }
+            }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 330)
+                .accessibilityIdentifier("settings.appearance")
+                .onChange(of: appearance) { _, _ in selection.applyNativeAppearance() }
+        } else { classicPicker }
+    }
+    @ViewBuilder private var classicPicker: some View {
         let layout = typeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 5))
         layout {
@@ -62,7 +76,7 @@ public struct MumlaAppearancePicker: View {
                         ? AnyLayout(HStackLayout(spacing: 12)) : AnyLayout(VStackLayout(spacing: 5))
                     labelLayout {
                         Image(systemName: option.symbol).font(.system(size: 15, weight: .medium))
-                        Text(option.title).font(.system(.caption, design: .monospaced).weight(.medium))
+                        Text(option.title).mumlaFont(.caption, weight: .medium)
                             .lineLimit(1).minimumScaleFactor(0.8)
                     }.padding(.top, 8)
                 }
@@ -82,11 +96,16 @@ public extension View {
 }
 
 private struct MumlaAppearanceModifier: ViewModifier {
+    @Environment(\.mumlaSkinOverride) private var inheritedSkin
     @AppStorage(MumlaAppearance.preferenceKey) private var rawAppearance = MumlaAppearance.system.rawValue
+    @AppStorage(MumlaSkin.preferenceKey) private var rawSkin = MumlaSkin.classic.rawValue
     private var appearance: MumlaAppearance { MumlaAppearance(rawValue: rawAppearance) ?? .system }
+    private var skin: MumlaSkin { inheritedSkin ?? MumlaSkin(rawValue: rawSkin) ?? .classic }
     func body(content: Content) -> some View {
         content.preferredColorScheme(appearance.colorScheme)
-            .foregroundStyle(MumlaStyle.ink)
+            .environment(\.mumlaSkin, skin)
+            .fontDesign(skin.fontDesign)
+            .foregroundStyle(MumlaPalette(skin: skin).ink)
             .onAppear { appearance.applyNativeAppearance() }
             .onChange(of: rawAppearance) { _, _ in appearance.applyNativeAppearance() }
     }

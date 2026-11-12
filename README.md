@@ -13,7 +13,9 @@ speech recognition, and a tactile, recorder-inspired interface.
   paste, and a manual-copy fallback when insertion cannot be confirmed.
 - iPhone/iPad recording, local history, transcript copy/share, and a replacement dictionary.
 - An iOS keyboard with Swedish/English typing assistance and an explicit dictation-session flow.
-- Matching tactile controls, iPhone haptics, and System / Light / Dark appearance.
+- Classic tactile controls with iPhone haptics, or a Native style with platform
+  navigation, system typography, and glass controls on supported systems.
+  Choose Style in Settings; System / Light / Dark appearance works with either style.
 - Optional Mac text formatting and summaries with Qwen3.5 4B running locally through MLX.
   Download the verified 3.1 GB text model in Settings. Requires Apple Silicon and
   macOS 14+, without Apple Intelligence. The model uses about 3 GB of memory after

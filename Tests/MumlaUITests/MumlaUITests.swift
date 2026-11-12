@@ -3,6 +3,73 @@ import UIKit
 
 @MainActor
 final class MumlaUITests: XCTestCase {
+    func testNativeStylePersistsWithoutChangingAppearanceOrHistory() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--reset-ui-style", "--seed-transcript", "-AppleLanguages", "(en)"]
+        app.launch()
+        app.buttons["Settings"].tap()
+        app.buttons["appearance.dark"].tap()
+        let styles = app.segmentedControls["settings.interface-style"]
+        XCTAssertTrue(styles.waitForExistence(timeout: 5))
+        styles.buttons["Native"].tap()
+        let appearance = app.segmentedControls["settings.appearance"]
+        XCTAssertTrue(appearance.waitForExistence(timeout: 5))
+        XCTAssertTrue(appearance.buttons["Dark"].isSelected)
+        capture("80-native-settings-dark", app: app)
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.tabBars.buttons["History"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.scrollViews.firstMatch.exists)
+        capture("81-native-recorder-dark", app: app)
+        app.tabBars.buttons["History"].tap()
+        XCTAssertTrue(app.buttons["history.transcript"].firstMatch.waitForExistence(timeout: 5))
+        capture("82-native-history", app: app)
+        app.terminate()
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)"]
+        app.launch()
+        XCTAssertTrue(app.tabBars.buttons["History"].waitForExistence(timeout: 5))
+        app.buttons["settings.open"].tap()
+        XCTAssertTrue(appearance.waitForExistence(timeout: 5))
+        XCTAssertTrue(appearance.buttons["Dark"].isSelected)
+        styles.buttons["Classic"].tap()
+        XCTAssertTrue(app.buttons["appearance.dark"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["appearance.dark"].isSelected)
+        app.buttons["appearance.system"].tap()
+    }
+
+    func testNativeRecorderUsesSystemTabsAndFitsInLightMode() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "-mumla.interfaceStyle", "native", "-mumla.appearance", "light", "-AppleLanguages", "(en)"]
+        app.launch()
+        let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 10))
+        XCTAssertEqual(tabs.buttons.count, 4)
+        let record = app.buttons["recorder.record"].firstMatch
+        XCTAssertTrue(record.isHittable)
+        XCTAssertLessThanOrEqual(record.frame.maxY, tabs.frame.minY)
+        XCTAssertFalse(app.scrollViews.firstMatch.exists)
+        capture("83-native-recorder-light", app: app)
+        tabs.buttons["Dictionary"].tap()
+        capture("84-native-dictionary-light", app: app)
+    }
+
+    func testNativeRecorderFitsAtAccessibilityTextSize() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-ui-data", "--seed-transcript", "--model-ready-fixture", "-mumla.interfaceStyle", "native", "-mumla.appearance", "light", "-AppleLanguages", "(en)", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        let record = app.buttons["recorder.record"].firstMatch
+        XCTAssertTrue(record.waitForExistence(timeout: 10))
+        XCTAssertTrue(record.isHittable)
+        let preview = app.staticTexts["latestTranscript.preview"]
+        XCTAssertTrue(preview.isHittable)
+        XCTAssertLessThanOrEqual(record.frame.maxY, preview.frame.minY)
+        XCTAssertLessThanOrEqual(preview.frame.maxY, app.tabBars.firstMatch.frame.minY)
+        let copy = app.buttons["latestTranscript.copy"]
+        XCTAssertTrue(copy.isHittable)
+        XCTAssertLessThanOrEqual(copy.frame.maxY, app.tabBars.firstMatch.frame.minY)
+        XCTAssertFalse(app.scrollViews.firstMatch.exists)
+        capture("85-native-recorder-accessibility", app: app)
+    }
+
     func testVoiceNotesEmptyState() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-ui-data", "-AppleLanguages", "(en)"]

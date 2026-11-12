@@ -1,18 +1,20 @@
 import SwiftUI
 
 public struct MumlaRecordingLight: View {
+    @MumlaTheme private var palette
     private let recording: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     public init(recording: Bool) { self.recording = recording }
     public var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !recording || reduceMotion)) { context in
             let opacity = recording && !reduceMotion ? 0.72 + 0.28 * sin(context.date.timeIntervalSinceReferenceDate * .pi / 0.85) : 1
-            Circle().fill(recording ? MumlaStyle.recording : MumlaStyle.lcdInk.opacity(0.65)).opacity(opacity)
+            Circle().fill(recording ? palette.recording : palette.skin == .native ? palette.secondary : palette.lcdInk.opacity(0.65)).opacity(opacity)
         }.frame(width: 7, height: 7).accessibilityHidden(true)
     }
 }
 
 public struct MumlaPanelHeader: View {
+    @MumlaTheme private var palette
     private let title: String
     private let closeLabel: String
     private let closeIdentifier: String
@@ -27,20 +29,21 @@ public struct MumlaPanelHeader: View {
 
     public var body: some View {
         HStack(spacing: 16) {
-            Text(title).font(.system(.title2, design: .monospaced).weight(.semibold)).accessibilityAddTraits(.isHeader)
+            Text(title).mumlaFont(.title2, weight: .semibold).accessibilityAddTraits(.isHeader)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             MumlaIconButton("xmark", label: closeLabel, action: close)
                 .accessibilityIdentifier(closeIdentifier)
         }
         .padding(24)
-        .background(MumlaStyle.background)
+        .background(palette.background)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .overlay(alignment: .bottom) { Divider().overlay(.white.opacity(0.04)) }
     }
 }
 
 public struct MumlaTextField: View {
+    @MumlaTheme private var palette
     private let title: String
     @Binding private var text: String
 
@@ -51,32 +54,47 @@ public struct MumlaTextField: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(.caption, design: .monospaced).weight(.medium)).foregroundStyle(MumlaStyle.secondary)
+            Text(title).mumlaFont(.caption, weight: .medium).foregroundStyle(palette.secondary)
+            if palette.skin == .native {
+                TextField(title, text: $text).textFieldStyle(.roundedBorder)
+            } else {
             TextField(title, text: $text)
-                .textFieldStyle(.plain).font(.system(.body, design: .monospaced))
+                .textFieldStyle(.plain).mumlaFont(.body)
                 .padding(16).mumlaRecess(radius: 8)
+            }
         }
     }
 }
 
 public struct MumlaReadout: View {
+    @MumlaTheme private var palette
     private let value: String
     public init(_ value: String) { self.value = value }
     public var body: some View {
-        Text(value).font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
+        Text(value).mumlaFont(.subheadline).foregroundStyle(palette.accent)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 12).padding(.vertical, 10).mumlaRecess(radius: 6)
     }
 }
 
 public struct MumlaSwitchStyle: ToggleStyle {
+    @MumlaTheme private var palette
     private let showsLabel: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var enabled
 
     public init(showsLabel: Bool = true) { self.showsLabel = showsLabel }
 
-    public func makeBody(configuration: Configuration) -> some View {
+    @ViewBuilder public func makeBody(configuration: Configuration) -> some View {
+        if palette.skin == .native {
+            if showsLabel {
+                Toggle(isOn: configuration.$isOn) { configuration.label }.toggleStyle(.switch)
+            } else {
+                Toggle(isOn: configuration.$isOn) { configuration.label }.labelsHidden().toggleStyle(.switch)
+            }
+        } else { classicSwitch(configuration) }
+    }
+    private func classicSwitch(_ configuration: Configuration) -> some View {
         Button {
             configuration.isOn.toggle()
             MumlaFeedback.press()
@@ -88,12 +106,12 @@ public struct MumlaSwitchStyle: ToggleStyle {
                 }
                 ZStack(alignment: configuration.isOn ? .trailing : .leading) {
                     HStack {
-                        Image(systemName: "power").foregroundStyle(configuration.isOn ? MumlaStyle.accent : MumlaStyle.secondary)
+                        Image(systemName: "power").foregroundStyle(configuration.isOn ? palette.accent : palette.secondary)
                         Spacer()
-                        Circle().strokeBorder(MumlaStyle.secondary, lineWidth: 1).frame(width: 8, height: 8)
-                    }.font(.system(size: 10, weight: .bold, design: .monospaced)).padding(.horizontal, 8)
+                        Circle().strokeBorder(palette.secondary, lineWidth: 1).frame(width: 8, height: 8)
+                    }.mumlaFont(size: 10, weight: .bold).padding(.horizontal, 8)
                     RoundedRectangle(cornerRadius: 5)
-                        .fill(LinearGradient(colors: [MumlaStyle.keyTop, MumlaStyle.keyBottom], startPoint: .top, endPoint: .bottom))
+                        .fill(LinearGradient(colors: [palette.keyTop, palette.keyBottom], startPoint: .top, endPoint: .bottom))
                         .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.white.opacity(0.25), lineWidth: 1))
                         .overlay {
                             HStack(spacing: 3) {
@@ -119,13 +137,20 @@ public struct MumlaSwitchStyle: ToggleStyle {
 }
 
 public struct MumlaDownloadGauge: View {
+    @MumlaTheme private var palette
     private let fraction: Double
     public init(fraction: Double) { self.fraction = min(1, max(0, fraction.isFinite ? fraction : 0)) }
 
     public var body: some View {
+        if palette.skin == .native {
+            ProgressView(value: fraction).progressViewStyle(.linear)
+                .accessibilityLabel(mText("Hämtar språkmodell", "Downloading language model"))
+        } else { classicGauge }
+    }
+    private var classicGauge: some View {
         HStack(spacing: 3) {
             ForEach(0..<24) { index in
-                Rectangle().fill(Double(index) / 24 < fraction ? MumlaStyle.accent : MumlaStyle.meterOff)
+                Rectangle().fill(Double(index) / 24 < fraction ? palette.accent : palette.meterOff)
                     .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.12)).frame(height: 1) }
             }
         }

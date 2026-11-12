@@ -199,6 +199,7 @@ final class KeyboardDictationSession {
         snapshot.heartbeat = Date()
         snapshot.inputLevel = snapshot.phase == .recording ? capture.inputLevel : 0
         snapshot.appearance = MumlaAppearance.stored().rawValue
+        snapshot.interfaceStyle = MumlaSkin.stored().rawValue
         snapshot.hapticsEnabled = UserDefaults.standard.object(forKey: MumlaFeedback.preferenceKey) as? Bool ?? true
         let notify = snapshot.sessionID != lastPublishedSnapshot.sessionID ||
             snapshot.phase != lastPublishedSnapshot.phase ||

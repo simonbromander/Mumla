@@ -2,6 +2,21 @@ import XCTest
 @testable import MumlaCore
 
 final class KeyboardSessionTests: XCTestCase {
+    func testInterfaceStyleIsOptionalForOlderKeyboardSnapshots() throws {
+        let snapshot = active()
+        let encoded = try JSONEncoder().encode(snapshot)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        object.removeValue(forKey: "interfaceStyle")
+        let old = try JSONDecoder().decode(KeyboardSessionSnapshot.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertNil(old.interfaceStyle)
+        var native = old
+        native.interfaceStyle = "native"
+        let reloaded = try JSONDecoder().decode(KeyboardSessionSnapshot.self, from: JSONEncoder().encode(native))
+        XCTAssertEqual(reloaded.interfaceStyle, "native")
+        XCTAssertEqual(reloaded.sessionID, snapshot.sessionID)
+        XCTAssertEqual(reloaded.phase, snapshot.phase)
+    }
+
     private let now = Date(timeIntervalSince1970: 1_791_198_000)
     private func active(_ phase: KeyboardSessionPhase = .ready) -> KeyboardSessionSnapshot {
         var snapshot = KeyboardSessionSnapshot()

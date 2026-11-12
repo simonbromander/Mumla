@@ -68,6 +68,7 @@
 		6471AE0DE917BE1D65BB037B /* VoiceNoteConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = C151B3D5B2E58EAF25BCDD60 /* VoiceNoteConnectivity.swift */; };
 		655D888B5A550D3B107AC9CF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0E466C85EBB05693C21DCD4B /* PrivacyInfo.xcprivacy */; };
 		668A4B23244D1339FE361FFC /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8872258132BA6AB31FED6E5 /* KeyboardViewController.swift */; };
+		678D73A664BF8949E01DC657 /* SkinTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375DDAE63973DE6E084FEA2B /* SkinTests.swift */; };
 		6C2065A40D4E05A0E458E7E5 /* KeyboardTypingAssistantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EF711788A62D393B8D55991 /* KeyboardTypingAssistantTests.swift */; };
 		6D640865F014753C1D356DC7 /* MeetingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261B6C08DBA2968A74578BBF /* MeetingCoordinator.swift */; };
 		713322A6D80248BF6E765DB1 /* MacStorageDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2A5ED36C0CB5E7C5404357 /* MacStorageDirectory.swift */; };
@@ -115,6 +116,7 @@
 		B769CDE18330B935CA9E7D19 /* KeyboardSessionSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD72BF9A49E892842340380F /* KeyboardSessionSignalTests.swift */; };
 		B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */; };
 		BA3F945570826A391E965859 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
+		BA4A463F52329D27F854092F /* SkinUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2B4377237EF07416C86B40 /* SkinUITests.swift */; };
 		BAF45AE8EA58B812265D4A8B /* DJIMicButtonMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2599F6380447F5D512C92F /* DJIMicButtonMonitor.swift */; };
 		BC59DCA6E81E340BEFFC281B /* MumlaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83E6911303AC4BC9E5177E8 /* MumlaApp.swift */; };
 		BC5E686832CC6496E3F1DCC2 /* MumlaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0AEFF1145452A94A52DBBB40 /* MumlaCore */; };
@@ -251,6 +253,7 @@
 		2671ACB896D9C341F33928B5 /* MeetingPromptWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingPromptWindowController.swift; sourceTree = "<group>"; };
 		2D367BEEE9F1DEAAF723E096 /* MeetingDetectionPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingDetectionPolicy.swift; sourceTree = "<group>"; };
 		2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedFieldEditObserver.swift; sourceTree = "<group>"; };
+		375DDAE63973DE6E084FEA2B /* SkinTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinTests.swift; sourceTree = "<group>"; };
 		3C74EED481940E1D50AAAB61 /* MeetingDetectionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingDetectionCoordinator.swift; sourceTree = "<group>"; };
 		42A7517B63D04C1EB0D2482B /* KeyboardDictationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardDictationSession.swift; sourceTree = "<group>"; };
 		44E58014013CC8E21640D766 /* MumlaMacDirect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MumlaMacDirect.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -266,6 +269,7 @@
 		5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		68ACD3D29BE320734D8C94AC /* MumlaIOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MumlaIOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B55A1101B1E059C59AA84A6 /* WatchModel.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = WatchModel.json; sourceTree = "<group>"; };
+		6C2B4377237EF07416C86B40 /* SkinUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinUITests.swift; sourceTree = "<group>"; };
 		6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaHomeView.swift; sourceTree = "<group>"; };
 		739B2F5F9F0924ABC72E981F /* HotkeyEventSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyEventSource.swift; sourceTree = "<group>"; };
 		73AFE77F5B010D94958CFBE8 /* MumlaWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaWatchApp.swift; sourceTree = "<group>"; };
@@ -401,6 +405,7 @@
 				F214F2A03F65E98731F60251 /* KeyboardSessionLauncherTests.swift */,
 				CD72BF9A49E892842340380F /* KeyboardSessionSignalTests.swift */,
 				8EF711788A62D393B8D55991 /* KeyboardTypingAssistantTests.swift */,
+				375DDAE63973DE6E084FEA2B /* SkinTests.swift */,
 			);
 			name = MumlaIOSTests;
 			path = Tests/MumlaIOSTests;
@@ -560,6 +565,7 @@
 			isa = PBXGroup;
 			children = (
 				B88C38B65C0F9D174D8BBB5A /* MeetingsUITests.swift */,
+				6C2B4377237EF07416C86B40 /* SkinUITests.swift */,
 			);
 			name = MumlaMacUITests;
 			path = Tests/MumlaMacUITests;
@@ -997,6 +1003,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				049C39F0F25FF00E4EE43FB8 /* MeetingsUITests.swift in Sources */,
+				BA4A463F52329D27F854092F /* SkinUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1120,6 +1127,7 @@
 				32F3E00C6F0E03ABA0D1791D /* KeyboardSessionLauncherTests.swift in Sources */,
 				B769CDE18330B935CA9E7D19 /* KeyboardSessionSignalTests.swift in Sources */,
 				6C2065A40D4E05A0E458E7E5 /* KeyboardTypingAssistantTests.swift in Sources */,
+				678D73A664BF8949E01DC657 /* SkinTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

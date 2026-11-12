@@ -24,6 +24,7 @@ struct CorrectableTranscript: View {
 }
 
 private struct SelectableTranscriptText: UIViewRepresentable {
+    @MumlaTheme private var palette
     let record: DictationRecord
     let preview: Bool
     let dynamicTypeSize: DynamicTypeSize
@@ -47,12 +48,14 @@ private struct SelectableTranscriptText: UIViewRepresentable {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = preview ? 4 : 7
         let text = NSAttributedString(string: record.text, attributes: [
-            .font: UIFontMetrics(forTextStyle: preview ? .body : .title3).scaledFont(for: UIFont.monospacedSystemFont(ofSize: preview ? 17 : 20, weight: .regular)),
+            .font: UIFontMetrics(forTextStyle: preview ? .body : .title3).scaledFont(for:
+                palette.skin == .classic ? UIFont.monospacedSystemFont(ofSize: preview ? 17 : 20, weight: .regular)
+                    : UIFont.systemFont(ofSize: preview ? 17 : 20, weight: .regular)),
             .foregroundColor: UIColor.label,
             .paragraphStyle: paragraph
         ])
         if view.attributedText != text { view.attributedText = text }
-        view.tintColor = UIColor(MumlaStyle.accent)
+        view.tintColor = UIColor(palette.accent)
         view.textContainer.maximumNumberOfLines = preview ? 6 : 0
         view.textContainer.lineBreakMode = preview ? .byTruncatingTail : .byWordWrapping
         view.accessibilityIdentifier = preview ? "latestTranscript.preview" : "transcript.text"
@@ -85,6 +88,7 @@ private struct SelectableTranscriptText: UIViewRepresentable {
 }
 
 private struct CorrectWordSheet: View {
+    @MumlaTheme private var palette
     let selection: TranscriptWordSelection
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
@@ -100,23 +104,23 @@ private struct CorrectWordSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(mText("Ersätt", "Replace")).font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                        Text(selection.original).font(.system(.title3, design: .monospaced))
+                        Text(mText("Ersätt", "Replace")).mumlaFont(.caption).foregroundStyle(palette.secondary)
+                        Text(selection.original).mumlaFont(.title3)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(16).mumlaRecess(radius: 8)
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(mText("Med", "With")).font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        Text(mText("Med", "With")).mumlaFont(.caption).foregroundStyle(palette.secondary)
                         TextField(mText("Rätt stavning", "Correct spelling"), text: $replacement, prompt: Text(selection.original))
-                            .font(.system(.title3, design: .monospaced)).autocorrectionDisabled().textInputAutocapitalization(.never)
+                            .mumlaFont(.title3).autocorrectionDisabled().textInputAutocapitalization(.never)
                             .focused($focused).submitLabel(.done).onSubmit(save)
                             .accessibilityIdentifier("correction.replacement")
                             .padding(16).mumlaRecess(radius: 8)
                     }
                     if !word.isEmpty && !TranscriptWordSelection.isWord(word) {
-                        Text(mText("Ange ett ord.", "Enter a single word.")).font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        Text(mText("Ange ett ord.", "Enter a single word.")).mumlaFont(.caption).foregroundStyle(palette.secondary)
                     }
-                    if let error { Text(error).font(.system(.callout, design: .monospaced)).foregroundStyle(MumlaStyle.recording) }
+                    if let error { Text(error).mumlaFont(.callout).foregroundStyle(palette.recording) }
                 }.padding(24)
             }
         }
@@ -125,16 +129,16 @@ private struct CorrectWordSheet: View {
                 Label(mText("Spara", "Save"), systemImage: "checkmark")
                     .frame(maxWidth: .infinity).padding(16)
             }
-            .font(.system(.headline, design: .monospaced))
+            .mumlaFont(.headline)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .buttonStyle(MumlaKeyStyle(feedback: false)).disabled(!canSave)
             .accessibilityIdentifier("correction.save")
-            .padding(24).background(MumlaStyle.background)
+            .padding(24).background(palette.background)
         }
         .background { MumlaBackdrop() }
-        .presentationBackground(MumlaStyle.background)
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
-        .tint(MumlaStyle.accent).mumlaAppearance()
+        .presentationBackground(palette.background)
+        .mumlaFont(.body)
+        .tint(palette.accent).mumlaAppearance()
         .onAppear { focused = true }
     }
 
