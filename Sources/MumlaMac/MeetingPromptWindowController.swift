@@ -25,6 +25,9 @@ struct MeetingSuggestionView: View {
                     Text(title).font(.system(size: 14, weight: .medium, design: .monospaced))
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                Text(mText("Mikrofon + allt systemljud, även andra appar.", "Microphone + all system audio, including other apps."))
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(MumlaStyle.secondary).fixedSize(horizontal: false, vertical: true)
                 Label(mText("Bara på den här Macen", "Only on this Mac"), systemImage: "lock.fill")
                     .font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading)

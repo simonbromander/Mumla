@@ -10,7 +10,9 @@ calendar-only reminders, automatic recording and automatic stopping are not part
 of this change.
 
 The non-activating prompt offers Start and Not now. Only Start calls the existing
-meeting recorder, with the detected app selected. Existing microphone/system-audio
+meeting recorder, with System audio + microphone selected. The prompt makes clear
+that this includes other apps' sounds, not only the detected call. Detection still
+checks that the triggering app is available before starting. Existing microphone/system-audio
 permissions still apply. Dismissing, expiring, switching off, locking or sleeping
 never starts recording. Suggestions are suppressed while Mumla is busy.
 

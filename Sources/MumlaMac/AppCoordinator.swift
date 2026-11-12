@@ -45,8 +45,7 @@ final class AppCoordinator: ObservableObject {
                 self.meetings.error = mText("Mötesappen är inte längre tillgänglig.", "The meeting app is no longer available.")
                 self.openMeetings(); return
             }
-            self.meetings.sourcePID = detected.id
-            self.meetings.title = title ?? ""
+            self.meetings.prepareSuggestedMeeting(title: title)
             await self.meetings.start()
             if !self.meetings.isCapturing { self.openMeetings() }
         }

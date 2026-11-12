@@ -95,6 +95,27 @@ final class MeetingsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["meeting.new"].isEnabled)
     }
 
+    func testSystemAudioAndMicrophoneAreDefaultAndOtherSourcesRemainAvailable() {
+        let app = launch(compact: true)
+        app.buttons["meeting.new"].click()
+        let source = app.buttons["meeting.source"]
+        XCTAssertTrue(source.label.contains("System audio + microphone"))
+        source.click()
+        let system = app.buttons["meeting.source.system"]
+        let microphone = app.buttons["meeting.source.microphone"]
+        XCTAssertTrue(system.waitForExistence(timeout: 3))
+        XCTAssertTrue(microphone.exists)
+        XCTAssertTrue(app.buttons["Meeting app"].exists)
+        capture("meetings-source-system-default", app)
+        microphone.click()
+        XCTAssertTrue(source.label.contains("Microphone only"))
+        source.click(); system.click()
+        XCTAssertTrue(source.label.contains("System audio + microphone"))
+        app.buttons["meeting.start"].click()
+        XCTAssertTrue(app.buttons["meeting.stop"].waitForExistence(timeout: 3))
+        app.buttons["meeting.stop"].click()
+    }
+
     func testMeetingSuggestionWaitsForExplicitStart() {
         let app = XCUIApplication()
         app.launchArguments = ["--meeting-ui-testing", "--reset-ui-data", "--suggest-meeting", "-AppleLanguages", "(en)"]
