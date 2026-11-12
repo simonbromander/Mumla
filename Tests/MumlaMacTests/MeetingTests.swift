@@ -115,6 +115,38 @@ final class MeetingTests: XCTestCase {
         XCTAssertEqual(frames, 38_400, "The bounded 24-slot queue must drain its accepted 2.4 seconds even after overflow")
     }
 
+    func testSystemAudioInterleavedStereoSurvivesStallsAndLargeCallbacks() throws {
+        let store = MeetingStore(directory: directory)
+        for rate in [44_100.0, 48_000.0] {
+            let samples = (0..<Int(rate / 2)).map { Float(sin(Double($0) * 0.013)) * 0.125 }
+            func capture(interleaved: Bool, callbackFrames: Int, buffered: Bool) throws -> [Float] {
+                let record = try store.create(.init(title: "Synthetic system callback", sourceName: "System audio", microphoneOnly: false))
+                try MeetingCapture.writeFixture(samples, track: .system, store: store, meetingID: record.id,
+                    sampleRate: rate, channels: 2, callbackFrames: callbackFrames, bufferCallbacks: buffered,
+                    interleaved: interleaved, writerCapacity: 16_384)
+                let saved = try store.load(record.id)
+                return try saved.chunks.sorted { $0.start < $1.start }.flatMap { chunk -> [Float] in
+                    let file = try AVAudioFile(forReading: store.audioURL(chunk, meetingID: record.id))
+                    let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)))
+                    try file.read(into: buffer)
+                    return Array(UnsafeBufferPointer(start: try XCTUnwrap(buffer.floatChannelData?[0]), count: Int(buffer.frameLength)))
+                }
+            }
+            let reference = try capture(interleaved: false, callbackFrames: 128, buffered: false)
+            XCTAssertEqual(reference.count, 8_000)
+            for callbackFrames in [128, 1024, 16_384] {
+                let buffered = try capture(interleaved: true, callbackFrames: callbackFrames, buffered: true)
+                let control = try capture(interleaved: true, callbackFrames: callbackFrames, buffered: false)
+                XCTAssertEqual(buffered.count, control.count)
+                let firstMismatch = zip(buffered, control).enumerated().first { $0.element.0 != $0.element.1 }
+                XCTAssertNil(firstMismatch, "Stalling must not change interleaved PCM: rate=\(rate), callback=\(callbackFrames), first=\(String(describing: firstMismatch))")
+                XCTAssertEqual(buffered.count, reference.count, "rate=\(rate), callback=\(callbackFrames)")
+                let errors = zip(buffered, reference).enumerated().filter { abs($0.element.0 - $0.element.1) > 2 / 32768 }
+                XCTAssertTrue(errors.isEmpty, "rate=\(rate), callback=\(callbackFrames), count=\(errors.count), first=\(String(describing: errors.first)), last=\(String(describing: errors.last))")
+            }
+        }
+    }
+
     func testMicrophoneOnlyRemainsAnExplicitChoice() async throws {
         let capture = FixtureMeetingCapture(); let model = make(capture)
         model.sourcePID = 0
@@ -417,11 +449,12 @@ final class MeetingTests: XCTestCase {
         guard ProcessInfo.processInfo.environment["MUMLA_MEETING_LONG_TEST"] == "1" else { throw XCTSkip("Opt-in two-hour disk-backed writer acceptance") }
         let store = MeetingStore(directory: directory)
         let record = try store.create(.init(title: "Two-hour fixture", sourceName: "Synthetic", microphoneOnly: false))
-        let minute = [Float](repeating: 0, count: 60 * 16_000)
-        for index in 0..<120 {
-            for track in MeetingTrack.allCases {
-                try MeetingCapture.writeFixture(minute, track: track, store: store, meetingID: record.id, offset: Double(index) * 60)
-            }
+        for track in MeetingTrack.allCases {
+            let rate = track == .system ? 48_000.0 : 44_100.0
+            let minute = (0..<Int(60 * rate)).map { Float(sin(Double($0) * 2 * .pi * 440 / rate)) * 0.125 }
+            try MeetingCapture.writeFixture(minute, track: track, store: store, meetingID: record.id,
+                sampleRate: rate, channels: 2, callbackFrames: 1024, interleaved: track == .system,
+                writerCapacity: 16_384, repetitions: 120)
         }
         let result = try store.load(record.id)
         XCTAssertEqual(result.chunks.count, 4800)
