@@ -12,6 +12,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var textModelProvider: TextModelProvider
     public var dictationOverlayStyle: DictationOverlayStyle
     public var djiMicButtonEnabled: Bool
+    public var suggestMeetingRecording: Bool
+    public var useMeetingCalendar: Bool
     /// When set, dictation records from this input device instead of following the system default.
     public var pinnedInputDevice: PinnedInputDevice?
 
@@ -27,7 +29,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
         djiMicButtonEnabled: Bool = false,
         formatDictationBeforePasting: Bool = false,
         dictationOverlayStyle: DictationOverlayStyle = .recorder,
-        textModelProvider: TextModelProvider = .qwen
+        textModelProvider: TextModelProvider = .qwen,
+        suggestMeetingRecording: Bool = false,
+        useMeetingCalendar: Bool = false
     ) {
         self.languageMode = languageMode
         self.lastLanguage = lastLanguage
@@ -41,6 +45,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.formatDictationBeforePasting = formatDictationBeforePasting
         self.dictationOverlayStyle = dictationOverlayStyle
         self.textModelProvider = textModelProvider
+        self.suggestMeetingRecording = suggestMeetingRecording
+        self.useMeetingCalendar = useMeetingCalendar
     }
 
     public static let `default` = AppSettings()
@@ -58,6 +64,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case formatDictationBeforePasting
         case dictationOverlayStyle
         case textModelProvider
+        case suggestMeetingRecording
+        case useMeetingCalendar
     }
 
     public init(from decoder: Decoder) throws {
@@ -74,6 +82,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         formatDictationBeforePasting = try container.decodeIfPresent(Bool.self, forKey: .formatDictationBeforePasting) ?? false
         dictationOverlayStyle = try container.decodeIfPresent(DictationOverlayStyle.self, forKey: .dictationOverlayStyle) ?? .recorder
         textModelProvider = try container.decodeIfPresent(TextModelProvider.self, forKey: .textModelProvider) ?? .qwen
+        suggestMeetingRecording = try container.decodeIfPresent(Bool.self, forKey: .suggestMeetingRecording) ?? false
+        useMeetingCalendar = try container.decodeIfPresent(Bool.self, forKey: .useMeetingCalendar) ?? false
     }
 }
 

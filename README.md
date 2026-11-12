@@ -34,6 +34,12 @@ is saved in short chunks while the transcript updates. Pause/resume, per-meeting
 speaker names, text corrections, clip playback, and text/Markdown/JSON export are
 available. No meeting summary or chat model is required or contacted.
 
+Opt-in Slack/Teams microphone-activity
+suggestions ask before starting a recording. Optional local Calendar access can
+supply the meeting title; no calendar data is uploaded or changed. Call detection
+is a heuristic, not proof that a meeting has started. See
+[meeting suggestions and acceptance checks](docs/meeting-detection.md).
+
 Optional speaker separation uses a separately downloaded, verified 45 MB LS-EEND
 model. Without it, source labels distinguish microphone and meeting-app audio.
 You can turn live transcription off and transcribe the saved recording later.

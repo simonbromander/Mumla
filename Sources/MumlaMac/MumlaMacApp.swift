@@ -13,6 +13,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
     private var statusController: StatusMenuController!
     private var mainWindowController: MainWindowController!
     private var pillWindowController: PillWindowController!
+    private var meetingPromptController: MeetingPromptWindowController?
     private var hotkeyMonitor: ControlHotkeyMonitor!
     private var djiMicMonitor: DJIMicButtonMonitor!
     private var updater: MacUpdateController!
@@ -39,6 +40,10 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
+        if Bundle.main.bundleIdentifier == "com.mumla.app.mac.uitesthost" {
+            NSApp.terminate(nil)
+            return
+        }
         #endif
         let storageDirectory = MacStorageDirectory.resolve()
         let compiledDirectory = storageDirectory.appendingPathComponent("Models/markstrom-pianissimo-sv-coreml-compiled", isDirectory: true)
@@ -62,6 +67,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
                 "Models/Qwen3.5-4B/\(QwenModelArtifact.revision)", isDirectory: true))
         )
         pillWindowController = PillWindowController(coordinator: coordinator)
+        meetingPromptController = MeetingPromptWindowController(detection: coordinator.meetingDetection)
         updater = MacUpdateController(coordinator: coordinator)
         mainWindowController = MainWindowController(coordinator: coordinator, updater: updater)
         statusController = StatusMenuController(coordinator: coordinator, updater: updater)
@@ -154,6 +160,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         guard !hotkeyIsSuspended else { return }
         hotkeyMonitor?.start()
         djiMicMonitor?.refresh()
+        coordinator?.meetingDetection.refresh()
     }
 
     @objc private func retryHotkeyMonitor(_ notification: Notification) {
@@ -170,18 +177,22 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         hotkeyMonitor?.stop()
         djiMicMonitor?.suspend()
         coordinator?.cancelDictation()
+        coordinator?.meetingDetection.suspend()
     }
 
     @objc private func resumeHotkeyMonitor(_ notification: Notification) {
         hotkeyIsSuspended = false
         hotkeyMonitor?.start(forceRestart: true)
         djiMicMonitor?.resume()
+        coordinator?.meetingDetection.resume()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         hotkeyMonitor?.stop()
         djiMicMonitor?.stop()
+        coordinator?.meetingDetection.stop()
+        meetingPromptController?.hide()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -220,6 +231,16 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         updater = MacUpdateController()
         mainWindowController = MainWindowController(coordinator: coordinator, updater: updater, initialSection: "meetings")
         if CommandLine.arguments.contains("--compact-window") { mainWindowController.setTestingSize(NSSize(width: 820, height: 560)) }
+        if CommandLine.arguments.contains("--suggest-meeting") {
+            coordinator.settings.suggestMeetingRecording = true
+            coordinator.settings.useMeetingCalendar = true
+            coordinator.meetingDetection = MeetingDesignFixtures.detection { [weak coordinator] app, title in
+                guard let coordinator else { return }
+                coordinator.meetings.sourcePID = app.id; coordinator.meetings.title = title ?? ""
+                await coordinator.meetings.start()
+            }
+            meetingPromptController = MeetingPromptWindowController(detection: coordinator.meetingDetection)
+        }
         NSApp.setActivationPolicy(.regular)
         let menu = NSMenu()
         let applicationItem = NSMenuItem()
@@ -228,6 +249,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         quit.target = NSApp; applicationMenu.addItem(quit)
         applicationItem.submenu = applicationMenu; menu.addItem(applicationItem); NSApp.mainMenu = menu
         mainWindowController.show()
+        if CommandLine.arguments.contains("--focus-meeting-suggestion") { meetingPromptController?.focusForUITesting() }
     }
 
     private func captureDesign(at path: String) {
@@ -252,6 +274,11 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             if section == "meetings-error" { snapshotCoordinator.meetings.error = "The selected input device is unavailable. Your meeting recording has been saved on this Mac." }
         }
         if CommandLine.arguments.contains("--snapshot-apple-text") { snapshotCoordinator.settings.textModelProvider = .appleIntelligence }
+        if CommandLine.arguments.contains("--snapshot-meeting-detection") {
+            snapshotCoordinator.settings.suggestMeetingRecording = true
+            snapshotCoordinator.settings.useMeetingCalendar = true
+            snapshotCoordinator.meetingDetection = MeetingDesignFixtures.detection { _, _ in }
+        }
         if CommandLine.arguments.contains("--snapshot-minimal") { snapshotCoordinator.settings.dictationOverlayStyle = .minimal }
         if section == "pill-recording" { snapshotCoordinator.prepareRecordingSnapshot() }
         if section == "pill-preparing" { snapshotCoordinator.pillState = .preparing(progress: 0.45) }
@@ -264,7 +291,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         }
         let compact = CommandLine.arguments.contains("--snapshot-compact")
         let light = CommandLine.arguments.contains("--snapshot-light")
-        let size = section == "meetings-quit" ? NSSize(width: 520, height: 340)
+        var size = section == "meetings-quit" ? NSSize(width: 520, height: 340)
             : section == "meetings-correction" ? NSSize(width: 520, height: 480)
             : section.hasPrefix("meetings-delete") ? NSSize(width: 520, height: 400)
             : section == "text-model" ? NSSize(width: compact ? 320 : 480, height: 320)
@@ -279,7 +306,8 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             window.setContentSize(size)
             view = window.contentView!
         } else {
-            let root = section == "meetings-quit" ? AnyView(MeetingExitSheet(reason: .recording, confirm: {}, cancel: {}))
+            let root = section == "meetings-suggestion" ? AnyView(MeetingSuggestionView(suggestion: MeetingDesignFixtures.suggestion(long: CommandLine.arguments.contains("--snapshot-long")), start: {}, dismiss: {}))
+                : section == "meetings-quit" ? AnyView(MeetingExitSheet(reason: .recording, confirm: {}, cancel: {}))
                 : section == "meetings-correction" ? AnyView(MeetingCorrectionSheet(segment: fixture!.segments[1], speaker: fixture!.speakerName("system-0"), save: { _, _ in }))
                 : section.hasPrefix("meetings-delete") ? AnyView(MeetingDeletionSheet(meeting: fixture!, audioOnly: section == "meetings-delete-audio", delete: { nil }))
                 : section == "about" ? AnyView(MumlaAboutView())
@@ -288,6 +316,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
                     .buttonStyle(MumlaKeyStyle()).background(MumlaStyle.background))
                 : AnyView(MainView(coordinator: snapshotCoordinator, initialSection: section.hasPrefix("meetings") ? "meetings" : section))
             view = NSHostingView(rootView: root.environment(\.colorScheme, light ? .light : .dark))
+            if section == "meetings-suggestion" { size = view.fittingSize }
             window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
             window.contentView = view
         }

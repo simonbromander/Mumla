@@ -57,4 +57,31 @@ final class MeetingPresentationTests: XCTestCase {
             }
         }
     }
+
+    func testMeetingSuggestionFitsLongTitlesInBothAppearances() {
+        _ = NSApplication.shared
+        for scheme in [ColorScheme.light, .dark] {
+            let view = NSHostingView(rootView: MeetingSuggestionView(suggestion: MeetingDesignFixtures.suggestion(long: true), start: {}, dismiss: {})
+                .environment(\.colorScheme, scheme))
+            let size = view.fittingSize
+            XCTAssertEqual(size.width, 380)
+            XCTAssertGreaterThan(size.height, 200)
+            XCTAssertLessThan(size.height, 500)
+            view.frame = NSRect(origin: .zero, size: size); view.layoutSubtreeIfNeeded()
+            XCTAssertLessThanOrEqual(view.fittingSize.height, size.height)
+        }
+    }
+
+    func testSuggestionPanelAppearsWithoutTakingKeyFocus() throws {
+        _ = NSApplication.shared
+        let model = MeetingDesignFixtures.detection { _, _ in XCTFail("Must not start from presentation") }
+        let previous = NSApp.keyWindow
+        let controller = MeetingPromptWindowController(detection: model)
+        defer { controller.hide(); model.stop() }
+        let window = try XCTUnwrap(NSApp.windows.first { $0.title == "Mumla - Transcribe?" && $0.isVisible })
+        XCTAssertTrue(window.isVisible)
+        XCTAssertEqual(window.frame.width, 380)
+        XCTAssertTrue(NSApp.keyWindow === previous)
+        XCTAssertTrue((window as? NSPanel)?.styleMask.contains(.nonactivatingPanel) == true)
+    }
 }

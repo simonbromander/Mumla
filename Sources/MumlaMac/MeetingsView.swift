@@ -140,6 +140,8 @@ struct MeetingsView: View {
                         .help(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"))
                         .accessibilityLabel(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"))
                     Divider()
+                    MeetingDetectionSettingsView(app: app, detection: app.meetingDetection)
+                    Divider()
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: meetings.speakersInstalled ? "person.2.fill" : "person.2").padding(.top, 3)
                         VStack(alignment: .leading, spacing: 10) {

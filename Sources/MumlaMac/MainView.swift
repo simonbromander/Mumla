@@ -316,6 +316,8 @@ struct MainView: View {
                 }
                 DictationTextSettingsView(coordinator: coordinator) { showTextPreferences = true }
                 Divider().opacity(0.6)
+                MeetingDetectionSettingsView(app: coordinator, detection: coordinator.meetingDetection)
+                Divider().opacity(0.6)
                 settingRow(mText("Dikteringsruta", "Dictation overlay"), symbol: "rectangle.bottomthird.inset.filled") {
                     HStack(spacing: 4) {
                         ForEach(DictationOverlayStyle.allCases, id: \.self) { style in
