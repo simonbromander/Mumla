@@ -14,7 +14,7 @@ public struct SavedSummaryView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(mText("Sammanfattning", "Summary")).font(.system(.headline, design: .monospaced))
+                Text(mText("Sammanfattning", "Summary")).mumlaFont(.headline)
                 Spacer()
                 ShareLink(item: summary) { Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44) }
                     .buttonStyle(MumlaKeyStyle()).accessibilityLabel(mText("Dela sammanfattning", "Share summary"))

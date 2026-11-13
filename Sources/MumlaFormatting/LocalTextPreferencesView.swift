@@ -3,6 +3,7 @@ import MumlaUI
 import SwiftUI
 
 public struct LocalTextPreferencesView: View {
+    @MumlaTheme private var palette
     @AppStorage(LocalTextPreferences.formattingKey) private var savedFormatting = ""
     @AppStorage(LocalTextPreferences.summaryKey) private var savedSummary = ""
     @Environment(\.dismiss) private var dismiss
@@ -35,11 +36,11 @@ public struct LocalTextPreferencesView: View {
                     savedSummary = LocalTextPreferences.boundedPrompt(summary)
                     dismiss()
                 }.accessibilityIdentifier("text-preferences.save")
-            }.padding(24).background(MumlaStyle.background).overlay(alignment: .top) { Divider() }
+            }.padding(24).background(palette.background).overlay(alignment: .top) { Divider() }
         }
-        .background { MumlaBackdrop() }.tint(MumlaStyle.accent).mumlaAppearance()
-        .presentationBackground(MumlaStyle.background)
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .background { MumlaBackdrop() }.tint(palette.accent).mumlaAppearance()
+        .presentationBackground(palette.background)
+        .mumlaFont(.body)
         .onAppear {
             formatting = LocalTextPreferences.effectivePrompt(savedFormatting, default: LocalTextPreferences.defaultFormattingPrompt)
             summary = LocalTextPreferences.effectivePrompt(savedSummary, default: LocalTextPreferences.defaultSummaryPrompt)
@@ -55,10 +56,10 @@ public struct LocalTextPreferencesView: View {
                 Text(title).accessibilityAddTraits(.isHeader)
                 Spacer()
                 Text("\(text.wrappedValue.count) / \(LocalTextPreferences.maximumPromptCharacters)")
-                    .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    .mumlaFont(.caption).foregroundStyle(palette.secondary)
             }
             TextEditor(text: text).scrollContentBackground(.hidden)
-                .font(.system(.body, design: .monospaced)).padding(12).frame(minHeight: 130)
+                .mumlaFont(.body).padding(12).frame(minHeight: 130)
                 .mumlaRecess(radius: 8).accessibilityLabel(title).accessibilityIdentifier(identifier)
                 .onChange(of: text.wrappedValue) { _, value in
                     if value.count > LocalTextPreferences.maximumPromptCharacters {

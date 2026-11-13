@@ -2,6 +2,7 @@ import MumlaCore
 import SwiftUI
 
 public struct MumlaKeyboardView: View {
+    private var palette: MumlaPalette { MumlaPalette(skin: MumlaSkin(rawValue: snapshot.interfaceStyle ?? "") ?? .classic) }
     public var snapshot: KeyboardSessionSnapshot
     public var fullAccess: Bool
     public var pending: Bool
@@ -80,7 +81,7 @@ public struct MumlaKeyboardView: View {
                             else { Image(systemName: "mic.fill") }
                         }.font(.system(size: compact ? 17 : 21, weight: .medium))
                             .padding(.top, compact ? 8 : 6)
-                            .foregroundStyle(recording ? MumlaStyle.recording : MumlaStyle.accent)
+                            .foregroundStyle(recording ? palette.recording : palette.accent)
                             .transaction { $0.animation = nil }
                     }
                     .buttonStyle(MumlaStereoKeyStyle(isLatched: recording, height: compact ? 48 : 60) { pressed in
@@ -104,7 +105,7 @@ public struct MumlaKeyboardView: View {
                     suggestionStrip(compact: compact)
                     if let preview, !preview.isEmpty {
                         HStack(spacing: 8) {
-                            Text(preview).font(.system(size: 12, design: .monospaced)).lineLimit(1)
+                            Text(preview).mumlaFont(size: 12).lineLimit(1)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             tool("arrow.down.to.line", label: mText("Infoga transkript", "Insert transcript"), action: onInsert)
                                 .disabled(pending)
@@ -124,7 +125,7 @@ public struct MumlaKeyboardView: View {
                                     Group {
                                         if layout == .letters { Image(systemName: shift.locked ? "capslock.fill" : shift.uppercase ? "shift.fill" : "shift") }
                                         else { Text(layout == .numbers ? "#+=" : "123") }
-                                    }.font(.system(size: 16, weight: .medium, design: .monospaced))
+                                    }.mumlaFont(size: 16, weight: .medium)
                                         .frame(width: geometry.size.width < 350 ? 38 : 44, height: compact ? 34 : 42)
                                 }.buttonStyle(MumlaKeyStyle(radius: 5))
                                     .accessibilityLabel(layout == .letters ? mText("Skift", "Shift") : mText("Fler symboler", "More symbols"))
@@ -138,7 +139,7 @@ public struct MumlaKeyboardView: View {
                                     accentKey = nil
                                     shift.didType(); onKey(output)
                                 } label: {
-                                    Text(output).font(.system(size: 17, weight: .medium, design: .monospaced))
+                                    Text(output).mumlaFont(size: 17, weight: .medium)
                                         .frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
                                 }.buttonStyle(MumlaKeyStyle(radius: 5))
                                     .simultaneousGesture(LongPressGesture(minimumDuration: 0.35).onEnded { _ in
@@ -158,7 +159,7 @@ public struct MumlaKeyboardView: View {
                             layout = layout == .letters ? .numbers : .letters
                             accentKey = nil; shift.reset(); shift.updateAutomatic(automaticUppercase)
                         } label: {
-                            Text(layout == .letters ? "123" : "ABC").font(.system(size: 13, weight: .medium, design: .monospaced))
+                            Text(layout == .letters ? "123" : "ABC").mumlaFont(size: 13, weight: .medium)
                                 .frame(width: 42, height: compact ? 34 : 42)
                         }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityIdentifier("keyboard.layout")
                         nextKeyboard.frame(width: 38, height: compact ? 34 : 42).mumlaSurface(radius: 5)
@@ -169,8 +170,8 @@ public struct MumlaKeyboardView: View {
                             Group {
                                 if movingCursor { Image(systemName: "arrow.left.and.right") }
                                 else { Text("mumla") }
-                            }.font(.system(size: 13, weight: .medium, design: .monospaced))
-                                .foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
+                            }.mumlaFont(size: 13, weight: .medium)
+                                .foregroundStyle(palette.secondary).frame(maxWidth: .infinity).frame(height: compact ? 34 : 42)
                         }.buttonStyle(MumlaKeyStyle(radius: 5))
                             .simultaneousGesture(LongPressGesture(minimumDuration: 0.3).sequenced(before: DragGesture(minimumDistance: 0))
                                 .onChanged { value in
@@ -193,10 +194,10 @@ public struct MumlaKeyboardView: View {
                             .accessibilityAction(named: mText("Flytta markören åt höger", "Move cursor right")) { onCursorMove(1) }
                             .accessibilityIdentifier("keyboard.space")
                         Button { accentKey = nil; onKey(".") } label: {
-                            Text(".").font(.system(size: 18, design: .monospaced)).frame(width: 30, height: compact ? 34 : 42)
+                            Text(".").mumlaFont(size: 18).frame(width: 30, height: compact ? 34 : 42)
                         }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(mText("Punkt", "Period"))
                         Button { accentKey = nil; onReturn() } label: {
-                            Text(returnTitle).font(.system(size: 13, weight: .medium, design: .monospaced))
+                            Text(returnTitle).mumlaFont(size: 13, weight: .medium)
                                 .lineLimit(1).minimumScaleFactor(0.7).frame(width: 54, height: compact ? 34 : 42)
                         }.buttonStyle(MumlaKeyStyle(radius: 5)).accessibilityLabel(returnTitle == "↵" ? mText("Retur", "Return") : returnTitle)
                             .accessibilityIdentifier("keyboard.return")
@@ -206,7 +207,8 @@ public struct MumlaKeyboardView: View {
             .padding(.horizontal, 6).padding(.vertical, compact ? 6 : 9)
             .frame(maxWidth: 680).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .background(MumlaStyle.panel).foregroundStyle(MumlaStyle.ink)
+        .background(palette.panel).foregroundStyle(palette.ink)
+        .environment(\.mumlaSkin, palette.skin)
         .preferredColorScheme(MumlaAppearance(rawValue: snapshot.appearance)?.colorScheme)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .onAppear { shift.updateAutomatic(automaticUppercase) }
@@ -227,7 +229,7 @@ public struct MumlaKeyboardView: View {
                     Button {
                         self.accentKey = nil; shift.didType(); onKey(accent); MumlaFeedback.press()
                     } label: {
-                        Text(accent).font(.system(size: 17, weight: .medium, design: .monospaced))
+                        Text(accent).mumlaFont(size: 17, weight: .medium)
                             .frame(maxWidth: .infinity).frame(height: compact ? 26 : 30)
                     }.buttonStyle(MumlaKeyStyle(radius: 4)).accessibilityIdentifier("keyboard.accent.\(accent.lowercased())")
                 }
@@ -237,8 +239,8 @@ public struct MumlaKeyboardView: View {
                     .accessibilityIdentifier("keyboard.accentClose")
             } else {
                 Button(action: onTypingLanguage) {
-                    Text(typingLanguage.uppercased()).font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(MumlaStyle.accent).frame(width: 30, height: compact ? 26 : 30)
+                    Text(typingLanguage.uppercased()).mumlaFont(size: 11, weight: .semibold)
+                        .foregroundStyle(palette.accent).frame(width: 30, height: compact ? 26 : 30)
                 }.buttonStyle(MumlaKeyStyle(radius: 4))
                     .accessibilityLabel(mText("Skrivspråk", "Typing language"))
                     .accessibilityValue(typingLanguage == "sv" ? "Svenska" : "English")
@@ -247,7 +249,7 @@ public struct MumlaKeyboardView: View {
                     if index < suggestions.count {
                         let suggestion = suggestions[index]
                         Button { shift.didType(); onSuggestion(suggestion) } label: {
-                            Text(suggestion.text).font(.system(size: 12, weight: suggestion.original ? .regular : .medium, design: .monospaced))
+                            Text(suggestion.text).mumlaFont(size: 12, weight: suggestion.original ? .regular : .medium)
                                 .lineLimit(1).truncationMode(.tail)
                                 .frame(maxWidth: .infinity).frame(height: compact ? 26 : 30)
                         }.buttonStyle(MumlaKeyStyle(radius: 4))
@@ -257,7 +259,7 @@ public struct MumlaKeyboardView: View {
                 }
                 Button(action: onCorrection) {
                     Image(systemName: correctionEnabled && correctionAvailable ? "text.badge.checkmark" : "text.badge.xmark")
-                        .font(.system(size: 13)).foregroundStyle(correctionEnabled && correctionAvailable ? MumlaStyle.accent : MumlaStyle.secondary)
+                        .font(.system(size: 13)).foregroundStyle(correctionEnabled && correctionAvailable ? palette.accent : palette.secondary)
                         .frame(width: 30, height: compact ? 26 : 30)
                 }.buttonStyle(MumlaKeyStyle(radius: 4)).disabled(!correctionAvailable)
                     .accessibilityLabel(mText("Autokorrigering", "Autocorrect"))
@@ -274,7 +276,7 @@ public struct MumlaKeyboardView: View {
                 : [notice ?? snapshot.error,
                    mText("Öppna Mumla, tryck på tangentbordsikonen och välj Starta session. Eller använd Mumlas widget eller genväg. Gå sedan tillbaka hit.", "Open Mumla, tap the keyboard icon and choose Start session. Or use Mumla's widget or shortcut. Then return here.")]
                     .compactMap { $0 }.joined(separator: "\n\n"))
-                .font(.system(size: compact ? 11 : 13, design: .monospaced))
+                .mumlaFont(size: compact ? 11 : 13)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("keyboard.activationMessage")
             Spacer(minLength: 0)
@@ -292,22 +294,22 @@ public struct MumlaKeyboardView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 5) {
                 MumlaRecordingLight(recording: recording)
-                Text(status).font(.system(size: 11, weight: .semibold, design: .monospaced)).lineLimit(1)
+                Text(status).mumlaFont(size: 11, weight: .semibold).lineLimit(1)
                 Spacer(minLength: 0)
                 if recording, let started = snapshot.recordingStartedAt {
-                    Text(started, style: .timer).monospacedDigit().font(.system(size: 13, design: .monospaced))
+                    Text(started, style: .timer).monospacedDigit().mumlaFont(size: 13)
                         .multilineTextAlignment(.trailing).frame(width: 50)
-                } else { Text("SV / 01").font(.system(size: 9, design: .monospaced)) }
+                } else { Text("SV / 01").mumlaFont(size: 9) }
             }
             if recording && !pending { MumlaWaveform(samples: samples, active: true).frame(height: compact ? 12 : 20) }
             else {
-                Text(notice ?? detail).font(.system(size: 10, design: .monospaced)).lineLimit(2)
+                Text(notice ?? detail).mumlaFont(size: 10).lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .foregroundStyle(MumlaStyle.lcdInk).padding(.horizontal, 9).padding(.vertical, 6)
+        .foregroundStyle(palette.lcdInk).padding(.horizontal, 9).padding(.vertical, 6)
         .frame(maxWidth: .infinity, minHeight: compact ? 48 : 60, maxHeight: compact ? 48 : 60, alignment: .leading)
-        .background(MumlaStyle.lcd).clipShape(RoundedRectangle(cornerRadius: 5))
+        .background(palette.lcd).clipShape(RoundedRectangle(cornerRadius: 5))
         .padding(3).mumlaRecess(radius: 7)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(status).accessibilityValue(notice ?? detail)

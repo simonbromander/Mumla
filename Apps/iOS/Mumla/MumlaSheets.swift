@@ -4,6 +4,7 @@ import MumlaUI
 import SwiftUI
 
 struct MumlaSettingsSheet: View {
+    @MumlaTheme private var palette
     @AppStorage("mumla.hapticsEnabled") private var hapticsEnabled = true
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
@@ -17,6 +18,8 @@ struct MumlaSettingsSheet: View {
             MumlaPanelHeader(mText("Inställningar", "Settings"), closeLabel: mText("Klart", "Done")) { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    sectionTitle(mText("Stil", "Style"))
+                    MumlaSkinPicker()
                     sectionTitle(mText("Utseende", "Appearance"))
                     MumlaAppearancePicker()
                     Divider()
@@ -47,17 +50,17 @@ struct MumlaSettingsSheet: View {
             }
         }
         .background { MumlaBackdrop() }
-        .tint(MumlaStyle.accent).mumlaAppearance()
-        .presentationBackground(MumlaStyle.background)
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .tint(palette.accent).mumlaAppearance()
+        .presentationBackground(palette.background)
+        .mumlaFont(.body)
         .sheet(isPresented: $showAbout) { MumlaAboutView() }
         .sheet(isPresented: $showKeyboard) { KeyboardSetupSheet(session: session) }
         .sheet(isPresented: $showTextPreferences) { LocalTextPreferencesView() }
     }
 
     private func sectionTitle(_ title: String) -> some View {
-        Text(title.uppercased()).font(.system(.caption, design: .monospaced).weight(.medium))
-            .foregroundStyle(MumlaStyle.secondary).accessibilityAddTraits(.isHeader)
+        Text(title.uppercased()).mumlaFont(.caption, weight: .medium)
+            .foregroundStyle(palette.secondary).accessibilityAddTraits(.isHeader)
     }
 
     @ViewBuilder private func readout(_ title: String, value: String) -> some View {
@@ -77,6 +80,7 @@ struct MumlaSettingsSheet: View {
 }
 
 struct TranscriptSheet: View {
+    @MumlaTheme private var palette
     var record: DictationRecord
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
@@ -89,7 +93,7 @@ struct TranscriptSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        .mumlaFont(.caption).foregroundStyle(palette.secondary)
                     CorrectableTranscript(record: currentRecord, session: session)
                         .padding(20).mumlaRecess(radius: 8)
                     if let summary = currentRecord.summary { SavedSummaryView(summary) }
@@ -112,17 +116,17 @@ struct TranscriptSheet: View {
                 Spacer()
                 ShareLink(item: currentRecord.text) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 18, weight: .medium, design: .monospaced)).frame(width: 44, height: 44)
+                        .mumlaFont(size: 18, weight: .medium).frame(width: 44, height: 44)
                 }.buttonStyle(MumlaKeyStyle()).accessibilityLabel(mText("Dela transkript", "Share transcript")).accessibilityIdentifier("transcript.share")
                 Button { session.copy(currentRecord) } label: {
                     Image(systemName: session.copiedID == record.id ? "checkmark" : "doc.on.doc")
-                        .font(.system(size: 18, weight: .medium, design: .monospaced)).frame(width: 44, height: 44)
+                        .mumlaFont(size: 18, weight: .medium).frame(width: 44, height: 44)
                 }.buttonStyle(MumlaKeyStyle(feedback: false)).accessibilityLabel(mText("Kopiera transkript", "Copy transcript")).accessibilityIdentifier("transcript.copy")
-            }.padding(24).background(MumlaStyle.background).overlay(alignment: .top) { Divider() }
+            }.padding(24).background(palette.background).overlay(alignment: .top) { Divider() }
         }
-        .background { MumlaBackdrop() }.tint(MumlaStyle.accent)
-        .presentationBackground(MumlaStyle.background)
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .background { MumlaBackdrop() }.tint(palette.accent)
+        .presentationBackground(palette.background)
+        .mumlaFont(.body)
         .sheet(item: $textRequest) { request in
             TranscriptFormattingView(record: request.record, action: request.action, formatter: transcriptFormatter, summarizer: transcriptSummarizer) { text in
                 if request.action == .format { try session.applyFormatting(request.record, text: text) }
@@ -159,6 +163,7 @@ struct TranscriptSheet: View {
 }
 
 struct AddWordSheet: View {
+    @MumlaTheme private var palette
     @ObservedObject var session: DictationSession
     @Environment(\.dismiss) private var dismiss
     @State private var original = ""
@@ -183,10 +188,10 @@ struct AddWordSheet: View {
             }
             .buttonStyle(MumlaKeyStyle(feedback: false))
             .disabled(original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .padding(24).background(MumlaStyle.background)
+            .padding(24).background(palette.background)
         }
-        .background { MumlaBackdrop() }.tint(MumlaStyle.accent)
-        .presentationBackground(MumlaStyle.background)
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .background { MumlaBackdrop() }.tint(palette.accent)
+        .presentationBackground(palette.background)
+        .mumlaFont(.body)
     }
 }

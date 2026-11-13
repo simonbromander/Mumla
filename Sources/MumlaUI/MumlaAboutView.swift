@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct MumlaAboutView: View {
+    @MumlaTheme private var palette
     @Environment(\.dismiss) private var dismiss
     @State private var notice: LicenseNotice?
     public init() {}
@@ -16,7 +17,7 @@ public struct MumlaAboutView: View {
                         MumlaReadout(version)
                     }
                     Text(mText("Talmodellen körs på din enhet. Ljud och transkript skickas inte till någon transkriberingstjänst.", "The speech model runs on your device. Audio and transcripts are not sent to a transcription service."))
-                        .font(.system(.callout, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        .mumlaFont(.callout).foregroundStyle(palette.secondary)
                     Divider()
                     credit("Pianissimo-sv", owner: "Klang AI AB", license: "CC BY 4.0",
                            detail: mText("Den svenska talmodellen som används för diktering i den här versionen.", "The Swedish speech model used for dictation in this version."),
@@ -44,9 +45,9 @@ public struct MumlaAboutView: View {
                            detail: mText("Läser textmodellens lokala tokenizer och chattmall. Transkript skickas inte till Hugging Face.", "Reads the text model's local tokenizer and chat template. Transcripts are not sent to Hugging Face."),
                            source: "https://github.com/huggingface/swift-transformers", licenseURL: "https://github.com/huggingface/swift-transformers/blob/1.3.0/LICENSE")
                     #else
-                    Text("Apple Foundation Models").font(.system(.headline, design: .monospaced)).accessibilityAddTraits(.isHeader)
+                    Text("Apple Foundation Models").mumlaFont(.headline).accessibilityAddTraits(.isHeader)
                     Text(mText("Valfri textformatering och sammanfattning med Apples lokala systemmodell. Kräver en kompatibel enhet med Apple Intelligence. Modellen tillhandahålls av operativsystemet och distribueras inte med Mumla.", "Optional text formatting and summaries with Apple's on-device system model. Requires a compatible device with Apple Intelligence. The model is provided by the operating system and isn't distributed with Mumla."))
-                        .font(.system(.callout, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        .mumlaFont(.callout).foregroundStyle(palette.secondary)
                     Divider()
                     #endif
                     if Bundle.main.object(forInfoDictionaryKey: "MumlaDistribution") as? String == "direct" {
@@ -55,7 +56,7 @@ public struct MumlaAboutView: View {
                                source: "https://sparkle-project.org", licenseURL: "https://github.com/sparkle-project/Sparkle/blob/2.10.0/LICENSE")
                     }
                     Text(mText("LICENSER OCH NOTISER", "LICENSES AND NOTICES"))
-                        .font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary).accessibilityAddTraits(.isHeader)
+                        .mumlaFont(.caption).foregroundStyle(palette.secondary).accessibilityAddTraits(.isHeader)
                     ForEach(LicenseNotice.all) { item in
                         Button { notice = item } label: {
                             HStack {
@@ -68,19 +69,19 @@ public struct MumlaAboutView: View {
                 }.padding(24)
             }.accessibilityIdentifier("about.content")
         }
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
-        .background { MumlaBackdrop() }.tint(MumlaStyle.accent).mumlaAppearance()
-        .presentationBackground(MumlaStyle.background)
+        .mumlaFont(.body)
+        .background { MumlaBackdrop() }.tint(palette.accent).mumlaAppearance()
+        .presentationBackground(palette.background)
         .sheet(item: $notice) { item in
             VStack(spacing: 0) {
                 MumlaPanelHeader(item.title, closeLabel: mText("Tillbaka", "Back"), closeIdentifier: "about.notice.close") { notice = nil }
                 ScrollView {
-                    Text(item.contents).font(.system(.footnote, design: .monospaced)).lineSpacing(5).textSelection(.enabled)
+                    Text(item.contents).mumlaFont(.footnote).lineSpacing(5).textSelection(.enabled)
                         .accessibilityIdentifier("about.notice.text")
                         .frame(maxWidth: .infinity, alignment: .leading).padding(24)
                 }
             }.background { MumlaBackdrop() }.mumlaAppearance()
-                .presentationBackground(MumlaStyle.background)
+                .presentationBackground(palette.background)
                 #if os(macOS)
                 .frame(width: 580, height: 520)
                 #endif
@@ -96,13 +97,13 @@ public struct MumlaAboutView: View {
 
     private func credit(_ title: String, owner: String, license: String, detail: String, source: String, licenseURL: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.system(.headline, design: .monospaced)).accessibilityAddTraits(.isHeader)
-            Text(owner).font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
-            Text(detail).font(.system(.callout, design: .monospaced)).foregroundStyle(MumlaStyle.secondary).fixedSize(horizontal: false, vertical: true)
+            Text(title).mumlaFont(.headline).accessibilityAddTraits(.isHeader)
+            Text(owner).mumlaFont(.subheadline).foregroundStyle(palette.accent)
+            Text(detail).mumlaFont(.callout).foregroundStyle(palette.secondary).fixedSize(horizontal: false, vertical: true)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) { creditLinks(source: source, license: license, licenseURL: licenseURL) }
                 VStack(alignment: .leading, spacing: 12) { creditLinks(source: source, license: license, licenseURL: licenseURL) }
-            }.font(.system(.caption, design: .monospaced)).buttonStyle(MumlaKeyStyle())
+            }.mumlaFont(.caption).buttonStyle(MumlaKeyStyle())
             Divider().padding(.top, 8)
         }
     }

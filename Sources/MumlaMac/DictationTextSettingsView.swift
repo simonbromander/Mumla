@@ -4,6 +4,7 @@ import MumlaFormatting
 import SwiftUI
 
 struct DictationTextSettingsView: View {
+    @MumlaTheme private var palette
     @ObservedObject var coordinator: AppCoordinator
     var customize: () -> Void
     @State private var modelExpanded = false
@@ -12,7 +13,7 @@ struct DictationTextSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
-                Image(systemName: "text.badge.star").frame(width: 22).foregroundStyle(MumlaStyle.secondary)
+                Image(systemName: "text.badge.star").frame(width: 22).foregroundStyle(palette.secondary)
                 Text(mText("Formatera före inklistring", "Format before pasting"))
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 12)
@@ -36,17 +37,17 @@ struct DictationTextSettingsView: View {
                 Text(coordinator.isFormattingDictation ? mText("Formaterar…", "Formatting…")
                      : coordinator.dictationFormattingStatus ?? (coordinator.settings.formatDictationBeforePasting
                        ? mText("På · lokal modell", "On · local model") : mText("Av · direkt diktering", "Off · direct dictation")))
-                    .font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    .mumlaFont(size: 11).foregroundStyle(palette.secondary)
                     .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("settings.dictation-formatting-status")
             }
             Label(mText("Textmodell", "Text model"), systemImage: "cpu")
-                .font(.system(size: 12, design: .monospaced))
+                .mumlaFont(size: 12)
             HStack(spacing: 4) {
                 ForEach(TextModelProvider.allCases, id: \.self) { provider in
                     Button { coordinator.setTextModelProvider(provider) } label: {
                         Text(provider.displayName)
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .mumlaFont(size: 11, weight: .semibold)
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(MumlaStereoKeyStyle(isLatched: coordinator.settings.textModelProvider == provider, height: 44))
@@ -60,7 +61,7 @@ struct DictationTextSettingsView: View {
                         .padding(.top, 12)
                 } label: {
                     Label("Qwen3.5 4B", systemImage: "internaldrive")
-                        .font(.system(size: 12, design: .monospaced))
+                        .mumlaFont(size: 12)
                 }
                 .accessibilityIdentifier("settings.text-model")
             } else {
@@ -76,8 +77,8 @@ struct DictationTextSettingsView: View {
                     .help(mText("Kontrollera modellstatus", "Check model status"))
                     .accessibilityLabel(mText("Kontrollera modellstatus", "Check model status"))
                 }
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(MumlaStyle.secondary)
+                    .mumlaFont(size: 12)
+                    .foregroundStyle(palette.secondary)
                     .accessibilityIdentifier("settings.apple-text-model-status")
             }
         }

@@ -1,10 +1,13 @@
 import AppKit
+import Combine
+import MumlaUI
 import SwiftUI
 
 @MainActor
 final class MainWindowController {
     private let window: NSWindow
     private var meetingExitPanel: NSWindow?
+    private var skinObserver: AnyCancellable?
 
     init(coordinator: AppCoordinator, updater: MacUpdateController, initialSection: String = "dictate") {
         let contentView = MainView(coordinator: coordinator, updater: updater, initialSection: initialSection)
@@ -25,6 +28,20 @@ final class MainWindowController {
         window.isMovableByWindowBackground = true
         window.center()
         self.window = window
+        applySkin(MumlaSkin.stored())
+        skinObserver = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: UserDefaults.standard)
+            .receive(on: RunLoop.main)
+            .map { _ in MumlaSkin.stored() }.removeDuplicates()
+            .sink { [weak self] style in self?.applySkin(style) }
+    }
+
+    private func applySkin(_ style: MumlaSkin) {
+        window.titleVisibility = style == .classic ? .hidden : .visible
+        window.isMovableByWindowBackground = style == .classic
+        if style == .classic {
+            window.toolbar = nil
+            window.title = "Mumla"
+        }
     }
 
     func show() {

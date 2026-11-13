@@ -35,22 +35,23 @@ public enum MumlaStyle {
 }
 
 public struct MumlaBackdrop: View {
+    @MumlaTheme private var palette
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     public init() {}
     public var body: some View {
         ZStack {
-            if reduceTransparency || contrast == .increased {
-                MumlaStyle.background
+            if palette.skin == .native || reduceTransparency || contrast == .increased {
+                palette.background
             } else {
                 #if os(macOS)
                 WindowGlass()
                 #else
                 Rectangle().fill(.regularMaterial)
                 #endif
-                LinearGradient(colors: [MumlaStyle.backdropTop.opacity(scheme == .light ? 0.60 : 0.54),
-                                        MumlaStyle.background.opacity(0.80)],
+                LinearGradient(colors: [palette.backdropTop.opacity(scheme == .light ? 0.60 : 0.54),
+                                        palette.background.opacity(0.80)],
                                startPoint: .topLeading, endPoint: .bottomTrailing)
             }
         }.ignoresSafeArea().allowsHitTesting(false).accessibilityHidden(true)
@@ -59,6 +60,7 @@ public struct MumlaBackdrop: View {
 
 /// Frosted chrome for navigation, kept separate from the opaque reading wells.
 public struct MumlaGlassPanel: View {
+    @MumlaTheme private var palette
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
@@ -66,10 +68,12 @@ public struct MumlaGlassPanel: View {
     public var body: some View {
         Group {
             if reduceTransparency || contrast == .increased {
-                MumlaStyle.panel
+                palette.panel
+            } else if palette.skin == .native {
+                Rectangle().fill(.regularMaterial)
             } else {
                 Rectangle().fill(.regularMaterial)
-                    .overlay(MumlaStyle.panel.opacity(scheme == .light ? 0.40 : 0.34))
+                    .overlay(palette.panel.opacity(scheme == .light ? 0.40 : 0.34))
                     .overlay {
                         LinearGradient(colors: [.white.opacity(scheme == .light ? 0.22 : 0.05), .clear],
                                        startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -101,27 +105,36 @@ public extension View {
 }
 
 private struct MachinedSurface: ViewModifier {
+    @MumlaTheme private var palette
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     var radius: CGFloat
     var inset: Bool
     var opacity: Double = 1
-    func body(content: Content) -> some View {
+    @ViewBuilder func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        if palette.skin == .native {
+            if inset {
+                content.background(palette.panel, in: shape)
+                    .overlay { shape.strokeBorder(.primary.opacity(contrast == .increased ? 0.35 : 0.08)) }
+            } else {
+                content.mumlaChrome(in: shape)
+            }
+        } else {
         content
             .background {
                 Group {
                     if inset || reduceTransparency || contrast == .increased {
                         shape.fill(LinearGradient(
-                            colors: inset ? [MumlaStyle.recessTop, MumlaStyle.recessBottom] : [MumlaStyle.surfaceTop, MumlaStyle.surfaceBottom],
+                            colors: inset ? [palette.recessTop, palette.recessBottom] : [palette.surfaceTop, palette.surfaceBottom],
                             startPoint: .top, endPoint: .bottom
                         ).shadow(.inner(color: .black.opacity(inset ? (scheme == .light ? 0.18 : 0.8) : 0.1), radius: inset ? 3 : 1, y: 2)))
                     } else {
                         shape.fill(.regularMaterial)
                             .overlay {
-                                shape.fill(LinearGradient(colors: [MumlaStyle.surfaceTop.opacity(scheme == .light ? 0.58 : 0.34),
-                                                                   MumlaStyle.surfaceBottom.opacity(scheme == .light ? 0.42 : 0.48)],
+                                shape.fill(LinearGradient(colors: [palette.surfaceTop.opacity(scheme == .light ? 0.58 : 0.34),
+                                                                   palette.surfaceBottom.opacity(scheme == .light ? 0.42 : 0.48)],
                                                           startPoint: .topLeading, endPoint: .bottomTrailing))
                             }
                     }
@@ -134,16 +147,18 @@ private struct MachinedSurface: ViewModifier {
                 ), lineWidth: 1).allowsHitTesting(false)
             }
             .shadow(color: .black.opacity(inset ? 0 : scheme == .light ? 0.07 : 0.20), radius: 7, y: 4)
+        }
     }
 }
 
 private struct DisplayLens: ViewModifier {
+    @Environment(\.mumlaSkin) private var skin
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     var radius: CGFloat
     func body(content: Content) -> some View {
         content.overlay {
-            if !reduceTransparency && contrast != .increased {
+            if skin == .classic && !reduceTransparency && contrast != .increased {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .fill(LinearGradient(colors: [.white.opacity(0.20), .white.opacity(0.02), .clear],
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -158,7 +173,30 @@ private struct DisplayLens: ViewModifier {
     }
 }
 
-public struct MumlaKeyStyle: ButtonStyle {
+public struct MumlaKeyStyle: PrimitiveButtonStyle {
+    @Environment(\.mumlaSkin) private var skin
+    public var radius: CGFloat
+    public var feedback: Bool
+    public init(radius: CGFloat = 9, feedback: Bool = true) { self.radius = radius; self.feedback = feedback }
+
+    @ViewBuilder public func makeBody(configuration: Configuration) -> some View {
+        if skin == .native {
+            if #available(macOS 26, iOS 26, *) {
+                Button(role: configuration.role, action: configuration.trigger) { configuration.label }
+                    .buttonStyle(.glass).tint(nil).controlSize(.small)
+            } else {
+                Button(role: configuration.role, action: configuration.trigger) { configuration.label }
+                    .buttonStyle(.bordered)
+            }
+        } else {
+            Button(role: configuration.role, action: configuration.trigger) { configuration.label }
+                .buttonStyle(ClassicKeyStyle(radius: radius, feedback: feedback))
+        }
+    }
+}
+
+private struct ClassicKeyStyle: ButtonStyle {
+    @MumlaTheme private var palette
     public var radius: CGFloat
     public var feedback: Bool
     @Environment(\.isEnabled) private var enabled
@@ -170,10 +208,10 @@ public struct MumlaKeyStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         configuration.label
-            .foregroundStyle(enabled ? MumlaStyle.ink : MumlaStyle.secondary.opacity(0.45))
+            .foregroundStyle(enabled ? palette.ink : palette.secondary.opacity(0.45))
             .background {
                 shape.fill(LinearGradient(
-                    colors: configuration.isPressed ? [MumlaStyle.buttonPressedTop, MumlaStyle.buttonPressedBottom] : [MumlaStyle.buttonTop, MumlaStyle.buttonBottom],
+                    colors: configuration.isPressed ? [palette.buttonPressedTop, palette.buttonPressedBottom] : [palette.buttonTop, palette.buttonBottom],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 ).shadow(.inner(color: .white.opacity(configuration.isPressed ? 0 : 0.045), radius: 1, y: 1)))
             }
@@ -190,11 +228,14 @@ public struct MumlaKeyStyle: ButtonStyle {
 }
 
 public struct MumlaWordmark: View {
+    @MumlaTheme private var palette
     public init() {}
     public var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 9) {
-            Text("mumla").font(.system(size: 28, weight: .semibold, design: .monospaced))
-            Text("/ 01").font(.system(size: 11, weight: .medium, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+            Text(palette.skin == .native ? "Mumla" : "mumla").mumlaFont(size: 28, weight: .semibold)
+            if palette.skin == .classic {
+                Text("/ 01").mumlaFont(size: 11, weight: .medium).foregroundStyle(palette.secondary)
+            }
         }.accessibilityElement(children: .ignore).accessibilityLabel("Mumla")
     }
 }
@@ -208,13 +249,14 @@ public struct MumlaIconButton: View {
     }
     public var body: some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 17, weight: .regular, design: .monospaced))
+            Image(systemName: symbol).mumlaFont(size: 17, weight: .regular)
                 .frame(width: 44, height: 44).contentShape(Rectangle())
         }.buttonStyle(MumlaKeyStyle()).accessibilityLabel(label).help(label)
     }
 }
 
 public struct MumlaRecorderDisplay: View {
+    @MumlaTheme private var palette
     public var status: String
     public var detail: String
     public var elapsed: TimeInterval
@@ -228,6 +270,31 @@ public struct MumlaRecorderDisplay: View {
     }
 
     public var body: some View {
+        if palette.skin == .native { nativeDisplay } else { classicDisplay }
+    }
+
+    private var nativeDisplay: some View {
+        VStack(spacing: compact ? 12 : 20) {
+            HStack(spacing: 7) {
+                MumlaRecordingLight(recording: recording)
+                Text(status).mumlaFont(.caption, weight: .semibold)
+                Spacer()
+                Label(language, systemImage: "lock.fill").mumlaFont(.caption)
+                    .foregroundStyle(palette.secondary)
+            }
+            Text(String(format: "%02d:%02d", Int(elapsed) / 60, Int(elapsed) % 60))
+                .font(.system(size: compact ? 56 : 72, weight: .light, design: .rounded))
+                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.75)
+                .frame(maxWidth: .infinity)
+            Text(detail).mumlaFont(.subheadline).foregroundStyle(palette.secondary)
+                .lineLimit(2).multilineTextAlignment(.center)
+        }
+        .padding(compact ? 16 : 24)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .accessibilityIdentifier("recorder.native-display")
+    }
+
+    private var classicDisplay: some View {
         VStack(alignment: .leading, spacing: compact ? 8 : 16) {
             HStack {
                 HStack(spacing: 6) {
@@ -237,15 +304,15 @@ public struct MumlaRecorderDisplay: View {
                 Spacer()
                 Image(systemName: "lock.fill")
                 Text(language)
-            }.font(.system(size: 11, design: .monospaced))
+            }.mumlaFont(size: 11)
             HStack(alignment: .firstTextBaseline, spacing: 9) {
                 Text(String(format: "%02d:%02d", Int(elapsed) / 60, Int(elapsed) % 60))
-                    .font(.system(size: 56, weight: .light, design: .monospaced)).monospacedDigit()
+                    .mumlaFont(size: 56, weight: .light).monospacedDigit()
                     .lineLimit(1).minimumScaleFactor(0.75)
-                Text("MIN / SEC").font(.system(size: 9, design: .monospaced))
+                Text("MIN / SEC").mumlaFont(size: 9)
                 Spacer(minLength: 0)
             }.frame(minHeight: 64)
-            Text(detail).font(.system(size: 12, weight: .medium, design: .monospaced))
+            Text(detail).mumlaFont(size: 12, weight: .medium)
                 .lineLimit(1).truncationMode(.tail)
             if !compact {
                 HStack {
@@ -253,16 +320,16 @@ public struct MumlaRecorderDisplay: View {
                     Spacer()
                     Text("MONO / PCM")
                 }
-                .font(.system(size: 10, design: .monospaced))
+                .mumlaFont(size: 10)
                 .padding(.top, 10)
-                .overlay(alignment: .top) { Rectangle().fill(MumlaStyle.lcdInk.opacity(0.25)).frame(height: 1) }
+                .overlay(alignment: .top) { Rectangle().fill(palette.lcdInk.opacity(0.25)).frame(height: 1) }
             }
         }
-        .foregroundStyle(MumlaStyle.lcdInk)
+        .foregroundStyle(palette.lcdInk)
         .padding(compact ? 14 : 20)
         .background {
             RoundedRectangle(cornerRadius: 7)
-                .fill(LinearGradient(colors: [MumlaStyle.lcd, MumlaStyle.lcdEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
+                .fill(LinearGradient(colors: [palette.lcd, palette.lcdEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
                     .shadow(.inner(color: .black.opacity(0.45), radius: 5, x: 0, y: 3)))
         }
         .overlay {
@@ -272,7 +339,7 @@ public struct MumlaRecorderDisplay: View {
                     lines.move(to: CGPoint(x: 0, y: y))
                     lines.addLine(to: CGPoint(x: size.width, y: y))
                 }
-                context.stroke(lines, with: .color(MumlaStyle.lcdInk.opacity(0.035)), lineWidth: 0.5)
+                context.stroke(lines, with: .color(palette.lcdInk.opacity(0.035)), lineWidth: 0.5)
             }.clipShape(RoundedRectangle(cornerRadius: 7)).allowsHitTesting(false).accessibilityHidden(true)
         }
         .mumlaDisplayLens()
@@ -281,10 +348,11 @@ public struct MumlaRecorderDisplay: View {
 }
 
 public struct MumlaWaveform: View {
+    @MumlaTheme private var palette
     public var samples: [Double]
     public var active: Bool
-    public var ink: Color
-    public init(samples: [Double] = [], active: Bool = false, ink: Color = MumlaStyle.accent) {
+    public var ink: Color?
+    public init(samples: [Double] = [], active: Bool = false, ink: Color? = nil) {
         self.samples = samples; self.active = active; self.ink = ink
     }
     public var body: some View {
@@ -295,32 +363,47 @@ public struct MumlaWaveform: View {
                 let value = samples.indices.contains(index) ? samples[index] : 0
                 let height = max(2, CGFloat(value) * size.height)
                 let rect = CGRect(x: CGFloat(index) * spacing, y: (size.height - height) / 2, width: max(1, spacing - 3), height: height)
-                context.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color(active ? ink : MumlaStyle.secondary.opacity(0.4)))
+                context.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color(active ? (ink ?? palette.accent) : palette.secondary.opacity(0.4)))
             }
         }.accessibilityHidden(true)
     }
 }
 
 public struct MumlaInputMeter: View {
+    @MumlaTheme private var palette
     public var level: Double
     public var active: Bool
     public var compact: Bool
     public init(level: Double, active: Bool, compact: Bool = false) { self.level = level; self.active = active; self.compact = compact }
     public var body: some View {
+        if palette.skin == .native {
+            HStack(spacing: 12) {
+                Image(systemName: "mic.fill").foregroundStyle(palette.secondary)
+                MumlaWaveform(samples: Array(repeating: active ? min(1, max(0, level)) : 0, count: 43), active: active)
+                    .frame(height: compact ? 20 : 32)
+            }
+            .padding(.horizontal, 16).frame(height: compact ? 44 : 56)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(mText("Mikrofonnivå", "Microphone level"))
+            .accessibilityValue(active ? String(format: "%.0f dB", 30 * log10(max(0.01, level))) : mText("Inaktiv", "Inactive"))
+        } else { classicMeter }
+    }
+    @ViewBuilder private var classicMeter: some View {
         let decibels = max(-60, 30 * log10(max(0.01, level)))
         let fraction = (decibels + 60) / 60
         VStack(spacing: 9) {
             HStack(spacing: 12) {
-                Text("MIC").font(.system(size: 10, weight: .medium, design: .monospaced))
+                Text("MIC").mumlaFont(size: 10, weight: .medium)
                 GeometryReader { geometry in
                     HStack(spacing: 2) {
                         ForEach(0..<32, id: \.self) { index in
-                            Rectangle().fill(active && Double(index) / 32 < fraction ? (index > 27 ? MumlaStyle.recording : MumlaStyle.accent) : MumlaStyle.meterOff)
+                            Rectangle().fill(active && Double(index) / 32 < fraction ? (index > 27 ? palette.recording : palette.accent) : palette.meterOff)
                         }
                     }.frame(width: geometry.size.width, height: 12)
                 }.frame(height: 12)
                 Text(active ? String(format: "%.0f dB", 30 * log10(max(0.01, level))) : "-- dB")
-                    .font(.system(size: 10, design: .monospaced)).monospacedDigit().frame(width: 46, alignment: .trailing)
+                    .mumlaFont(size: 10).monospacedDigit().frame(width: 46, alignment: .trailing)
             }
             if !compact {
                 HStack {
@@ -331,10 +414,10 @@ public struct MumlaInputMeter: View {
                     Text("-20")
                     Spacer()
                     Text("0")
-                }.font(.system(size: 9, design: .monospaced)).padding(.leading, 32).padding(.trailing, 54)
+                }.mumlaFont(size: 9).padding(.leading, 32).padding(.trailing, 54)
             }
         }
-        .foregroundStyle(MumlaStyle.secondary).padding(15).mumlaRecess(radius: 9)
+        .foregroundStyle(palette.secondary).padding(15).mumlaRecess(radius: 9)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(mText("Mikrofonnivå", "Microphone level"))
         .accessibilityValue(active ? String(format: "%.0f dB", 30 * log10(max(0.01, level))) : mText("Inaktiv", "Inactive"))
@@ -342,6 +425,7 @@ public struct MumlaInputMeter: View {
 }
 
 public struct MumlaTransportKey: View {
+    @MumlaTheme private var palette
     @Environment(\.isEnabled) private var enabled
     public var symbol: String
     public var title: String
@@ -355,13 +439,34 @@ public struct MumlaTransportKey: View {
         self.compact = compact
     }
     public var body: some View {
+        if palette.skin == .native { nativeKey } else { classicKey }
+    }
+    private var nativeKey: some View {
+        VStack(spacing: 8) {
+            Button(action: action) {
+                Group {
+                    if busy { ProgressView() }
+                    else { Image(systemName: symbol).font(.system(size: primary ? 28 : 19, weight: .medium)) }
+                }
+                .frame(width: primary ? 64 : 44, height: primary ? 64 : 44)
+                .foregroundStyle(primary ? palette.recording : palette.ink)
+            }
+            .buttonStyle(MumlaKeyStyle(feedback: false))
+            .buttonBorderShape(.circle)
+            .tint(primary ? palette.recording : palette.accent)
+            .accessibilityLabel(title).help(title)
+            Text(title).mumlaFont(.caption).foregroundStyle(palette.secondary)
+                .lineLimit(1).minimumScaleFactor(0.75).accessibilityHidden(true)
+        }.frame(maxWidth: .infinity).dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+    private var classicKey: some View {
         VStack(spacing: compact ? 8 : 13) {
             Button(action: action) {
                 ZStack {
-                    if busy { ProgressView().tint(MumlaStyle.accent) }
+                    if busy { ProgressView().tint(palette.accent) }
                     else {
-                        Image(systemName: symbol).font(.system(size: primary ? 27 : 18, weight: .medium, design: .monospaced))
-                            .foregroundStyle(!enabled ? MumlaStyle.secondary.opacity(0.35) : primary && !active ? MumlaStyle.recording : MumlaStyle.ink)
+                        Image(systemName: symbol).mumlaFont(size: primary ? 27 : 18, weight: .medium)
+                            .foregroundStyle(!enabled ? palette.secondary.opacity(0.35) : primary && !active ? palette.recording : palette.ink)
                     }
                 }
                 .frame(width: primary ? (compact ? 66 : 88) : 48, height: primary ? (compact ? 66 : 88) : 48)
@@ -369,24 +474,25 @@ public struct MumlaTransportKey: View {
             }
             .buttonStyle(MumlaKeyStyle(radius: 50, feedback: false))
             .padding(4)
-            .background(Circle().fill(MumlaStyle.socket.shadow(.inner(color: .black.opacity(0.4), radius: 2, y: 1))))
+            .background(Circle().fill(palette.socket.shadow(.inner(color: .black.opacity(0.4), radius: 2, y: 1))))
             .overlay(Circle().strokeBorder(.white.opacity(0.065), lineWidth: 1))
             .accessibilityLabel(title).help(title)
-            Text(title.uppercased()).font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundStyle(MumlaStyle.secondary).lineLimit(1).minimumScaleFactor(0.7)
+            Text(title.uppercased()).mumlaFont(size: 9, weight: .medium)
+                .foregroundStyle(palette.secondary).lineLimit(1).minimumScaleFactor(0.7)
                 .accessibilityHidden(true)
         }.frame(maxWidth: .infinity)
     }
 }
 
 public struct MumlaEmptyState: View {
+    @MumlaTheme private var palette
     private var symbol: String
     private var title: String
     public init(_ title: String, symbol: String) { self.title = title; self.symbol = symbol }
     public var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: symbol).font(.system(size: 17, weight: .light, design: .monospaced))
-            Text(title).font(.system(size: 13, design: .monospaced))
-        }.foregroundStyle(MumlaStyle.secondary).frame(maxWidth: .infinity).padding(.vertical, 24)
+            Image(systemName: symbol).mumlaFont(size: 17, weight: .light)
+            Text(title).mumlaFont(size: 13)
+        }.foregroundStyle(palette.secondary).frame(maxWidth: .infinity).padding(.vertical, 24)
     }
 }

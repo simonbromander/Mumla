@@ -3,6 +3,7 @@ import MumlaUI
 import SwiftUI
 
 struct MeetingDetectionSettingsView: View {
+    @MumlaTheme private var palette
     @ObservedObject var app: AppCoordinator
     @ObservedObject var detection: MeetingDetectionCoordinator
     @State private var requestingCalendar = false
@@ -18,7 +19,7 @@ struct MeetingDetectionSettingsView: View {
                 Text(detection.isAvailable
                      ? mText("Slack / Teams · Frågar innan inspelning", "Slack / Teams · Asks before recording")
                      : mText("Mikrofonaktivitet är inte tillgänglig. Starta mötet manuellt.", "Microphone activity is unavailable. Start the meeting manually."))
-                    .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    .mumlaFont(size: 12).foregroundStyle(palette.secondary)
                     .fixedSize(horizontal: false, vertical: true).accessibilityIdentifier("meeting.detection.status")
                 Toggle(isOn: Binding(get: { app.settings.useMeetingCalendar }, set: { value in
                     requestingCalendar = true
@@ -40,10 +41,10 @@ struct MeetingDetectionSettingsView: View {
                         }.buttonStyle(MumlaKeyStyle(radius: 8))
                             .help(mText("Öppna kalenderåtkomst", "Open Calendar permissions"))
                             .accessibilityLabel(mText("Öppna kalenderåtkomst", "Open Calendar permissions"))
-                    }.font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    }.mumlaFont(size: 12).foregroundStyle(palette.secondary)
                 }
             }
-        }.font(.system(size: 13, design: .monospaced)).padding(.vertical, 16)
+        }.mumlaFont(size: 13).padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .disabled(app.meetings.availabilityMessage != nil)
     }

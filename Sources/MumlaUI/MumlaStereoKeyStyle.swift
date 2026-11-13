@@ -1,6 +1,33 @@
 import SwiftUI
 
-public struct MumlaStereoKeyStyle: ButtonStyle {
+public struct MumlaStereoKeyStyle: PrimitiveButtonStyle {
+    @MumlaTheme private var palette
+    public var isLatched: Bool
+    public var height: CGFloat
+    public var onPressChanged: (Bool) -> Void
+
+    public init(isLatched: Bool, height: CGFloat = 72, onPressChanged: @escaping (Bool) -> Void = { _ in }) {
+        self.isLatched = isLatched
+        self.height = max(44, height)
+        self.onPressChanged = onPressChanged
+    }
+
+    @ViewBuilder public func makeBody(configuration: Configuration) -> some View {
+        if palette.skin == .native {
+            Button(role: configuration.role, action: configuration.trigger) { configuration.label }
+                .buttonStyle(.bordered)
+                .background(isLatched ? palette.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 8))
+                .frame(minHeight: 32)
+                .accessibilityAddTraits(isLatched ? .isSelected : [])
+        } else {
+            Button(role: configuration.role, action: configuration.trigger) { configuration.label }
+                .buttonStyle(ClassicStereoKeyStyle(isLatched: isLatched, height: height, onPressChanged: onPressChanged))
+        }
+    }
+}
+
+private struct ClassicStereoKeyStyle: ButtonStyle {
+    @MumlaTheme private var palette
     public var isLatched: Bool
     public var height: CGFloat
     public var onPressChanged: (Bool) -> Void
@@ -26,7 +53,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
 
         ZStack(alignment: .top) {
             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(MumlaStyle.socket.shadow(.inner(color: .black.opacity(scheme == .light ? 0.28 : 1), radius: 3, y: 2)))
+                .fill(palette.socket.shadow(.inner(color: .black.opacity(scheme == .light ? 0.28 : 1), radius: 3, y: 2)))
                 .overlay {
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
                         .strokeBorder(.white.opacity(0.07), lineWidth: 1)
@@ -34,7 +61,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
 
             // The lower key wall stays in the socket as the face travels into it.
             cap.fill(LinearGradient(
-                colors: [MumlaStyle.panel, MumlaStyle.socket],
+                colors: [palette.panel, palette.socket],
                 startPoint: .top, endPoint: .bottom
             ))
             .overlay(alignment: .bottom) {
@@ -44,12 +71,12 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
 
             configuration.label
                 .frame(maxWidth: .infinity).frame(height: height - 14)
-                .foregroundStyle(MumlaStyle.ink)
+                .foregroundStyle(palette.ink)
                 .background {
                     cap.fill(LinearGradient(
                         colors: down
-                            ? [MumlaStyle.keyPressed, MumlaStyle.panel]
-                            : [MumlaStyle.keyTop, MumlaStyle.keyBottom],
+                            ? [palette.keyPressed, palette.panel]
+                            : [palette.keyTop, palette.keyBottom],
                         startPoint: .top, endPoint: .bottom
                     ).shadow(.inner(color: down ? .black.opacity(scheme == .light ? 0.12 : 0.38) : .white.opacity(0.10), radius: down ? 3 : 1, y: down ? 2 : 1)))
                 }
@@ -63,7 +90,7 @@ public struct MumlaStereoKeyStyle: ButtonStyle {
                 }
                 .overlay(alignment: .top) {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(LinearGradient(colors: down ? [Color(red: 1, green: 0.62, blue: 0.28), MumlaStyle.activeKey] : [MumlaStyle.meterOff, MumlaStyle.socket], startPoint: .top, endPoint: .bottom))
+                        .fill(LinearGradient(colors: down ? [Color(red: 1, green: 0.62, blue: 0.28), palette.activeKey] : [palette.meterOff, palette.socket], startPoint: .top, endPoint: .bottom))
                         .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(.black.opacity(0.45), lineWidth: 0.5))
                         .frame(width: height > 48 ? 30 : 22, height: 5)
                         .padding(.top, 4)

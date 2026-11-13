@@ -24,6 +24,7 @@ public struct KeyboardSessionSnapshot: Codable, Equatable, Sendable {
     public var error: String?
     public var canRetry = false
     public var appearance: String = "system"
+    public var interfaceStyle: String?
     public var hapticsEnabled = true
 
     public init() {}

@@ -6,6 +6,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct MeetingsView: View {
+    @MumlaTheme private var palette
     @ObservedObject var meetings: MeetingCoordinator
     @ObservedObject var app: AppCoordinator
     @State private var query = ""
@@ -67,7 +68,7 @@ struct MeetingsView: View {
     private var toolbar: some View {
         HStack(spacing: 10) {
             Text("\(meetings.records.count) " + (meetings.records.count == 1 ? mText("möte", "meeting") : mText("möten", "meetings")))
-                .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                .mumlaFont(size: 12).foregroundStyle(palette.secondary)
             Spacer(minLength: 0)
             if let id = meetings.activeID {
                 MumlaIconButton("record.circle", label: mText("Pågående möte", "Current meeting")) { meetings.selectedID = id }
@@ -92,9 +93,9 @@ struct MeetingsView: View {
                         Label("STANDBY", systemImage: "record.circle")
                         Spacer()
                         Label("SV / PCM", systemImage: "lock.fill")
-                    }.font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    }.mumlaFont(size: 12).foregroundStyle(palette.secondary)
                     TextField(mText("Mötets namn", "Meeting title"), text: $meetings.title, axis: .vertical)
-                        .textFieldStyle(.plain).font(.system(size: 18, design: .monospaced))
+                        .textFieldStyle(.plain).mumlaFont(size: 18)
                         .lineLimit(1...4).padding(16).mumlaRecess(radius: 8).accessibilityIdentifier("meeting.title")
                         .accessibilityLabel(mText("Mötets namn", "Meeting title"))
                     VStack(alignment: .leading, spacing: 8) {
@@ -138,11 +139,11 @@ struct MeetingsView: View {
                     Divider()
                     Toggle(isOn: $meetings.liveTranscription) {
                         Text(mText("Transkribera live", "Live transcription")).fixedSize(horizontal: false, vertical: true)
-                    }.toggleStyle(MumlaSwitchStyle()).font(.system(size: 13, design: .monospaced))
+                    }.toggleStyle(MumlaSwitchStyle()).mumlaFont(size: 13)
                     Toggle(isOn: $meetings.keepAudio) {
                         Text(mText("Behåll ljud i 7 dagar", "Keep audio for 7 days"))
                             .fixedSize(horizontal: false, vertical: true)
-                    }.toggleStyle(MumlaSwitchStyle()).font(.system(size: 13, design: .monospaced))
+                    }.toggleStyle(MumlaSwitchStyle()).mumlaFont(size: 13)
                         .help(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"))
                         .accessibilityLabel(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"))
                     Divider()
@@ -152,16 +153,16 @@ struct MeetingsView: View {
                         Image(systemName: meetings.speakersInstalled ? "person.2.fill" : "person.2").padding(.top, 3)
                         VStack(alignment: .leading, spacing: 10) {
                             Text(meetings.speakersInstalled ? mText("Talarmodell installerad", "Speaker model installed") : mText("Talarmodell · 45 MB", "Speaker model · 45 MB"))
-                                .font(.system(size: 13, design: .monospaced)).fixedSize(horizontal: false, vertical: true)
+                                .mumlaFont(size: 13).fixedSize(horizontal: false, vertical: true)
                             if let fraction = meetings.speakerDownload {
                                 MumlaDownloadGauge(fraction: fraction)
-                                Text("\(Int(fraction * 100)) %").font(.system(size: 12, design: .monospaced)).monospacedDigit()
+                                Text("\(Int(fraction * 100)) %").mumlaFont(size: 12).monospacedDigit()
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
                         if meetings.speakerDownload == nil && !meetings.speakersInstalled {
                             MumlaIconButton("arrow.down", label: mText("Hämta talarmodell", "Download speaker model")) { meetings.installSpeakers() }
                                 .disabled(meetings.isProcessing)
-                        } else if meetings.speakersInstalled { Image(systemName: "checkmark").foregroundStyle(MumlaStyle.accent) }
+                        } else if meetings.speakersInstalled { Image(systemName: "checkmark").foregroundStyle(palette.accent) }
                     }
                     if app.modelDirectory == nil {
                         choice(mText("Hämta svensk språkmodell", "Download Swedish speech model"), symbol: "arrow.down.circle", selected: false) { app.installModel() }
@@ -177,7 +178,7 @@ struct MeetingsView: View {
                 Spacer(minLength: 0)
                 Button { Task { await meetings.start() } } label: {
                     Label(meetings.isStarting ? mText("Förbereder", "Preparing") : mText("Spela in möte", "Record meeting"), systemImage: "record.circle.fill")
-                        .foregroundStyle(MumlaStyle.recording).fixedSize(horizontal: false, vertical: true)
+                        .foregroundStyle(palette.recording).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 18).padding(.vertical, 14)
                 }.buttonStyle(MumlaKeyStyle(radius: 8))
                     .disabled(meetings.isCapturing || meetings.availabilityMessage != nil).accessibilityIdentifier("meeting.start")
@@ -191,7 +192,7 @@ struct MeetingsView: View {
                 ForEach(meetings.records) { meeting in
                     Button { meetings.selectedID = meeting.id; libraryOpen = false } label: {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(meeting.title).font(.system(size: 13, weight: .medium, design: .monospaced))
+                            Text(meeting.title).mumlaFont(size: 13, weight: .medium)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(meeting.createdAt.formatted(date: .abbreviated, time: .omitted))
                                 .fixedSize(horizontal: false, vertical: true)
@@ -199,13 +200,13 @@ struct MeetingsView: View {
                                 Text(meeting.createdAt.formatted(date: .omitted, time: .shortened))
                                 Spacer(minLength: 4)
                                 Text(meeting.id == meetings.activeID ? (meetings.isPaused ? "PAUSE" : "REC") : MeetingRecord.timestamp(meeting.duration))
-                                    .foregroundStyle(meeting.id == meetings.activeID ? MumlaStyle.recording : MumlaStyle.secondary)
+                                    .foregroundStyle(meeting.id == meetings.activeID ? palette.recording : palette.secondary)
                             }.monospacedDigit()
-                        }.font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        }.mumlaFont(size: 12).foregroundStyle(palette.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading).padding(14)
                     }.buttonStyle(MumlaKeyStyle(radius: 8))
                         .overlay(alignment: .leading) {
-                            if meetings.selectedID == meeting.id { Rectangle().fill(MumlaStyle.activeKey).frame(width: 3).padding(.vertical, 12) }
+                            if meetings.selectedID == meeting.id { Rectangle().fill(palette.activeKey).frame(width: 3).padding(.vertical, 12) }
                         }.accessibilityAddTraits(meetings.selectedID == meeting.id ? .isSelected : [])
                 }
             }.padding(4)
@@ -216,9 +217,9 @@ struct MeetingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(MumlaStyle.secondary)
+                    Image(systemName: "magnifyingglass").foregroundStyle(palette.secondary)
                     TextField(mText("Sök i transkript", "Search transcript"), text: $query)
-                        .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced)).accessibilityIdentifier("meeting.search")
+                        .textFieldStyle(.plain).mumlaFont(size: 13).accessibilityIdentifier("meeting.search")
                 }.padding(12).frame(minHeight: 44).mumlaRecess(radius: 8)
                 MumlaIconButton(speakerFilter.isEmpty ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill", label: mText("Filtrera talare", "Filter speakers")) { speakersOpen.toggle() }
                     .accessibilityIdentifier("meeting.speakers")
@@ -242,10 +243,10 @@ struct MeetingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text(meeting.title).font(.system(size: 20, weight: .semibold, design: .monospaced))
+                            Text(meeting.title).mumlaFont(size: 20, weight: .semibold)
                                 .fixedSize(horizontal: false, vertical: true).accessibilityIdentifier("meeting.document.title")
                             Text(meeting.sourceName + " · " + MeetingRecord.timestamp(meeting.id == meetings.activeID ? meetings.elapsed : meeting.duration))
-                                .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                                .mumlaFont(size: 12).foregroundStyle(palette.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         if meetings.activeID == meeting.id {
@@ -258,7 +259,7 @@ struct MeetingsView: View {
                         }
                         if !speakerFilter.isEmpty {
                             Label(meeting.speakerName(speakerFilter), systemImage: "person")
-                                .font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
+                                .mumlaFont(size: 12).foregroundStyle(palette.accent)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         let segments = meeting.orderedSegments.filter { (speakerFilter.isEmpty || $0.speaker == speakerFilter) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query)) }
@@ -268,14 +269,14 @@ struct MeetingsView: View {
                                     HStack(alignment: .top, spacing: 12) {
                                         Button { meetings.play(segment, meeting: meeting) } label: {
                                             Label(MeetingRecord.timestamp(segment.start), systemImage: meetings.playingSegmentID == segment.id ? "stop.fill" : "play.fill")
-                                                .font(.system(size: 12, design: .monospaced)).monospacedDigit().padding(10)
+                                                .mumlaFont(size: 12).monospacedDigit().padding(10)
                                         }.buttonStyle(MumlaKeyStyle(radius: 6)).disabled(meeting.audioDeleted || meetings.isCapturing)
                                         speakerSelector(segment, meeting: meeting)
                                         MumlaIconButton("pencil", label: mText("Rätta text eller talare", "Correct text or speaker")) {
                                             dialog = .correction(meetingID: meeting.id, segment: segment, speaker: meeting.speakerName(segment.speaker))
                                         }.accessibilityIdentifier("meeting.correct.\(segment.id)")
                                     }
-                                    Text(segment.text).font(.system(size: 14, design: .monospaced)).lineSpacing(5)
+                                    Text(segment.text).mumlaFont(size: 14).lineSpacing(5)
                                         .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .accessibilityIdentifier("meeting.passage.\(segment.id)")
@@ -307,7 +308,7 @@ struct MeetingsView: View {
     }
 
     private func statusLabel(_ meeting: MeetingRecord) -> some View {
-        Text(status(meeting)).font(.system(size: 12, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+        Text(status(meeting)).mumlaFont(size: 12).foregroundStyle(palette.secondary)
             .accessibilityIdentifier("meeting.status")
     }
 
@@ -318,8 +319,8 @@ struct MeetingsView: View {
                 Text(meeting.speakerName(segment.speaker)).fixedSize(horizontal: false, vertical: true)
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
             }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
-        }.buttonStyle(.plain).font(.system(size: 12, weight: .medium, design: .monospaced))
-            .foregroundStyle(MumlaStyle.secondary)
+        }.buttonStyle(.plain).mumlaFont(size: 12, weight: .medium)
+            .foregroundStyle(palette.secondary)
             .help(mText("Byt talare för det här avsnittet", "Change speaker for this passage"))
             .accessibilityLabel(mText("Byt talare", "Change speaker") + ": " + meeting.speakerName(segment.speaker))
             .accessibilityIdentifier("meeting.assign.\(segment.id)")
@@ -344,7 +345,7 @@ struct MeetingsView: View {
         HStack(spacing: 10) {
             if meetings.activeID == meeting.id {
                 Toggle(mText("Följ", "Follow"), isOn: $followLive).toggleStyle(MumlaSwitchStyle())
-                    .font(.system(size: 12, design: .monospaced)).fixedSize()
+                    .mumlaFont(size: 12).fixedSize()
                 Spacer(minLength: 0)
                 MumlaIconButton(meetings.isPaused ? "play.fill" : "pause.fill", label: meetings.isPaused ? mText("Fortsätt inspelning", "Resume recording") : mText("Pausa inspelning", "Pause recording")) { meetings.togglePause() }
                 MumlaIconButton("stop.fill", label: mText("Stoppa och spara", "Stop and save")) { meetings.stop() }.accessibilityIdentifier("meeting.stop")
@@ -388,13 +389,13 @@ struct MeetingsView: View {
             HStack(alignment: .center, spacing: 12) {
                 Image(systemName: symbol).frame(width: 18)
                 Text(title).fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
-                if selected { Image(systemName: "checkmark").foregroundStyle(MumlaStyle.accent) }
-            }.font(.system(size: 13, design: .monospaced)).padding(14).frame(minHeight: 44)
+                if selected { Image(systemName: "checkmark").foregroundStyle(palette.accent) }
+            }.mumlaFont(size: 13).padding(14).frame(minHeight: 44)
         }.buttonStyle(MumlaKeyStyle(radius: 8)).accessibilityLabel(title).accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func notice(_ text: String, symbol: String) -> some View {
-        Label(text, systemImage: symbol).font(.system(size: 13, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+        Label(text, systemImage: symbol).mumlaFont(size: 13).foregroundStyle(palette.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 

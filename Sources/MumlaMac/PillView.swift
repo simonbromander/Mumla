@@ -3,6 +3,7 @@ import MumlaUI
 import SwiftUI
 
 struct PillView: View {
+    @MumlaTheme private var palette
     @ObservedObject var coordinator: AppCoordinator
     static let width: CGFloat = 380
     static let cornerRadius: CGFloat = 14
@@ -43,7 +44,7 @@ struct PillView: View {
         .mumlaSurface(radius: Self.cornerRadius(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle), opacity: isMinimalOverlay ? 0.72 : 0.88)
         .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius(for: coordinator.pillState, style: coordinator.settings.dictationOverlayStyle), style: .continuous))
         .mumlaAppearance()
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
+        .mumlaFont(.body)
         .accessibilityElement(children: .contain)
     }
 
@@ -51,15 +52,15 @@ struct PillView: View {
         HStack(spacing: 6) {
             MumlaRecordingLight(recording: recording)
             if recording {
-                Text("REC").font(.system(size: 9, weight: .semibold, design: .monospaced))
-                Text(elapsed).font(.system(size: 12, design: .monospaced)).monospacedDigit()
+                Text("REC").mumlaFont(size: 9, weight: .semibold)
+                Text(elapsed).mumlaFont(size: 12).monospacedDigit()
                     .fixedSize()
             } else {
-                Text(title).font(.system(size: 10, weight: .medium, design: .monospaced))
+                Text(title).mumlaFont(size: 10, weight: .medium)
                     .lineLimit(3).fixedSize(horizontal: false, vertical: true)
             }
         }
-        .foregroundStyle(MumlaStyle.ink)
+        .foregroundStyle(palette.ink)
         .padding(.horizontal, 4)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(recording ? mText("Spelar in", "Recording") : title)
@@ -76,29 +77,29 @@ struct PillView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 7) {
                     MumlaRecordingLight(recording: recording)
-                    Text(title).font(.system(size: 12, weight: .semibold, design: .monospaced)).lineLimit(2)
+                    Text(title).mumlaFont(size: 12, weight: .semibold).lineLimit(2)
                     Spacer(minLength: 6)
                     if recording {
-                        Text(elapsed).font(.system(size: 20, weight: .light, design: .monospaced)).monospacedDigit()
+                        Text(elapsed).mumlaFont(size: 20, weight: .light).monospacedDigit()
                     }
-                    Text(language).font(.system(size: 10, weight: .medium, design: .monospaced))
+                    Text(language).mumlaFont(size: 10, weight: .medium)
                 }
                 if recording {
-                    MumlaWaveform(samples: coordinator.waveformSamples, active: true, ink: MumlaStyle.lcdInk)
+                    MumlaWaveform(samples: coordinator.waveformSamples, active: true, ink: palette.lcdInk)
                         .frame(height: 18)
                 } else if case let .preparing(progress) = coordinator.pillState {
                     MumlaDownloadGauge(fraction: progress)
                 } else {
                     Text(coordinator.pillState == .transcribing ? mText("PÅ DEN HÄR MACEN", "ON THIS MAC") : "16 kHz / MONO")
-                        .font(.system(size: 10, design: .monospaced))
+                        .mumlaFont(size: 10)
                 }
             }
-            .foregroundStyle(MumlaStyle.lcdInk)
+            .foregroundStyle(palette.lcdInk)
             .padding(.horizontal, 12).padding(.vertical, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(RoundedRectangle(cornerRadius: 7).fill(
-                LinearGradient(colors: [MumlaStyle.lcd, MumlaStyle.lcdEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .shadow(.inner(color: .black.opacity(0.45), radius: 4, y: 2))
+                LinearGradient(colors: [palette.lcd, palette.lcdEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .shadow(.inner(color: .black.opacity(palette.skin == .classic ? 0.45 : 0), radius: 4, y: 2))
             ))
             .mumlaDisplayLens()
             HStack(spacing: 6) {
@@ -123,17 +124,17 @@ struct PillView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 Label(mText("Texten är klar", "Transcript ready"), systemImage: "text.alignleft")
-                    .font(.system(size: 12, weight: .medium, design: .monospaced)).foregroundStyle(MumlaStyle.accent)
+                    .mumlaFont(size: 12, weight: .medium).foregroundStyle(palette.accent)
                 Spacer()
                 MumlaIconButton("xmark", label: mText("Stäng", "Close")) { coordinator.dismissPill() }
             }
             ScrollView {
-                Text(record.text).font(.system(size: 15, design: .monospaced)).lineSpacing(4)
+                Text(record.text).mumlaFont(size: 15).lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(12)
             }.frame(maxWidth: .infinity, maxHeight: .infinity).mumlaRecess(radius: 7)
             HStack {
                 Text(copied ? mText("Kopierat", "Copied") : mText("Sparat i historiken", "Saved in History"))
-                    .font(.system(size: 11, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                    .mumlaFont(size: 11).foregroundStyle(palette.secondary)
                 Spacer()
                 Button { coordinator.copyPillTranscript() } label: {
                     Label(mText("Kopiera", "Copy"), systemImage: copied ? "checkmark" : "doc.on.doc")

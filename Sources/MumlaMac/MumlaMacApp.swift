@@ -219,6 +219,9 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
 
     #if DEBUG
     private func launchMeetingUITests() {
+        if CommandLine.arguments.contains("--reset-ui-style") {
+            UserDefaults.standard.removeObject(forKey: MumlaSkin.preferenceKey)
+        }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MumlaMeetingUITests", isDirectory: true)
         if CommandLine.arguments.contains("--reset-ui-data") { try? FileManager.default.removeItem(at: directory) }
         coordinator = AppCoordinator(recorder: MicrophoneRecorder(), transcriber: nil,
@@ -253,6 +256,12 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         quit.target = NSApp; applicationMenu.addItem(quit)
         applicationItem.submenu = applicationMenu; menu.addItem(applicationItem); NSApp.mainMenu = menu
         mainWindowController.show()
+        if CommandLine.arguments.contains("--preview-recording-overlay") {
+            coordinator.prepareRecordingSnapshot()
+            if CommandLine.arguments.contains("--snapshot-minimal") { coordinator.settings.dictationOverlayStyle = .minimal }
+            pillWindowController = PillWindowController(coordinator: coordinator)
+            pillWindowController.show()
+        }
         if CommandLine.arguments.contains("--focus-meeting-suggestion") { meetingPromptController?.focusForUITesting() }
     }
 

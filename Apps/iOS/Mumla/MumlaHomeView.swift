@@ -3,6 +3,7 @@ import MumlaUI
 import SwiftUI
 
 struct MumlaHomeView: View {
+    @MumlaTheme private var palette
     @ObservedObject var session: DictationSession
     @ObservedObject var voiceNotes: VoiceNotes
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -17,6 +18,48 @@ struct MumlaHomeView: View {
     @State private var query = ""
 
     var body: some View {
+        Group {
+            if palette.skin == .native { nativeShell }
+            else { classicShell }
+        }
+        .tint(palette.accent)
+        .mumlaAppearance()
+        .mumlaFont(.body)
+        .onChange(of: tab) { _, _ in MumlaFeedback.latch() }
+        .onChange(of: session.error) { _, error in if error != nil { MumlaFeedback.error() } }
+        .sheet(isPresented: $showSettings) { MumlaSettingsSheet(session: session) }
+        .sheet(isPresented: $showKeyboard) { KeyboardSetupSheet(session: session) }
+        .sheet(isPresented: $showAddWord) { AddWordSheet(session: session) }
+        .sheet(item: $session.selectedRecord) { record in TranscriptSheet(record: record, session: session) }
+        .alert("Mumla", isPresented: Binding(get: { session.error != nil && !showKeyboard }, set: { if !$0 && !showKeyboard { session.error = nil } })) {
+            Button("OK", role: .cancel) { session.error = nil }
+        } message: { Text(session.error ?? "") }
+        .alert(mText("Radera osparat ljud?", "Discard unsaved audio?"), isPresented: $showDiscardAudio) {
+            Button(mText("Radera", "Discard"), role: .destructive) { session.discardPendingAudio() }
+            Button(mText("Avbryt", "Cancel"), role: .cancel) {}
+        } message: { Text(mText("Det här klippet har inget sparat transkript än.", "This clip does not have a saved transcript yet.")) }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background && session.state == .recording { Task { await session.finish() } }
+            if phase == .active {
+                voiceNotes.refresh()
+                session.refreshPendingAudio()
+                session.prepareKeyboardModel()
+                activateKeyboardIfRequested()
+            }
+        }
+        .task {
+            session.prepareKeyboardModel()
+            activateKeyboardIfRequested()
+        }
+        .onChange(of: keyboardLauncher.requestID) { _, _ in activateKeyboardIfRequested() }
+        .onOpenURL { url in
+            guard let destination = KeyboardSessionDestination(url: url) else { return }
+            showKeyboard = true
+            if destination == .start { keyboardLauncher.requestStart() }
+        }
+    }
+
+    private var classicShell: some View {
         ZStack {
             MumlaBackdrop()
             VStack(spacing: 12) {
@@ -51,43 +94,53 @@ struct MumlaHomeView: View {
 
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            Color.clear.frame(height: 0).background(MumlaStyle.background)
+            Color.clear.frame(height: 0).background(palette.background)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
-        .tint(MumlaStyle.accent)
-        .mumlaAppearance()
-        .font(.system(.body, design: .monospaced)).fontDesign(.monospaced)
-        .onChange(of: tab) { _, _ in MumlaFeedback.latch() }
-        .onChange(of: session.error) { _, error in if error != nil { MumlaFeedback.error() } }
-        .sheet(isPresented: $showSettings) { MumlaSettingsSheet(session: session) }
-        .sheet(isPresented: $showKeyboard) { KeyboardSetupSheet(session: session) }
-        .sheet(isPresented: $showAddWord) { AddWordSheet(session: session) }
-        .sheet(item: $session.selectedRecord) { record in TranscriptSheet(record: record, session: session) }
-        .alert("Mumla", isPresented: Binding(get: { session.error != nil && !showKeyboard }, set: { if !$0 && !showKeyboard { session.error = nil } })) {
-            Button("OK", role: .cancel) { session.error = nil }
-        } message: { Text(session.error ?? "") }
-        .alert(mText("Radera osparat ljud?", "Discard unsaved audio?"), isPresented: $showDiscardAudio) {
-            Button(mText("Radera", "Discard"), role: .destructive) { session.discardPendingAudio() }
-            Button(mText("Avbryt", "Cancel"), role: .cancel) {}
-        } message: { Text(mText("Det här klippet har inget sparat transkript än.", "This clip does not have a saved transcript yet.")) }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .background && session.state == .recording { Task { await session.finish() } }
-            if phase == .active {
-                voiceNotes.refresh()
-                session.refreshPendingAudio()
-                session.prepareKeyboardModel()
-                activateKeyboardIfRequested()
+    }
+
+    private var nativeShell: some View {
+        TabView(selection: $tab) {
+            ForEach(HomeTab.allCases) { item in
+                NavigationStack {
+                    Group {
+                        if item == .dictate { dictate }
+                        else {
+                            ScrollView {
+                                Group {
+                                    if item == .history { history }
+                                    else if item == .voiceNotes {
+                                        VoiceNotesSection(inbox: voiceNotes, playbackAllowed: session.state == .idle && !session.keyboardSnapshot.isAlive())
+                                    } else { dictionary }
+                                }.padding(.bottom, 16)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20).padding(.vertical, 12)
+                    .frame(maxWidth: item == .dictate ? 900 : 640).frame(maxWidth: .infinity)
+                    .background(palette.background)
+                    .navigationTitle(item == .dictate ? "Mumla" : item.title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .topBarTrailing) {
+                            if item == .dictate && !session.modelReady {
+                                Button { Task { await session.install() } } label: { Image(systemName: "arrow.down") }
+                                    .disabled(session.isInstalling)
+                                    .accessibilityLabel(mText("Hämta språkmodell", "Download language model"))
+                            }
+                            Button { showKeyboard = true } label: { Image(systemName: "keyboard") }
+                                .accessibilityLabel(mText("Mumla-tangentbord", "Mumla keyboard"))
+                                .accessibilityIdentifier("keyboard.setup")
+                            Button { showSettings = true } label: { Image(systemName: "slider.horizontal.3") }
+                                .accessibilityLabel(mText("Inställningar", "Settings"))
+                                .accessibilityIdentifier("settings.open")
+                        }
+                    }
+                }
+                .tabItem { Label(item.title, systemImage: item.symbol) }
+                .tag(item)
+                .accessibilityIdentifier("tab.\(item.rawValue)")
             }
-        }
-        .task {
-            session.prepareKeyboardModel()
-            activateKeyboardIfRequested()
-        }
-        .onChange(of: keyboardLauncher.requestID) { _, _ in activateKeyboardIfRequested() }
-        .onOpenURL { url in
-            guard let destination = KeyboardSessionDestination(url: url) else { return }
-            showKeyboard = true
-            if destination == .start { keyboardLauncher.requestStart() }
         }
     }
 
@@ -187,7 +240,7 @@ struct MumlaHomeView: View {
         VStack(alignment: .leading, spacing: 20) {
             sectionHeading(mText("Historik", "History"), count: session.history.count)
             HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass").foregroundStyle(MumlaStyle.secondary)
+                Image(systemName: "magnifyingglass").foregroundStyle(palette.secondary)
                 TextField(mText("Sök dikteringar", "Search dictations"), text: $query).textInputAutocapitalization(.never)
                 if !query.isEmpty {
                     Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
@@ -214,12 +267,12 @@ struct MumlaHomeView: View {
             ForEach(session.dictionary) { entry in
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(entry.replacement).font(.system(.headline, design: .monospaced))
-                        Text(entry.original).font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+                        Text(entry.replacement).mumlaFont(.headline)
+                        Text(entry.original).mumlaFont(.subheadline).foregroundStyle(palette.secondary)
                     }
                     Spacer()
                     Button(role: .destructive) { session.deleteWord(entry) } label: {
-                        Image(systemName: "trash").font(.system(size: 18, design: .monospaced)).frame(width: 44, height: 44)
+                        Image(systemName: "trash").mumlaFont(size: 18).frame(width: 44, height: 44)
                     }
                         .buttonStyle(MumlaKeyStyle())
                         .accessibilityLabel(mText("Ta bort", "Delete") + " " + entry.replacement)
@@ -234,9 +287,9 @@ struct MumlaHomeView: View {
             ForEach(HomeTab.allCases) { item in
                 Button { tab = item } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: item.symbol).font(.system(size: 16, weight: .medium, design: .monospaced))
+                        Image(systemName: item.symbol).mumlaFont(size: 16, weight: .medium)
                         if verticalSizeClass != .compact {
-                            Text(item.title.uppercased()).font(.system(size: 10, weight: .medium, design: .monospaced))
+                            Text(item.title.uppercased()).mumlaFont(size: 10, weight: .medium)
                                 .lineLimit(1).minimumScaleFactor(0.85)
                         }
                     }
@@ -264,8 +317,8 @@ struct MumlaHomeView: View {
 
     private func sectionHeading(_ title: String, count: Int) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.system(size: 32, weight: .semibold, design: .monospaced))
-            Text("\(count) " + mText("sparade", "saved")).font(.system(.subheadline, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
+            if palette.skin == .classic { Text(title).mumlaFont(size: 32, weight: .semibold) }
+            Text("\(count) " + mText("sparade", "saved")).mumlaFont(.subheadline).foregroundStyle(palette.secondary)
         }
     }
     private var filteredHistory: [DictationRecord] { session.history.filter { query.isEmpty || $0.text.localizedCaseInsensitiveContains(query) } }
@@ -313,6 +366,7 @@ private enum HomeTab: String, CaseIterable, Identifiable {
 }
 
 private struct TranscriptRow: View {
+    @MumlaTheme private var palette
     var record: DictationRecord
     var open: () -> Void
     var body: some View {
@@ -322,10 +376,10 @@ private struct TranscriptRow: View {
                     Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
                     Spacer()
                     Image(systemName: "arrow.up.right")
-                }.font(.system(.caption, design: .monospaced)).foregroundStyle(MumlaStyle.secondary)
-                Text(record.text).font(.system(size: 16, design: .monospaced)).lineSpacing(4).lineLimit(3).multilineTextAlignment(.leading)
+                }.mumlaFont(.caption).foregroundStyle(palette.secondary)
+                Text(record.text).mumlaFont(size: 16).lineSpacing(4).lineLimit(3).multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }.padding(20).mumlaSurface(radius: 10)
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).accessibilityIdentifier("history.transcript")
     }
 }

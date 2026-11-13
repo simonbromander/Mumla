@@ -4,6 +4,7 @@ import MumlaUI
 import SwiftUI
 
 struct KeyboardPreviewHarness: View {
+    @MumlaTheme private var palette
     @State private var snapshot: KeyboardSessionSnapshot = {
         var state = KeyboardSessionSnapshot()
         state.sessionID = UUID(); state.phase = .ready; state.heartbeat = Date()
@@ -16,13 +17,13 @@ struct KeyboardPreviewHarness: View {
     @State private var samples = Array(repeating: 0.0, count: 43)
     var body: some View {
         VStack(spacing: 16) {
-            Text("Mumla keyboard / UI test").font(.system(.headline, design: .monospaced))
+            Text("Mumla keyboard / UI test").mumlaFont(.headline)
             HStack {
                 Button("Light") { snapshot.appearance = "light" }
                 Button("Dark") { snapshot.appearance = "dark" }
                 Button("Access") { fullAccess.toggle() }
                 Button("Clear") { output = "" }
-            }.buttonStyle(.bordered).font(.system(.caption, design: .monospaced))
+            }.buttonStyle(.bordered).mumlaFont(.caption)
             Text(output.isEmpty ? " " : output).frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("keyboard.output").padding(20)
             Spacer(minLength: 0)
@@ -40,7 +41,7 @@ struct KeyboardPreviewHarness: View {
                 onDelete: { if !output.isEmpty { output.removeLast() } }, onReturn: { output += "\n" })
                 .frame(height: UIDevice.current.orientation.isLandscape ? (preview == nil ? 266 : 306) : (preview == nil ? 344 : 384))
         }
-        .padding(.top, 16).background(MumlaStyle.background)
+        .padding(.top, 16).background(palette.background)
         .preferredColorScheme(MumlaAppearance(rawValue: snapshot.appearance)?.colorScheme)
         .task {
             while !Task.isCancelled {
@@ -57,7 +58,7 @@ struct KeyboardHostHarness: View {
     private var literal: Bool { CommandLine.arguments.contains("--keyboard-literal-field") }
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Mumla / keyboard host").font(.system(.headline, design: .monospaced))
+            Text("Mumla / keyboard host").mumlaFont(.headline)
             TextEditor(text: $text).focused($focused)
                 .textInputAutocapitalization(literal ? .never : .sentences)
                 .autocorrectionDisabled(literal)
