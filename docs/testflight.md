@@ -9,27 +9,37 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
   replacing this legacy companion identifier, even when earlier rebuilt iOS
   packages omitted the Watch app.
 
-## iOS 36 Prepared, Upload Blocked: 2026-11-13
+## Verified iOS Release 36: 2026-11-13
 
-- Source `56476a2bbddaff70c597e487e0c9ca9ae199e6ab` adds Classic/Native styles
+- Source `f392a705a761973dcdf9a6dd646f1d41dd40d220` adds Classic/Native styles
   independently of appearance. Existing installations keep Classic. Keyboard
   styling travels through its existing shared session snapshot, with backward
   decoding support. No new provider, permission or data-sharing feature.
-- Exact-source CI `43380212155` passed. Locally, 359 package tests (nine
+  App code is unchanged from the Mac release source `56476a2`; the intervening
+  changes are release documentation only.
+- Exact-source CI `43382823890` passed. Locally, 359 package tests (nine
   optional skips), 35 release-helper tests, 22 hosted iOS Simulator tests and
   three Native UI tests passed. Device recording, keyboard handoff, haptics and
   older-platform materials are not established by Simulator checks.
-- Build number 36 and localized notes are prepared in
-  `fastlane/testflight/ios-1.0.1-36.json`. A fresh read of Apple build metadata
-  still shows 35 as the latest uploaded iOS build, VALID / IN_BETA_TESTING.
-- Signing preflight is blocked by Apple's membership API response: updated
-  Program License Agreement requires the Account Holder's acceptance. Acceptance
-  was reported but the API continued to reject the membership resource. Recheck
-  access before resuming `fastlane ios build`; never call this build uploaded,
-  processed or available until independently verified. No audience was changed.
-- Preserve the archived/exported artifact audits, then upload, read back the
-  localized notes and verify processing and the existing tester groups before
-  declaring completion. Mac direct build 50 is already published separately.
+- Archive and extracted IPA passed four-bundle signature, profile/certificate,
+  version, dSYM and entitlement audits. App/keyboard/widget retain their App
+  Group; the preserved Watch identity and companion, model manifest and licenses
+  pass. Debug signing is disabled, exported iCloud environment is Production,
+  and Mac runtimes and audio capture are absent from the extensions.
+- Apple accepted the upload at `2026-11-13T07:20:13Z`; processing completed at
+  `2026-11-13T07:22:47Z`. Build `b2bfd162-07b5-4836-87f7-1c2aa4d42142` was
+  independently verified VALID / IN_BETA_TESTING at `2026-11-13T07:23:08Z`.
+  Existing internal Test and Friends groups both include it, with no new audience.
+  External review and a public App Store submission were not requested or made.
+- Swedish/English notes from `fastlane/testflight/ios-1.0.1-36.json` were saved
+  and read back at `2026-11-13T07:23:08Z`. IPA SHA-256:
+  `6de70dbf318f01ce23eae55f371bce2546a8c1af5e32cf885fb537c2f2b74729`.
+  Artifact, symbols, before/after audience reports and audits are preserved under
+  `.build/ReleaseAuditIOS36-20261113/`; logs use `.build/ios36-*`.
+- An updated Developer Program License Agreement initially blocked membership
+  access. The Account Holder accepted it; API access recovered before signing.
+  No new certificate, identity or security exception was needed. Mac direct
+  build 50 is published separately. Physical-device acceptance remains required.
 
 ## Verified iOS Release 35: 2026-10-28
 

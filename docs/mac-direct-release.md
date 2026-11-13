@@ -30,9 +30,16 @@
 - Physical recording, keyboard handoff, haptics, older-system materials, privacy
   traffic auditing and live updater replacement remain acceptance checks.
   No production app was replaced and no existing recordings were opened.
-- iOS 36 is prepared separately but not uploaded: Apple's membership API still
-  reports an updated Program License Agreement requiring Account Holder action.
-  Do not describe the iOS Simulator build as a TestFlight release.
+- iOS 36 is separately uploaded and verified VALID / IN_BETA_TESTING in the
+  existing internal groups. See the TestFlight runbook for its artifact audits
+  and audience/notes verification. The initial membership-agreement gate cleared.
+- The public website now links build 50 and retains the Rams identity with
+  readable text, larger touch controls, semantic color tokens and responsive
+  derivatives of the unchanged real captures. All 21 unit and 48 browser checks
+  pass; live JS/CSS and images match the tested build. Sixteen live automated
+  accessibility scans passed without violations. This update was published
+  manually after the Git-connected Cloudflare publishing job failed; that job
+  remains a separate unresolved hosting issue. No DNS settings were changed.
 - Evidence is ignored under `.build/mac50-*` and `.build/ReleaseAuditMac50/`.
   [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-50).
 
