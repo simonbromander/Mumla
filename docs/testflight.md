@@ -9,6 +9,28 @@ Mumla iOS and macOS use the preserved App Store bundle identity:
   replacing this legacy companion identifier, even when earlier rebuilt iOS
   packages omitted the Watch app.
 
+## iOS 36 Prepared, Upload Blocked: 2026-11-13
+
+- Source `56476a2bbddaff70c597e487e0c9ca9ae199e6ab` adds Classic/Native styles
+  independently of appearance. Existing installations keep Classic. Keyboard
+  styling travels through its existing shared session snapshot, with backward
+  decoding support. No new provider, permission or data-sharing feature.
+- Exact-source CI `43380212155` passed. Locally, 359 package tests (nine
+  optional skips), 35 release-helper tests, 22 hosted iOS Simulator tests and
+  three Native UI tests passed. Device recording, keyboard handoff, haptics and
+  older-platform materials are not established by Simulator checks.
+- Build number 36 and localized notes are prepared in
+  `fastlane/testflight/ios-1.0.1-36.json`. A fresh read of Apple build metadata
+  still shows 35 as the latest uploaded iOS build, VALID / IN_BETA_TESTING.
+- Signing preflight is blocked by Apple's membership API response: updated
+  Program License Agreement requires the Account Holder's acceptance. Acceptance
+  was reported but the API continued to reject the membership resource. Recheck
+  access before resuming `fastlane ios build`; never call this build uploaded,
+  processed or available until independently verified. No audience was changed.
+- Preserve the archived/exported artifact audits, then upload, read back the
+  localized notes and verify processing and the existing tester groups before
+  declaring completion. Mac direct build 50 is already published separately.
+
 ## Verified iOS Release 35: 2026-10-28
 
 - iOS `1.0.1 (35)`, app source

@@ -1,5 +1,41 @@
 # Full-Capability Mac Distribution
 
+## Classic And Native Styles Beta: 2026-11-13
+
+- Universal direct `1.0.1 (50)` is published as a prerelease in both repositories
+  from `56476a2bbddaff70c597e487e0c9ca9ae199e6ab`. PR #16 was merged as
+  `e012a89c685f158900756066520f29aee6015d04` after exact-source Contributor CI
+  `43380212155` passed secret scanning, package/helper tests, iOS/Mac/Watch
+  builds and Watch test compilation.
+- Adds independent Classic/Native style and System/Light/Dark appearance.
+  Classic stays the default. Native adapts navigation, shared controls and the
+  non-activating recording overlay; older systems use material fallbacks.
+  Style changes do not recreate recording services or change audio permissions,
+  history or transcription preferences. DJI input is ignored during app updates,
+  including when Secure Input is enabled; Secure Input remains protected.
+- Local checks: 359 Swift tests, nine optional model/hardware skips, zero
+  failures; 35 release-helper tests, 84 assertions; 22 hosted iOS Simulator tests
+  and three Native-style UI tests passed. Mac UI tests compile but execution is
+  not verified because UI Automation access was not granted.
+- Apple notarization `e3d38287-2433-4a2a-82bc-753c5b24bace` was Accepted.
+  Signing, hardened runtime, both architectures, entitlements, dSYMs, updater
+  metadata, licenses, MLX kernels, stapled ticket and Gatekeeper passed on the
+  app and a fresh ZIP extraction. Model weights, debug fixtures and unreleased
+  cloud-summary interfaces are absent. Only the ZIP and checksum are published.
+- ZIP size: 38,064,691 bytes. SHA-256:
+  `ab355556f6558b8a06f301be2ef7e2165b955f6675e141eace16b726d7debdbe`.
+  An anonymous download from the source repository matches. Signed staging and
+  canonical live feed are byte-identical at feed commit `1ddb983`; anonymous
+  enclosure/signature checks pass for builds 50, 49 and 48.
+- Physical recording, keyboard handoff, haptics, older-system materials, privacy
+  traffic auditing and live updater replacement remain acceptance checks.
+  No production app was replaced and no existing recordings were opened.
+- iOS 36 is prepared separately but not uploaded: Apple's membership API still
+  reports an updated Program License Agreement requiring Account Holder action.
+  Do not describe the iOS Simulator build as a TestFlight release.
+- Evidence is ignored under `.build/mac50-*` and `.build/ReleaseAuditMac50/`.
+  [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-50).
+
 ## Meeting Speaker Alignment Beta: 2026-11-12
 
 - Universal direct `1.0.1 (49)` is published as a prerelease in Mumla and
