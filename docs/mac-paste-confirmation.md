@@ -48,10 +48,18 @@ that these are the only causes in the reported environment.
   A real composer/paste test is blocked until the user signs in. No credentials
   were accessed and no test message was entered or sent.
 - No app was installed over a user's copy, no permissions changed and no
-  private conversations or recordings were read. Nothing was published.
+  private conversations or recordings were read during source verification.
 
 Before release, verify the affected Claude variant using a nonsensitive draft:
 paste into an empty field, append to existing text, replace selected text, and
 paste multiple paragraphs. Confirm that the overlay disappears, the text occurs
 once and the prior clipboard is restored. Also check a blocked paste, changed
 focus, secure input and a newer user copy: those must retain their safeguards.
+
+## Release Status
+
+Mac `1.0.1 (52)` was published as a signed/notarized direct beta after the
+local checks, exact-source CI and anonymous public archive/feed verification.
+The user explicitly deferred the Claude desktop test; it is still outstanding.
+See [the release receipt](mac-direct-release.md) for artifact and acceptance
+boundaries. No iOS/TestFlight build or automatic paste retry was added.

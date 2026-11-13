@@ -1,5 +1,50 @@
 # Full-Capability Mac Distribution
 
+## Paste Confirmation Beta: 2026-11-13
+
+- Universal direct `1.0.1 (52)` is published as a prerelease in both public
+  repositories from `2efc894244ae9dd98e550515e63f707a53a286c0`. PR #18 was merged
+  as `58cc4e4817b56b0c22aba99183d1ec46da2713a2`; its tree matches the tested
+  source. Exact-source Contributor CI `43414543972` passed full-history secret
+  scanning, package/helper tests, iOS/Mac/Watch builds and Watch test compilation.
+- Fixes reproduced paste-confirmation false negatives caused by equivalent
+  rich-editor paragraph/space representations and zero-character fields that
+  reject empty range queries. Confirmed immediate or delayed pastes dismiss
+  the recorder without a second paste. Failed/unreadable paste fallback, secure
+  input, focus, selected-range and clipboard safeguards remain. Pasted text,
+  saved history, recording, models and meeting capture are unchanged.
+- Local checks: 373 Swift tests, nine optional model/hardware skips, no failures;
+  35 release-helper tests, 84 assertions. CI also runs 373 tests with no failures
+  and ten skips: its additional skip is the existing denied-Input-Monitoring
+  check, because that runner already grants the permission. No permissions
+  were changed to make a check pass.
+- Apple notarization `5a972280-63b3-44bb-8ca8-b8f88a57e397` was Accepted.
+  Developer ID signing, hardened runtime, both architectures, matching dSYMs,
+  entitlements, permission descriptions, updater metadata, licenses, MLX kernels,
+  stapled ticket and Gatekeeper pass on staging, fresh ZIP extraction and a
+  fresh anonymous public download. Model weights, credential files, debug UI
+  fixtures and unreleased cloud-summary controls are absent. Only the ZIP and
+  checksum are public assets; crash symbols are retained privately.
+- ZIP size: 38,135,674 bytes. SHA-256:
+  `222f148b3f73fbe0144029a6a134e97039e19942663663bb5b14d99ebd0113b9`.
+  Both repositories report the matching asset digest; an anonymous source
+  download and checksum match staging. Feed commit `a79c853` is live and
+  byte-identical to signed staging. Anonymous download and Ed25519 checks pass
+  for builds 52, 51 and 50 before and after feed publication.
+- The website's version and download references now point to build 52. All
+  21 unit and 48 browser checks pass locally. Production worker version
+  `32bbaa19-fe7c-464f-8b60-dc9434e74ae6` was published manually; live index,
+  JavaScript and CSS match the tested build. No design, DNS or hosting
+  configuration changed; the separate Git-connected publishing issue is not
+  claimed fixed.
+- The user explicitly deferred live testing in Claude desktop. Synthetic
+  regressions do not guarantee every Claude version. Actual target-app paste,
+  privacy traffic auditing and updater installation/relaunch remain acceptance
+  checks. No installed user app, private recording or conversation was modified.
+  iOS/TestFlight is unchanged. Evidence and crash symbols are retained under
+  ignored `.build/mac52-*` and `.build/ReleaseAuditMac52/`.
+  [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-52).
+
 ## Meeting Library Beta: 2026-11-13
 
 - Universal direct `1.0.1 (51)` is published as a prerelease in both repositories
