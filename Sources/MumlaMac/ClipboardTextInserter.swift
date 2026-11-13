@@ -144,27 +144,37 @@ final class ClipboardTextInserter {
 
     static func verifiesInsertion(_ text: String, before: String?, after: String?, selectedRange: NSRange?) -> Bool {
         guard !text.isEmpty, let before, let after else { return false }
-        // Chromium rich-text editors report an empty field as "\n" and drop it once text is inserted.
-        let blank = normalizedLineEndings(before)
-        if !blank.isEmpty, blank.allSatisfy({ $0 == "\n" }) {
-            let newlines = CharacterSet(charactersIn: "\n")
-            let inserted = normalizedLineEndings(text).trimmingCharacters(in: newlines)
-            if !inserted.isEmpty, normalizedLineEndings(after).trimmingCharacters(in: newlines) == inserted { return true }
-        }
         let original = before as NSString
         if let range = selectedRange {
             guard range.location >= 0, range.length >= 0,
                   range.location <= original.length, range.length <= original.length - range.location else { return false }
-            let expected = original.replacingCharacters(in: range, with: text)
-            if normalizedLineEndings(expected) == normalizedLineEndings(after) { return true }
+        }
+        let baseline = normalizedEditorText(before)
+        let insertedText = normalizedEditorText(text)
+        let updated = normalizedEditorText(after)
+        // Chromium rich-text editors report an empty field as "\n" and drop it once text is inserted.
+        if !baseline.isEmpty, baseline.allSatisfy({ $0 == "\n" }) {
+            let newlines = CharacterSet(charactersIn: "\n")
+            let inserted = insertedText.trimmingCharacters(in: newlines)
+            if !inserted.isEmpty, updated.trimmingCharacters(in: newlines) == inserted { return true }
+        }
+        if let range = selectedRange {
+            // Apply the UTF-16 range before normalizing, since CRLF changes offsets.
+            let expected = normalizedEditorText(original.replacingCharacters(in: range, with: text))
+            if updated == expected || updated == expected + "\n" { return true }
             // Some custom editors report a stale collapsed range. Still require one exact insertion.
             guard range.length == 0 else { return false }
         }
 
         // Some editors expose their text but not a cursor range. Confirm a single insertion.
-        let baseline = normalizedLineEndings(before)
-        let insertedText = normalizedLineEndings(text)
-        let updated = normalizedLineEndings(after) as NSString
+        if verifiesSingleInsertion(insertedText, before: baseline, after: updated) { return true }
+        // A rich editor can add one paragraph terminator to its Accessibility value.
+        guard updated.hasSuffix("\n") else { return false }
+        return verifiesSingleInsertion(insertedText, before: baseline, after: String(updated.dropLast()))
+    }
+
+    private static func verifiesSingleInsertion(_ insertedText: String, before baseline: String, after: String) -> Bool {
+        let updated = after as NSString
         guard updated.length == (baseline as NSString).length + (insertedText as NSString).length else { return false }
         var search = NSRange(location: 0, length: updated.length)
         while search.length > 0 {
@@ -177,8 +187,13 @@ final class ClipboardTextInserter {
         return false
     }
 
-    private static func normalizedLineEndings(_ text: String) -> String {
-        text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+    private static func normalizedEditorText(_ text: String) -> String {
+        // Compare rendered equivalents only; never change the text sent to the editor.
+        text.replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .replacingOccurrences(of: "\u{2028}", with: "\n")
+            .replacingOccurrences(of: "\u{2029}", with: "\n")
+            .replacingOccurrences(of: "\u{00a0}", with: " ")
     }
 }
 

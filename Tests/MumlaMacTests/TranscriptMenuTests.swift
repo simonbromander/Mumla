@@ -103,6 +103,58 @@ final class TranscriptMenuTests: XCTestCase {
         XCTAssertEqual(system.postCount, 1)
     }
 
+    func testRichEditorPasteHidesPillAndRestoresClipboardWithoutPresentingFallback() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally(); try? FileManager.default.removeItem(at: directory) }
+        board.setString("Previous clipboard", forType: .string)
+        let system = MenuPasteSystem(board: board)
+        system.pastedValueSuffix = "\n"
+        let service = ClipboardTextInserter(system: system, pasteboard: board, verificationDelays: [.zero])
+        let coordinator = coordinator(directory, board: board, inserter: service)
+        let record = DictationRecord(text: "Hej Mumla", language: .swedish)
+        let target = FocusedTextTargetSnapshot(element: AXUIElementCreateApplication(getpid()), processID: getpid())
+        var presentations = 0
+        var dismissals = 0
+        coordinator.showPill = { presentations += 1 }
+        coordinator.hidePill = { dismissals += 1 }
+        coordinator.pillState = .transcribing
+
+        coordinator.presentInsertion(await service.insert(record.text, target: target), record: record)
+
+        XCTAssertEqual(service.lastOutcome, .confirmed)
+        XCTAssertEqual(coordinator.pillState, .hidden)
+        XCTAssertEqual(presentations, 0)
+        XCTAssertEqual(dismissals, 1)
+        XCTAssertEqual(system.postCount, 1)
+        XCTAssertEqual(board.string(forType: .string), "Previous clipboard")
+    }
+
+    func testDelayedRichEditorConfirmationDismissesFallbackWithoutAnotherPaste() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally(); try? FileManager.default.removeItem(at: directory) }
+        board.setString("Previous clipboard", forType: .string)
+        let system = MenuPasteSystem(board: board)
+        system.exposePastedValue = false
+        system.pastedValueSuffix = "\n"
+        let service = ClipboardTextInserter(system: system, pasteboard: board, verificationDelays: [.zero],
+                                           lateVerificationDelays: [.milliseconds(20), .milliseconds(20)])
+        let coordinator = coordinator(directory, board: board, inserter: service)
+        let record = DictationRecord(text: "Hej Mumla", language: .swedish)
+        let target = FocusedTextTargetSnapshot(element: AXUIElementCreateApplication(getpid()), processID: getpid())
+        coordinator.presentInsertion(await service.insert(record.text, target: target), record: record)
+        XCTAssertEqual(coordinator.pillState, .transcript(record, copied: false))
+        let restoredCount = board.changeCount
+        system.exposePastedValue = true
+        try await Task.sleep(for: .milliseconds(100))
+
+        XCTAssertEqual(coordinator.pillState, .hidden)
+        XCTAssertEqual(system.postCount, 1)
+        XCTAssertEqual(board.string(forType: .string), "Previous clipboard")
+        XCTAssertEqual(board.changeCount, restoredCount)
+    }
+
     func testDismissedFallbackCannotReopenOrHideANewerPanel() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let board = NSPasteboard.withUniqueName()
@@ -137,6 +189,7 @@ private final class MenuPasteSystem: TextInsertionSystem {
     var canPostEvents = true
     var areModifiersReleased = true
     var exposePastedValue = true
+    var pastedValueSuffix = ""
     var postCount = 0
     var pastedTarget: FocusedTextTargetSnapshot?
     private var pastedText = ""
@@ -147,7 +200,7 @@ private final class MenuPasteSystem: TextInsertionSystem {
     func postPasteShortcut(to target: FocusedTextTargetSnapshot) -> Bool {
         postCount += 1
         pastedTarget = target
-        pastedText = board.string(forType: .string) ?? ""
+        pastedText = (board.string(forType: .string) ?? "") + pastedValueSuffix
         return true
     }
 }
