@@ -2,7 +2,9 @@
 
 ## Report And Scope
 
-A successful paste into Claude can leave the "Transcript ready" panel open.
+A successful paste into the Claude desktop app for Mac can leave the
+"Transcript ready" panel open. The reported target is not Claude in a browser
+or Claude Code in a terminal.
 Mumla dismisses the panel only after reading back the expected text from the
 captured, still-focused editable field. Dispatching Cmd+V alone is not proof.
 
@@ -15,9 +17,9 @@ This change addresses two reproducible false-negative cases:
   zero-length string-for-range query. That is a known empty baseline, not an
   unreadable nonempty field.
 
-The Claude variant and the original report's exact Accessibility values have
-not been verified. Synthetic regressions demonstrate the failure modes; they
-do not establish that these are the only causes in the reported environment.
+The original report's exact Accessibility values have not been verified.
+Synthetic regressions demonstrate the failure modes; they do not establish
+that these are the only causes in the reported environment.
 
 ## Behavior And Safeguards
 
@@ -42,6 +44,9 @@ do not establish that these are the only causes in the reported environment.
 - `swift test`: 373 tests, 9 existing optional model/hardware skips, no failures.
 - The unsigned direct Mac Debug app builds successfully. This is a compile
   check, not a signed release or a live cross-app Accessibility test.
+- The installed Claude desktop app was inspected, but is at its sign-in screen.
+  A real composer/paste test is blocked until the user signs in. No credentials
+  were accessed and no test message was entered or sent.
 - No app was installed over a user's copy, no permissions changed and no
   private conversations or recordings were read. Nothing was published.
 
