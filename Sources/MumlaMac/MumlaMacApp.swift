@@ -229,7 +229,8 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
             settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil)
         coordinator.meetings = MeetingCoordinator(directory: directory, modelDirectory: { nil }, capture: MeetingUICapture(), permission: { true },
             processor: { _, _, _ in [] })
-        if CommandLine.arguments.contains("--seed-meeting") { _ = try? MeetingDesignFixtures.seed(coordinator.meetings, long: CommandLine.arguments.contains("--long-meeting")) }
+        if CommandLine.arguments.contains("--seed-meeting-library") { try? MeetingDesignFixtures.seedLibrary(coordinator.meetings) }
+        else if CommandLine.arguments.contains("--seed-meeting") { _ = try? MeetingDesignFixtures.seed(coordinator.meetings, long: CommandLine.arguments.contains("--long-meeting")) }
         else { coordinator.meetings.reload(); coordinator.meetings.selectedID = coordinator.meetings.records.first?.id }
         if CommandLine.arguments.contains("--interrupted-meeting"), let id = coordinator.meetings.selectedID {
             _ = try? coordinator.meetings.store.update(id) { $0.capture = .interrupted; $0.interruptionReason = .captureFailure }
@@ -238,6 +239,7 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         updater = MacUpdateController()
         mainWindowController = MainWindowController(coordinator: coordinator, updater: updater, initialSection: "meetings")
         if CommandLine.arguments.contains("--compact-window") { mainWindowController.setTestingSize(NSSize(width: 820, height: 560)) }
+        if CommandLine.arguments.contains("--wide-window") { mainWindowController.setTestingSize(NSSize(width: 1280, height: 860)) }
         if CommandLine.arguments.contains("--suggest-meeting") {
             coordinator.settings.suggestMeetingRecording = true
             coordinator.settings.useMeetingCalendar = true
@@ -289,6 +291,10 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
                 snapshotCoordinator.meetings.prepareRecordingDesignSnapshot(fixture.id, paused: section == "meetings-paused")
             }
             if section == "meetings-error" { snapshotCoordinator.meetings.error = "The selected input device is unavailable. Your meeting recording has been saved on this Mac." }
+            if section == "meetings-library" {
+                if let fixture { try? snapshotCoordinator.meetings.store.delete(fixture.id) }
+                try? MeetingDesignFixtures.seedLibrary(snapshotCoordinator.meetings)
+            }
         }
         if CommandLine.arguments.contains("--snapshot-apple-text") { snapshotCoordinator.settings.textModelProvider = .appleIntelligence }
         if CommandLine.arguments.contains("--snapshot-meeting-detection") {
