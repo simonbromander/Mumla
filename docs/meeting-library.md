@@ -80,5 +80,6 @@ Verified locally on 2026-11-13 using synthetic meetings only:
 - Full-text export contents are covered by unit tests, including a large final
   passage. The native file picker was not used to write a manual export.
 
-This change does not validate real-call acoustic quality, change capture behavior,
-install a production build, or publish a release.
+The implementation checks did not validate real-call acoustic quality, change
+capture behavior or install a production build. The subsequent Mac 51 release is
+recorded in [the distribution runbook](mac-direct-release.md).

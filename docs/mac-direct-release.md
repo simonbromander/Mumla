@@ -1,5 +1,47 @@
 # Full-Capability Mac Distribution
 
+## Meeting Library Beta: 2026-11-13
+
+- Universal direct `1.0.1 (51)` is published as a prerelease in both repositories
+  from `c074e2edf7a88922fed845b3ef6d1490ac27d188`. PR #17 was merged as
+  `901075ec83c09dfcb00131de699fdca9836290f5`; its tree matches the tested release
+  source. Exact-source Contributor CI `43390805184` passed full-history secret
+  scanning, package/helper tests, iOS/Mac/Watch builds and Watch test compilation.
+- Meetings opens on a dated, locally searchable library. One click opens a whole
+  meeting; Copy transcript and Export remain visible above the transcript and
+  always use every passage, independent of on-screen filters. Compact navigation,
+  persistent wide-window browsing, Classic/Native styles and browsing during a
+  recording were checked in the isolated host. Capture and transcription engines,
+  stored records, model weights and permissions are unchanged.
+- Local checks: 365 Swift tests, nine optional model/hardware skips, zero failures;
+  35 release-helper tests, 84 assertions; hosted Mac app and UI runner compiled.
+  Automated Mac UI execution remains unverified without UI Automation approval.
+- Apple notarization `91e70ede-b05d-4f20-9f89-e43a7997ab6f` was Accepted.
+  Developer ID signing, hardened runtime, both architectures, matching dSYMs,
+  entitlements, capture/calendar descriptions, updater metadata, speaker license,
+  MLX kernels, stapling and Gatekeeper passed on the app and fresh ZIP extractions.
+  New library controls are present; model weights, debug fixtures and unreleased
+  cloud-summary interfaces are absent. Only ZIP and checksum are public assets.
+- ZIP size: 38,134,569 bytes. SHA-256:
+  `9c65d9b74e12caf9094202ededdcbc6c3130553088999eb6a23217425a7d36f0`.
+  An anonymous source-repository download is byte-identical to staging. Both
+  release repositories report the same asset digest. Feed commit `0aafe90` is
+  live and byte-identical to signed staging; anonymous enclosure/signature checks
+  pass for builds 51, 50 and 49 before and after feed publication.
+- Website commit `8d8c55f` updates only the Mac download/version references and
+  their tests. All 21 unit and 48 browser checks pass locally. Production worker
+  version `da9f850b-82a2-42b1-8cec-49efa3002bf8` was published manually; live index,
+  JavaScript and CSS match the tested build and point to build 51. No DNS or
+  hosting configuration changed. The earlier Git-connected publisher issue is
+  separate and is not claimed fixed by this release.
+- Physical audio quality, signed-app permissions/routing, privacy traffic
+  auditing and actual updater installation/relaunch remain target-Mac acceptance
+  checks. Existing recordings were not opened or modified and the installed
+  production app was not replaced. iOS 36 and sandboxed Mac TestFlight are unchanged.
+- Evidence and crash symbols are retained under ignored `.build/mac51-*` and
+  `.build/ReleaseAuditMac51/`. Build 50's symbols were preserved separately too.
+  [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-51).
+
 ## Classic And Native Styles Beta: 2026-11-13
 
 - Universal direct `1.0.1 (50)` is published as a prerelease in both repositories
