@@ -176,17 +176,26 @@ enum FocusedTextTargetInspector {
         var countValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXNumberOfCharactersAttribute as CFString, &countValue) == .success,
               let countValue, CFGetTypeID(countValue) == CFNumberGetTypeID(),
-              let count = countValue as? Int, count >= 0, count <= 1_000_000 else { return nil }
-        var range = CFRange(location: 0, length: count)
-        guard let parameter = AXValueCreate(.cfRange, &range) else { return nil }
+              let count = countValue as? Int else { return nil }
         guard !IsSecureEventInputEnabled(), AccessibilityPermission.isTrusted,
               let current = focusedElement(), CFEqual(current, element),
               inspect(element: current) == .editableText else { return nil }
-        var textValue: CFTypeRef?
-        guard AXUIElementCopyParameterizedAttributeValue(
-            element, kAXStringForRangeParameterizedAttribute as CFString, parameter, &textValue
-        ) == .success else { return nil }
-        return textValue as? String
+        return textValue(characterCount: count) { requestedRange in
+            var range = requestedRange
+            guard let parameter = AXValueCreate(.cfRange, &range) else { return nil }
+            var textValue: CFTypeRef?
+            guard AXUIElementCopyParameterizedAttributeValue(
+                element, kAXStringForRangeParameterizedAttribute as CFString, parameter, &textValue
+            ) == .success else { return nil }
+            return textValue as? String
+        }
+    }
+
+    static func textValue(characterCount: Int, readRange: (CFRange) -> String?) -> String? {
+        guard characterCount >= 0, characterCount <= 1_000_000 else { return nil }
+        // Empty rich editors can report zero characters but reject a zero-length range query.
+        guard characterCount > 0 else { return "" }
+        return readRange(CFRange(location: 0, length: characterCount))
     }
 }
 

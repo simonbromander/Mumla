@@ -89,4 +89,37 @@ final class ClipboardTests: XCTestCase {
         XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "\n", after: "Other", selectedRange: NSRange(location: 0, length: 0)))
         XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("\n", before: "\n", after: "\n", selectedRange: nil))
     }
+
+    @MainActor
+    func testRichEditorParagraphTerminatorDoesNotKeepSuccessfulPasteUnconfirmed() {
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("Hej Mumla", before: "", after: "Hej Mumla\n", selectedRange: NSRange(location: 0, length: 0)))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("Hej Mumla", before: "", after: "Hej Mumla\n", selectedRange: nil))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Hello ", after: "Hello Mumla\n", selectedRange: NSRange(location: 6, length: 0)))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Hello wrong", after: "Hello Mumla\n", selectedRange: NSRange(location: 6, length: 5)))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Hello ", after: "Hello Mumla\n", selectedRange: nil))
+    }
+
+    @MainActor
+    func testRichEditorTextPresentationPreservesWordAndLineBoundaries() {
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("One\nTwo", before: "", after: "One\u{2028}Two\u{2029}", selectedRange: NSRange(location: 0, length: 0)))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("Hej Mumla", before: "", after: "Hej\u{00a0}Mumla", selectedRange: NSRange(location: 0, length: 0)))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Hello\u{00a0}", after: "Hello Mumla\n", selectedRange: NSRange(location: 6, length: 0)))
+        XCTAssertTrue(ClipboardTextInserter.verifiesInsertion("hej", before: "\u{1f1f8}\u{1f1ea} ", after: "\u{1f1f8}\u{1f1ea} hej\n", selectedRange: NSRange(location: 5, length: 0)))
+    }
+
+    @MainActor
+    func testRichEditorPresentationCannotConfirmMissingDuplicateOrUnrelatedText() {
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Hej Mumla", before: "", after: "Hej\n", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Hej Mumla", before: "", after: "Hej MumlaHej Mumla\n", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Hej Mumla", before: "", after: "Hej  Mumla\n", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Hej Mumla", before: "", after: "Hej\nMumla\n", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla\n", before: "", after: "Mumla", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "", after: "Mumla\n\n", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "", after: "Mumla\nOther", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Mumla\n", after: "Mumla\n", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Hello ", after: "Different Mumla\n", selectedRange: nil))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "Hello ", after: "Hello Mumla\n", selectedRange: NSRange(location: 0, length: 2)))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: "", after: "Mumla\n", selectedRange: NSRange(location: 1, length: 0)))
+        XCTAssertFalse(ClipboardTextInserter.verifiesInsertion("Mumla", before: nil, after: "Mumla\n", selectedRange: nil))
+    }
 }
