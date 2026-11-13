@@ -37,6 +37,25 @@ enum MeetingDesignFixtures {
         model.reload(); model.selectedID = record.id
         return result
     }
+
+    static func seedLibrary(_ model: MeetingCoordinator) throws {
+        let template = try seed(model)
+        let titles = ["Produktgenomgång", "Design review", "Planering av nästa produktversion och återkoppling från användare",
+                      "Weekly planning", "Research interviews", "Release checklist"]
+        for (index, title) in titles.enumerated() {
+            var record = template
+            record.id = UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", index + 1))!
+            record.title = title
+            record.createdAt = Calendar.current.date(byAdding: .day, value: -(index / 2), to: Date())!
+                .addingTimeInterval(-Double(index % 2) * 3600)
+            record.duration = Double(1485 + index * 600)
+            if index == 1 { record.capture = .interrupted }
+            if index == 3 { record.segments = []; record.processing = .pending }
+            _ = try model.store.create(record)
+        }
+        try model.store.delete(template.id)
+        model.reload(); model.selectedID = nil
+    }
 }
 
 final class MeetingUICapture: MeetingCapturing {

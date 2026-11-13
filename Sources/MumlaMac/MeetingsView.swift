@@ -13,14 +13,15 @@ struct MeetingsView: View {
     @State private var speakerFilter = ""
     @State private var followLive = true
     @State private var copied = false
-    @State private var libraryOpen = false
+    @State private var libraryQuery = ""
+    @State private var showingSetup = false
     @State private var sourcesOpen = false
     @State private var speakersOpen = false
     @State private var assigningSpeakerID: String?
     @State private var actionsOpen = false
     @State private var dialog: MeetingDialog?
 
-    static func showsLibrary(at width: CGFloat) -> Bool { width >= 720 }
+    static func showsLibrary(at width: CGFloat) -> Bool { width >= 880 }
 
     var body: some View {
         GeometryReader { geometry in
@@ -34,20 +35,23 @@ struct MeetingsView: View {
                     }.padding(12).mumlaRecess(radius: 8)
                 }
                 toolbar
-                if meetings.selected == nil { setup }
-                else {
+                if showingSetup && meetings.selected == nil { setup }
+                else if let meeting = meetings.selected {
                     HStack(alignment: .top, spacing: 20) {
                         if Self.showsLibrary(at: geometry.size.width) {
-                            library.frame(width: 200)
+                            library(compact: true).frame(width: 260)
                             Divider()
                         }
-                        if let meeting = meetings.selected { transcript(meeting) }
+                        transcript(meeting)
                     }
-                }
+                } else { library(compact: false) }
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .onAppear { meetings.refreshSources() }
-        .onChange(of: meetings.selectedID) { _, _ in query = ""; speakerFilter = ""; copied = false; assigningSpeakerID = nil }
+        .onChange(of: meetings.selectedID) { _, id in
+            query = ""; speakerFilter = ""; copied = false; assigningSpeakerID = nil
+            if id != nil { showingSetup = false }
+        }
         .sheet(item: $dialog) { item in
             switch item {
             case .correction(let meetingID, let segment, let speaker):
@@ -67,21 +71,33 @@ struct MeetingsView: View {
 
     private var toolbar: some View {
         HStack(spacing: 10) {
-            Text("\(meetings.records.count) " + (meetings.records.count == 1 ? mText("möte", "meeting") : mText("möten", "meetings")))
-                .mumlaFont(size: 12).foregroundStyle(palette.secondary)
+            if meetings.selected != nil || showingSetup {
+                Button {
+                    meetings.selectedID = nil; showingSetup = false
+                } label: {
+                    Label(mText("Alla möten", "All meetings"), systemImage: "chevron.left")
+                        .mumlaFont(size: 12).padding(.horizontal, 12).frame(minHeight: 44)
+                }.buttonStyle(MumlaKeyStyle(radius: 8)).accessibilityIdentifier("meeting.library")
+            } else {
+                Text("\(meetings.records.count) " + (meetings.records.count == 1 ? mText("möte", "meeting") : mText("möten", "meetings")))
+                    .mumlaFont(size: 12).foregroundStyle(palette.secondary)
+            }
             Spacer(minLength: 0)
             if let id = meetings.activeID {
-                MumlaIconButton("record.circle", label: mText("Pågående möte", "Current meeting")) { meetings.selectedID = id }
-                    .disabled(meetings.selectedID == id)
+                Button { meetings.selectedID = id } label: {
+                    Label(mText("Pågående möte", "Current meeting"), systemImage: "record.circle.fill")
+                        .mumlaFont(size: 12).foregroundStyle(palette.recording)
+                        .padding(.horizontal, 12).frame(minHeight: 44)
+                }.buttonStyle(MumlaKeyStyle(radius: 8)).disabled(meetings.selectedID == id)
+                    .accessibilityIdentifier("meeting.current")
             }
-            MumlaIconButton("tray.full", label: mText("Sparade möten", "Saved meetings")) { libraryOpen.toggle() }
-                .disabled(meetings.records.isEmpty).accessibilityIdentifier("meeting.library")
-                .popover(isPresented: $libraryOpen, arrowEdge: .trailing) {
-                    MeetingPopover(title: mText("Sparade möten", "Saved meetings")) { library.frame(height: 360) }
-                }
-            MumlaIconButton("plus", label: mText("Nytt möte", "New meeting")) {
-                meetings.selectedID = nil; meetings.refreshSources()
-            }.disabled(meetings.isCapturing).accessibilityIdentifier("meeting.new")
+            Button {
+                meetings.selectedID = nil; showingSetup = true; meetings.refreshSources()
+            } label: {
+                Label(mText("Nytt möte", "New meeting"), systemImage: "plus")
+                    .mumlaFont(size: 12).padding(.horizontal, 12).frame(minHeight: 44)
+            }.buttonStyle(MumlaKeyStyle(radius: 8)).disabled(meetings.isCapturing)
+                .accessibilityIdentifier("meeting.new")
         }
     }
 
@@ -186,35 +202,29 @@ struct MeetingsView: View {
         }.disabled(meetings.isStarting)
     }
 
-    private var library: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 10) {
-                ForEach(meetings.records) { meeting in
-                    Button { meetings.selectedID = meeting.id; libraryOpen = false } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(meeting.title).mumlaFont(size: 13, weight: .medium)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(meeting.createdAt.formatted(date: .abbreviated, time: .omitted))
-                                .fixedSize(horizontal: false, vertical: true)
-                            HStack {
-                                Text(meeting.createdAt.formatted(date: .omitted, time: .shortened))
-                                Spacer(minLength: 4)
-                                Text(meeting.id == meetings.activeID ? (meetings.isPaused ? "PAUSE" : "REC") : MeetingRecord.timestamp(meeting.duration))
-                                    .foregroundStyle(meeting.id == meetings.activeID ? palette.recording : palette.secondary)
-                            }.monospacedDigit()
-                        }.mumlaFont(size: 12).foregroundStyle(palette.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(14)
-                    }.buttonStyle(MumlaKeyStyle(radius: 8))
-                        .overlay(alignment: .leading) {
-                            if meetings.selectedID == meeting.id { Rectangle().fill(palette.activeKey).frame(width: 3).padding(.vertical, 12) }
-                        }.accessibilityAddTraits(meetings.selectedID == meeting.id ? .isSelected : [])
-                }
-            }.padding(4)
-        }.accessibilityIdentifier("meeting.library.list")
+    private func library(compact: Bool) -> some View {
+        MeetingLibraryView(records: meetings.records, activeID: meetings.activeID, isPaused: meetings.isPaused,
+                           selectedID: $meetings.selectedID, query: $libraryQuery, compact: compact)
     }
 
     private func transcript(_ meeting: MeetingRecord) -> some View {
         VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(meeting.title).mumlaFont(size: 20, weight: .semibold)
+                    .fixedSize(horizontal: false, vertical: true).accessibilityIdentifier("meeting.document.title")
+                Text(meeting.createdAt.formatted(date: .abbreviated, time: .shortened) + " · "
+                     + MeetingRecord.timestamp(meeting.id == meetings.activeID ? meetings.elapsed : meeting.duration))
+                    .mumlaFont(size: 12).foregroundStyle(palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text(mText("Transkript", "Transcript")).mumlaFont(size: 13, weight: .medium)
+                    Spacer(minLength: 8)
+                    documentActions(meeting)
+                }
+                documentActions(meeting)
+            }
             HStack(spacing: 10) {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass").foregroundStyle(palette.secondary)
@@ -235,20 +245,19 @@ struct MeetingsView: View {
                             }.frame(maxHeight: 280)
                         }
                     }
-                MumlaIconButton("ellipsis", label: mText("Mötesåtgärder", "Meeting actions")) { actionsOpen.toggle() }
-                    .accessibilityIdentifier("meeting.actions")
-                    .popover(isPresented: $actionsOpen, arrowEdge: .trailing) { actions(meeting) }
+            }
+            if !query.isEmpty || !speakerFilter.isEmpty {
+                HStack {
+                    Text(mText("Filtrerat transkript", "Filtered transcript")).mumlaFont(size: 12).foregroundStyle(palette.secondary)
+                    Spacer()
+                    Button(mText("Visa allt", "Show all")) { query = ""; speakerFilter = "" }
+                        .buttonStyle(.plain).foregroundStyle(palette.accent)
+                        .accessibilityIdentifier("meeting.showAll")
+                }
             }
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(meeting.title).mumlaFont(size: 20, weight: .semibold)
-                                .fixedSize(horizontal: false, vertical: true).accessibilityIdentifier("meeting.document.title")
-                            Text(meeting.sourceName + " · " + MeetingRecord.timestamp(meeting.id == meetings.activeID ? meetings.elapsed : meeting.duration))
-                                .mumlaFont(size: 12).foregroundStyle(palette.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
                         if meetings.activeID == meeting.id {
                             MeetingRecordingReadout(paused: meetings.isPaused, elapsed: meetings.elapsed,
                                 microphone: meetings.microphoneLevel, system: meeting.microphoneOnly ? nil : meetings.systemLevel)
@@ -256,6 +265,7 @@ struct MeetingsView: View {
                         if meeting.capture == .interrupted {
                             notice(mText("Inspelningen avbröts. Transkriptet kan vara ofullständigt.",
                                          "Recording was interrupted. The transcript may be incomplete."), symbol: "exclamationmark.triangle")
+                                .accessibilityIdentifier("meeting.interrupted")
                         }
                         if !speakerFilter.isEmpty {
                             Label(meeting.speakerName(speakerFilter), systemImage: "person")
@@ -263,7 +273,7 @@ struct MeetingsView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         let segments = meeting.orderedSegments.filter { (speakerFilter.isEmpty || $0.speaker == speakerFilter) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query)) }
-                        LazyVStack(alignment: .leading, spacing: 22) {
+                        LazyVStack(alignment: .leading, spacing: 18) {
                             ForEach(segments) { segment in
                                 VStack(alignment: .leading, spacing: 10) {
                                     HStack(alignment: .top, spacing: 12) {
@@ -305,6 +315,31 @@ struct MeetingsView: View {
                 }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func documentActions(_ meeting: MeetingRecord) -> some View {
+        HStack(spacing: 8) {
+            Button { copy(meeting.transcript()) } label: {
+                Label(copied ? mText("Kopierat", "Copied") : mText("Kopiera transkript", "Copy transcript"),
+                      systemImage: copied ? "checkmark" : "doc.on.doc")
+                    .mumlaFont(size: 12).padding(.horizontal, 12).frame(minHeight: 44)
+            }.buttonStyle(MumlaKeyStyle(radius: 8)).disabled(meeting.segments.isEmpty)
+                .help(mText("Kopiera hela mötet med talare och tider", "Copy the complete meeting with speakers and times"))
+                .accessibilityIdentifier("meeting.copy")
+            Menu {
+                Button(mText("Ren text (.txt)", "Plain text (.txt)")) { export(meeting, format: .text) }
+                Button("Markdown (.md)") { export(meeting, format: .markdown) }
+                Button("JSON (.json)") { export(meeting, format: .json) }
+            } label: {
+                Label(mText("Exportera", "Export"), systemImage: "square.and.arrow.up")
+                    .mumlaFont(size: 12).padding(.horizontal, 10).frame(minHeight: 44)
+                    .mumlaSurface(radius: 8)
+            }.menuStyle(.borderlessButton).fixedSize().disabled(meeting.segments.isEmpty)
+                .accessibilityIdentifier("meeting.export")
+            MumlaIconButton("ellipsis", label: mText("Mötesåtgärder", "Meeting actions")) { actionsOpen.toggle() }
+                .accessibilityIdentifier("meeting.actions")
+                .popover(isPresented: $actionsOpen, arrowEdge: .trailing) { actions(meeting) }
+        }
     }
 
     private func statusLabel(_ meeting: MeetingRecord) -> some View {
@@ -357,7 +392,6 @@ struct MeetingsView: View {
                     MumlaIconButton("waveform", label: mText("Transkribera", "Transcribe")) { meetings.transcribe(meeting.id) }
                 }
             }
-            MumlaIconButton(copied ? "checkmark" : "doc.on.doc", label: mText("Kopiera transkript", "Copy transcript")) { copy(meeting.transcript()) }.disabled(meeting.segments.isEmpty)
         }
     }
 
@@ -371,11 +405,16 @@ struct MeetingsView: View {
     private func actions(_ meeting: MeetingRecord) -> some View {
         MeetingPopover(title: mText("Mötesåtgärder", "Meeting actions")) {
             VStack(spacing: 10) {
+                Label(meeting.sourceName, systemImage: "speaker.wave.2")
+                    .mumlaFont(size: 12).foregroundStyle(palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Divider()
                 choice(mText("Kopiera text", "Copy text"), symbol: "doc.on.doc", selected: false) { copy(meeting.transcript(timestamps: false)); actionsOpen = false }.disabled(meeting.segments.isEmpty)
                 choice(mText("Kopiera med talare och tider", "Copy with speakers and times"), symbol: "text.badge.plus", selected: false) { copy(meeting.transcript()); actionsOpen = false }.disabled(meeting.segments.isEmpty)
                 HStack(spacing: 10) {
-                    choice("Markdown", symbol: "square.and.arrow.up", selected: false) { actionsOpen = false; export(meeting, json: false) }
-                    choice("JSON", symbol: "square.and.arrow.up", selected: false) { actionsOpen = false; export(meeting, json: true) }
+                    choice("Markdown", symbol: "square.and.arrow.up", selected: false) { actionsOpen = false; export(meeting, format: .markdown) }
+                    choice("JSON", symbol: "square.and.arrow.up", selected: false) { actionsOpen = false; export(meeting, format: .json) }
                 }
                 Divider().padding(.vertical, 4)
                 choice(mText("Radera endast ljud", "Delete audio only"), symbol: "waveform.slash", selected: false) { actionsOpen = false; dialog = .deletion(meeting: meeting, audioOnly: true) }.disabled(meeting.id == meetings.activeID || meeting.audioDeleted)
@@ -414,11 +453,11 @@ struct MeetingsView: View {
     }
 
     private func copy(_ text: String) { NSPasteboard.general.clearContents(); copied = NSPasteboard.general.setString(text, forType: .string) }
-    private func export(_ meeting: MeetingRecord, json: Bool) {
-        let panel = NSSavePanel(); panel.allowedContentTypes = [json ? .json : UTType(filenameExtension: "md")!]
-        panel.nameFieldStringValue = "Mumla-" + meeting.createdAt.formatted(.iso8601.year().month().day()) + (json ? ".json" : ".md")
+    private func export(_ meeting: MeetingRecord, format: MeetingExportFormat) {
+        let panel = NSSavePanel(); panel.allowedContentTypes = [UTType(filenameExtension: format.rawValue) ?? .plainText]
+        panel.nameFieldStringValue = "Mumla-" + meeting.createdAt.formatted(.iso8601.year().month().day()) + "." + format.rawValue
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do { try (json ? meeting.exportJSON() : Data(meeting.markdown.utf8)).write(to: url, options: .atomic) }
+        do { try meeting.export(format).write(to: url, options: .atomic) }
         catch { meetings.error = error.localizedDescription }
     }
 }

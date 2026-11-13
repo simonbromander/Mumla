@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 @MainActor
@@ -9,8 +10,7 @@ final class MeetingsUITests: XCTestCase {
         app.launch()
         let document = app.staticTexts["meeting.document.title"]
         XCTAssertTrue(document.waitForExistence(timeout: 10))
-        // SwiftUI combines adjacent document labels into a single accessible text.
-        XCTAssertTrue((document.value as? String ?? document.label).contains("Recording was interrupted"))
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "meeting.interrupted").firstMatch.exists)
         let status = app.staticTexts["meeting.status"]
         XCTAssertEqual(status.value as? String ?? status.label, "Interrupted · partial recording")
         XCTAssertTrue(app.buttons["meeting.actions"].isHittable)
@@ -42,6 +42,8 @@ final class MeetingsUITests: XCTestCase {
         capture("meetings-compact-long", app)
         app.buttons["meeting.library"].click()
         XCTAssertTrue(app.scrollViews["meeting.library.list"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.textFields["meeting.library.search"].exists)
+        XCTAssertFalse(app.buttons["meeting.start"].exists)
         capture("meetings-library-picker", app)
     }
 
@@ -105,8 +107,9 @@ final class MeetingsUITests: XCTestCase {
         app.buttons["meeting.actions"].click(); app.buttons["Delete meeting"].click()
         capture("meetings-delete-meeting", app)
         app.buttons["meeting.delete.confirm"].click()
-        XCTAssertTrue(app.buttons["meeting.start"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.buttons["meeting.library"].isEnabled)
+        XCTAssertTrue(app.buttons["meeting.new"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["meeting.start"].exists)
+        XCTAssertTrue(app.staticTexts["No saved meetings"].exists)
     }
 
     func testCompactRecordingKeepsPauseAndStopAccessible() {
@@ -177,7 +180,58 @@ final class MeetingsUITests: XCTestCase {
         dismiss.click()
         XCTAssertFalse(dismiss.exists)
         XCTAssertFalse(app.buttons["meeting.stop"].exists)
-        XCTAssertTrue(app.buttons["meeting.start"].exists)
+        XCTAssertTrue(app.buttons["meeting.new"].exists)
+        XCTAssertFalse(app.buttons["meeting.start"].exists)
+    }
+
+    func testLibraryFirstSearchOpensWholeMeetingAndBackPreservesSearch() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--meeting-ui-testing", "--reset-ui-data", "--seed-meeting-library", "--compact-window",
+                               "-AppleLanguages", "(en)", "-mumla.interfaceStyle", "native"]
+        app.launch()
+        let search = app.textFields["meeting.library.search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["meeting.start"].exists)
+        search.click(); search.typeText("design anna")
+        let row = app.buttons["meeting.library.open.00000000-0000-0000-0000-000000000002"]
+        XCTAssertTrue(row.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["meeting.library.open.00000000-0000-0000-0000-000000000001"].exists)
+        capture("meetings-library-search", app)
+        row.click()
+        XCTAssertTrue(app.buttons["meeting.copy"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "meeting.export").firstMatch.exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "meeting.passage.example-2").firstMatch.exists)
+        let passageSearch = app.textFields["meeting.search"]
+        passageSearch.click(); passageSearch.typeText("Vi börjar")
+        XCTAssertTrue(app.buttons["meeting.showAll"].waitForExistence(timeout: 3))
+        app.buttons["meeting.copy"].click()
+        XCTAssertTrue(app.buttons["meeting.copy"].label.contains("Copied"))
+        let copied = NSPasteboard.general.string(forType: .string) ?? ""
+        XCTAssertTrue(copied.contains("[00:12] Me: Vi börjar"))
+        XCTAssertTrue(copied.contains("[00:21] Anna: Bra."))
+        XCTAssertTrue(copied.contains("[00:31] Me: Då testar"))
+        app.buttons["meeting.showAll"].click()
+        XCTAssertEqual(passageSearch.value as? String, "")
+        app.buttons["meeting.library"].click()
+        XCTAssertTrue(search.waitForExistence(timeout: 3))
+        XCTAssertEqual(search.value as? String, "design anna")
+        search.click(); search.typeKey("a", modifierFlags: .command); search.typeText("no such meeting")
+        XCTAssertTrue(app.staticTexts["No matching meetings"].waitForExistence(timeout: 3))
+        app.buttons["Clear search"].firstMatch.click()
+        XCTAssertTrue(row.waitForExistence(timeout: 3))
+    }
+
+    func testBrowsingSavedMeetingsDoesNotStopRecording() {
+        let app = launch(compact: true)
+        app.buttons["meeting.new"].click(); app.buttons["meeting.start"].click()
+        XCTAssertTrue(app.buttons["meeting.stop"].waitForExistence(timeout: 3))
+        app.buttons["meeting.library"].click()
+        let current = app.buttons["meeting.current"]
+        XCTAssertTrue(current.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["meeting.new"].isEnabled)
+        current.click()
+        XCTAssertTrue(app.buttons["meeting.stop"].waitForExistence(timeout: 3))
+        app.buttons["meeting.stop"].click()
     }
 
     private func capture(_ name: String, _ app: XCUIApplication) {

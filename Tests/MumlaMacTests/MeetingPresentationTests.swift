@@ -10,8 +10,30 @@ final class MeetingPresentationTests: XCTestCase {
     func testCompactLayoutPreservesAtLeastFourHundredPointsForTheDocument() {
         XCTAssertFalse(MeetingsView.showsLibrary(at: 542))
         XCTAssertFalse(MeetingsView.showsLibrary(at: 682))
-        XCTAssertTrue(MeetingsView.showsLibrary(at: 720))
+        XCTAssertFalse(MeetingsView.showsLibrary(at: 720))
+        XCTAssertFalse(MeetingsView.showsLibrary(at: 879))
+        XCTAssertTrue(MeetingsView.showsLibrary(at: 880))
         XCTAssertTrue(MeetingsView.showsLibrary(at: 1002))
+    }
+
+    func testLibrarySelectionDoesNotChangeRecordingOrTheSavedTranscript() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = MeetingCoordinator(directory: directory, modelDirectory: { nil }, capture: MeetingUICapture(), permission: { true })
+        try MeetingDesignFixtures.seedLibrary(model)
+        let saved = try XCTUnwrap(model.records.first)
+        let active = try XCTUnwrap(model.records.last)
+        model.prepareRecordingDesignSnapshot(active.id, paused: false)
+        model.selectedID = nil
+        XCTAssertEqual(model.activeID, active.id)
+        XCTAssertTrue(model.isCapturing)
+        model.selectedID = saved.id
+        XCTAssertEqual(model.selected, saved)
+        XCTAssertEqual(model.activeID, active.id)
+        XCTAssertEqual(try model.store.load(saved.id), saved)
+        model.selectedID = active.id
+        XCTAssertTrue(model.isCapturing)
+        model.stop()
     }
 
     func testCorrectionRequiresNonemptyTextAndRespectsStoreLimits() {

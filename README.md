@@ -38,6 +38,11 @@ Microphone only. Audio is saved in short chunks while the transcript updates. Pa
 speaker names, text corrections, clip playback, and text/Markdown/JSON export are
 available. No meeting summary or chat model is required or contacted.
 
+The current source opens Meetings on a searchable library grouped by date. Open
+one meeting to read its complete transcript, or copy/export the whole transcript
+directly from its header. Passage filters never trim copied or exported text.
+See the [library workflow and verification](docs/meeting-library.md).
+
 Opt-in Slack/Teams microphone-activity
 suggestions ask before starting a recording. Optional local Calendar access can
 supply the meeting title; no calendar data is uploaded or changed. Call detection

@@ -12,6 +12,10 @@ public enum MeetingProcessingState: String, Codable, Sendable {
     case pending, live, processing, ready, failed
 }
 
+public enum MeetingExportFormat: String, CaseIterable, Sendable {
+    case text = "txt", markdown = "md", json = "json"
+}
+
 public enum MeetingInterruptionReason: String, Codable, Sendable {
     case captureFailure, meetingAppClosed, systemSleep, unfinishedRecording, unknown
 }
@@ -133,6 +137,14 @@ public struct MeetingRecord: Codable, Equatable, Identifiable, Sendable {
 
     public var markdown: String {
         "# \(title.replacingOccurrences(of: "\n", with: " "))\n\n\(createdAt.formatted(.iso8601))\n\n" + transcript() + "\n"
+    }
+
+    public func export(_ format: MeetingExportFormat) throws -> Data {
+        switch format {
+        case .text: Data(transcript().utf8)
+        case .markdown: Data(markdown.utf8)
+        case .json: try exportJSON()
+        }
     }
 
     public func exportJSON() throws -> Data {
