@@ -57,3 +57,11 @@ cloud providers, recording behavior, release publication, or website changes.
 
 Development evidence is under `.build/SkinReview/` (not committed). No recordings,
 personal transcripts, signing files, or screenshots of private data are included.
+
+## Release Verification (2026-11-13)
+
+The complete Swift package suite passes: 359 tests, nine optional skips, no
+failures. Release preparation fixed the DJI button's update-in-progress guard:
+an update now remains a no-op even when Secure Input is enabled. Secure Input
+protection is unchanged. Release-helper tests pass (35 tests, 84 assertions).
+The hosted UI and hardware limitations above still apply.

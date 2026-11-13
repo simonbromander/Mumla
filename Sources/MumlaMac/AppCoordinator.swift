@@ -280,7 +280,7 @@ final class AppCoordinator: ObservableObject {
     }
 
     func djiMicButtonPressed(receiverID: UInt64) async {
-        guard settings.djiMicButtonEnabled else { return }
+        guard settings.djiMicButtonEnabled, !isInstallingAppUpdate else { return }
         if pendingStartID != nil {
             pendingStartID = nil
             pendingDJIMicStart = nil
