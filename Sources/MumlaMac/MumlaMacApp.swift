@@ -226,8 +226,11 @@ final class MumlaMacApp: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--reset-ui-data") { try? FileManager.default.removeItem(at: directory) }
         coordinator = AppCoordinator(recorder: MicrophoneRecorder(), transcriber: nil,
             historyStore: DictationHistoryStore(directory: directory), dictionaryStore: DictionaryStore(directory: directory),
-            settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil)
-        coordinator.meetings = MeetingCoordinator(directory: directory, modelDirectory: { nil }, capture: MeetingUICapture(), permission: { true },
+            settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil,
+            inputDeviceProvider: { [AudioInputDevice(uid: "fixture-built-in", name: "Built-in microphone"),
+                                   AudioInputDevice(uid: "fixture-usb", name: "USB microphone")] })
+        coordinator.meetings = MeetingCoordinator(directory: directory, modelDirectory: { nil },
+            capture: MeetingUICapture(failNextStart: CommandLine.arguments.contains("--meeting-start-failure")), permission: { true },
             processor: { _, _, _ in [] })
         if CommandLine.arguments.contains("--seed-meeting-library") { try? MeetingDesignFixtures.seedLibrary(coordinator.meetings) }
         else if CommandLine.arguments.contains("--seed-meeting") { _ = try? MeetingDesignFixtures.seed(coordinator.meetings, long: CommandLine.arguments.contains("--long-meeting")) }

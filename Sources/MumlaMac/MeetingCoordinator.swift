@@ -13,6 +13,8 @@ final class MeetingCoordinator: ObservableObject {
     @Published var selectedID: UUID?
     @Published private(set) var activeID: UUID?
     @Published private(set) var isStarting = false
+    @Published private(set) var setupRequest: UUID?
+    @Published private(set) var startupAudioPermission: MeetingTrack?
     @Published private(set) var isPaused = false
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var microphoneLevel = 0.0
@@ -107,8 +109,19 @@ final class MeetingCoordinator: ObservableObject {
     }
 
     func prepareSuggestedMeeting(title: String?) {
+        prepareNewMeeting(title: title)
+    }
+
+    func prepareNewMeeting(title: String? = nil) {
+        guard !isCapturing else { return }
         sourcePID = MeetingAudioSource.systemAudio.id
         self.title = title ?? ""
+        selectedID = nil; error = nil; startupAudioPermission = nil; setupRequest = UUID()
+    }
+
+    func dismissSetup() {
+        if isStarting { stop() }
+        selectedID = nil; setupRequest = nil; error = nil; startupAudioPermission = nil
     }
 
     #if DEBUG
@@ -148,15 +161,23 @@ final class MeetingCoordinator: ObservableObject {
 
     func start() async {
         if let availabilityMessage { error = availabilityMessage; return }
-        guard !isCapturing, canStart() else { error = mText("Avsluta dikteringen först.", "Finish dictation first."); return }
+        guard !isCapturing else { return }
+        guard canStart() else { error = mText("Avsluta dikteringen först.", "Finish dictation first."); return }
         guard #available(macOS 14.2, *) else { error = "Meeting capture requires macOS 14.2 or later."; return }
-        let generation = UUID(); startGeneration = generation; isStarting = true; error = nil; publishActivity()
+        let generation = UUID(); startGeneration = generation; isStarting = true; error = nil; startupAudioPermission = nil; publishActivity()
+        selectedID = nil; setupRequest = UUID()
         defer { if startGeneration == generation { isStarting = false; publishActivity() } }
-        guard await permission() else { error = mText("Tillåt mikrofonen i Systeminställningar.", "Allow microphone access in System Settings."); return }
+        let granted = await permission()
         guard startGeneration == generation else { return }
+        guard granted else {
+            startupAudioPermission = .microphone
+            error = mText("Tillåt Mumla att använda mikrofonen i Systeminställningar och försök igen.", "Allow Mumla to use the microphone in System Settings, then try again."); return
+        }
         refreshSources()
         let source = audioSource
-        guard sourcePID == 0 || source != nil else { error = "The selected meeting app is no longer available."; return }
+        guard sourcePID == 0 || source != nil else {
+            error = mText("Den valda appen är inte längre tillgänglig. Välj ljudkälla igen.", "The selected app is no longer available. Choose the audio source again."); return
+        }
         let record = MeetingRecord(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? mText("Möte", "Meeting") + " " + Date().formatted(date: .abbreviated, time: .shortened) : String(title.prefix(200)),
             sourceName: sourceName, microphoneOnly: source == nil)
@@ -164,10 +185,11 @@ final class MeetingCoordinator: ObservableObject {
             try store.create(record)
             _ = try store.update(record.id) { $0.deleteAudioWhenReady = !keepAudio }
             stopPlayback()
-            selectedID = record.id; selectedSource = source; activeID = record.id
+            selectedSource = source
             startedAt = ProcessInfo.processInfo.systemUptime; elapsed = 0; isPaused = false
-            if liveTranscription { liveIDs.insert(record.id) }
             try beginCapture(record.id)
+            activeID = record.id; selectedID = record.id
+            if liveTranscription { liveIDs.insert(record.id) }
             if liveTranscription, let directory = modelDirectory(), injectedProcessor == nil {
                 let prepared = MeetingLiveTranscriber(modelDirectory: directory,
                     speakerModelURL: speakersInstalled ? speakerModel.modelURL : nil)
@@ -176,9 +198,37 @@ final class MeetingCoordinator: ObservableObject {
             }
             reload(); startTimer(); publishActivity()
         } catch {
-            capture.stop(); activeID = nil
+            captureGeneration = UUID(); capture.stop(); activeID = nil; selectedSource = nil
+            liveIDs.remove(record.id)
             _ = try? store.update(record.id) { $0.capture = .interrupted; $0.interruptionReason = .captureFailure }
-            reload(); self.error = error.localizedDescription; onRecordingEnded?(false)
+            // Roll back only this empty attempt. Unknown files can contain recoverable audio.
+            if let failed = try? store.load(record.id), failed.chunks.isEmpty, failed.segments.isEmpty,
+               let files = try? FileManager.default.contentsOfDirectory(atPath: store.folder(record.id).path),
+               files == ["meeting.json"] {
+                try? store.delete(record.id)
+            }
+            reload(); self.error = Self.captureErrorMessage(error); onRecordingEnded?(false)
+            switch error {
+            case MeetingCaptureError.microphone: startupAudioPermission = .microphone
+            case MeetingCaptureError.systemAudio: startupAudioPermission = .system
+            default: startupAudioPermission = nil
+            }
+        }
+    }
+
+    static func captureErrorMessage(_ error: Error) -> String {
+        guard let capture = error as? MeetingCaptureError else { return error.localizedDescription }
+        switch capture {
+        case .microphoneUnavailable:
+            return mText("Den valda mikrofonen är inte tillgänglig. Välj en ansluten mikrofon och försök igen.",
+                         "The selected microphone is unavailable. Choose a connected microphone and try again.")
+        case .microphone(let status):
+            return mText("Mikrofonen kunde inte starta. Kontrollera mikrofonåtkomst och ljudenheten.",
+                         "The microphone could not start. Check microphone access and the input device.") + " (\(status))"
+        case .systemAudio(let status):
+            return mText("Systemljudet kunde inte starta. Kontrollera Mumla under Skärm- och systemljudinspelning i Systeminställningar och försök igen.",
+                         "Computer audio could not start. Check Mumla under Screen & System Audio Recording in System Settings, then try again.") + " (\(status))"
+        default: return capture.localizedDescription
         }
     }
 

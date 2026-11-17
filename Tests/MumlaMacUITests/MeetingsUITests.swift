@@ -146,7 +146,8 @@ final class MeetingsUITests: XCTestCase {
         let microphone = app.buttons["meeting.source.microphone"]
         XCTAssertTrue(system.waitForExistence(timeout: 3))
         XCTAssertTrue(microphone.exists)
-        XCTAssertTrue(app.buttons["Meeting app"].exists)
+        app.disclosureTriangles["meeting.source.apps"].click()
+        XCTAssertTrue(app.buttons["Meeting app"].waitForExistence(timeout: 3))
         capture("meetings-source-system-default", app)
         microphone.click()
         XCTAssertTrue(source.label.contains("Microphone only"))
@@ -155,6 +156,50 @@ final class MeetingsUITests: XCTestCase {
         app.buttons["meeting.start"].click()
         XCTAssertTrue(app.buttons["meeting.stop"].waitForExistence(timeout: 3))
         app.buttons["meeting.stop"].click()
+    }
+
+    func testSetupShowsRecordingChoicesAndKeepsPreferencesOutOfTheForm() {
+        let app = launch(compact: true)
+        app.buttons["meeting.new"].click()
+        for id in ["meeting.source", "meeting.microphone", "meeting.start", "meeting.consent"] {
+            XCTAssertTrue(app.buttons[id].isHittable)
+        }
+        XCTAssertFalse(app.buttons["meeting.new"].exists)
+        XCTAssertFalse(app.switches["meeting.detection.enabled"].exists)
+        app.buttons["meeting.microphone"].click()
+        XCTAssertTrue(app.buttons["meeting.microphone.default"].waitForExistence(timeout: 3))
+        app.buttons["meeting.microphone.default"].click()
+        app.buttons["meeting.preferences"].click()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "meeting.detection.enabled").firstMatch.waitForExistence(timeout: 3))
+        capture("meetings-recording-preferences", app)
+        app.typeKey(.escape, modifierFlags: [])
+        capture("meetings-simple-setup", app)
+    }
+
+    func testFailedStartKeepsDraftAndAllowsRetryInsteadOfOpeningAnEmptyMeeting() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--meeting-ui-testing", "--reset-ui-data", "--meeting-start-failure", "--compact-window",
+                               "-AppleLanguages", "(en)", "-mumla.interfaceStyle", "native"]
+        app.launch()
+        XCTAssertTrue(app.buttons["meeting.new"].waitForExistence(timeout: 10))
+        app.buttons["meeting.new"].click()
+        let title = app.textFields["meeting.title"]
+        title.click(); title.typeText("Retry this meeting")
+        app.buttons["meeting.start"].click()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "meeting.start.error").firstMatch.waitForExistence(timeout: 3))
+        XCTAssertEqual(title.value as? String, "Retry this meeting")
+        XCTAssertTrue(app.buttons["meeting.source"].label.contains("System audio + microphone"))
+        XCTAssertTrue(app.buttons["meeting.start"].isEnabled)
+        XCTAssertFalse(app.staticTexts["meeting.document.title"].exists)
+        capture("meetings-failed-start-retry", app)
+        app.buttons["meeting.start"].click()
+        XCTAssertTrue(app.buttons["meeting.stop"].waitForExistence(timeout: 3))
+        let document = app.staticTexts["meeting.document.title"]
+        XCTAssertTrue((document.value as? String ?? document.label).contains("Retry this meeting"))
+        app.buttons["meeting.stop"].click()
+        app.buttons["meeting.library"].click()
+        XCTAssertTrue(app.scrollViews["meeting.library.list"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "meeting.library.open.")).count, 1)
     }
 
     func testMeetingSuggestionWaitsForExplicitStart() {

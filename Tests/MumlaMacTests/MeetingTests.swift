@@ -15,10 +15,14 @@ private final class FixtureMeetingCapture: MeetingCapturing {
     var source: MeetingAudioSource?
     var microphoneUID: String?
     var starts = 0
+    var startError: Error?
+    var onStart: (() throws -> Void)?
     func start(store: MeetingStore, meetingID: UUID, microphoneUID: String?, source: MeetingAudioSource?,
                offset: TimeInterval, onChunk: @escaping @Sendable () -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {
         self.store = store; id = meetingID; callback = onChunk; failure = onFailure; stopped = false
         self.source = source; self.microphoneUID = microphoneUID; starts += 1
+        try onStart?()
+        if let startError { throw startError }
     }
     func stop() { stopped = true }
     func level(_ track: MeetingTrack) -> Double { 0.2 }
@@ -64,6 +68,132 @@ final class MeetingTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertEqual(model.activeID, id)
         XCTAssertFalse(capture.stopped)
+    }
+
+    func testFailedStartKeepsSetupAndDraftAndCanRetryWithoutEmptyHistory() async throws {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        let saved = try model.store.create(.init(title: "Existing meeting", sourceName: "Synthetic", microphoneOnly: true))
+        model.reload(); model.title = "A draft title"
+        capture.startError = MeetingCaptureError.sourceUnavailable
+        await model.start()
+        XCTAssertNil(model.activeID)
+        XCTAssertNil(model.selectedID)
+        XCTAssertFalse(model.isStarting)
+        XCTAssertEqual(model.title, "A draft title")
+        XCTAssertEqual(model.audioSource, .systemAudio)
+        XCTAssertEqual(model.records, [saved])
+        XCTAssertNotNil(model.error)
+        XCTAssertTrue(capture.stopped)
+        XCTAssertEqual(try model.store.load(saved.id), saved)
+
+        capture.startError = nil
+        await model.start()
+        defer { model.stop() }
+        XCTAssertNotNil(model.activeID)
+        XCTAssertEqual(model.selected?.title, "A draft title")
+        XCTAssertNil(model.error)
+        XCTAssertEqual(model.records.count, 2)
+        XCTAssertEqual(capture.starts, 2)
+    }
+
+    func testFailedStartKeepsPartialAudioButDoesNotNavigateToAnInterruptedDocument() async throws {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        capture.onStart = { try capture.emit(0, track: .system) }
+        capture.startError = MeetingCaptureError.audio(-50)
+        await model.start()
+        XCTAssertNil(model.activeID)
+        XCTAssertNil(model.selectedID)
+        let record = try XCTUnwrap(model.records.first)
+        XCTAssertEqual(record.capture, .interrupted)
+        XCTAssertEqual(record.interruptionReason, .captureFailure)
+        XCTAssertEqual(record.chunks.count, 1)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: try model.store.audioURL(record.chunks[0], meetingID: record.id).path))
+        XCTAssertFalse(model.isProcessing)
+    }
+
+    func testFailedStartPreservesUnindexedRecoveryFiles() async throws {
+        let capture = FixtureMeetingCapture(); let model = make(capture)
+        capture.onStart = {
+            let store = try XCTUnwrap(capture.store); let id = try XCTUnwrap(capture.id)
+            try Data([1, 2, 3]).write(to: store.folder(id).appendingPathComponent("recoverable.partial.wav"))
+        }
+        capture.startError = MeetingCaptureError.systemAudio(-50)
+        await model.start()
+        let record = try XCTUnwrap(model.records.first)
+        XCTAssertTrue(record.chunks.isEmpty)
+        XCTAssertEqual(record.capture, .interrupted)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: model.store.folder(record.id).appendingPathComponent("recoverable.partial.wav").path))
+        XCTAssertNil(model.selectedID)
+        XCTAssertEqual(model.startupAudioPermission, .system)
+    }
+
+    func testCancellingPermissionWaitPreventsLateStartAndDuplicateRequests() async throws {
+        let capture = FixtureMeetingCapture()
+        var permissionResult: CheckedContinuation<Bool, Never>?
+        var requests = 0
+        let model = MeetingCoordinator(directory: directory, modelDirectory: { nil }, capture: capture, permission: {
+            requests += 1
+            return await withCheckedContinuation { permissionResult = $0 }
+        })
+        let pending = Task { await model.start() }
+        try await waitUntil { permissionResult != nil }
+        await model.start()
+        XCTAssertTrue(model.isStarting); XCTAssertEqual(requests, 1); XCTAssertNil(model.error)
+        model.stop()
+        permissionResult?.resume(returning: true)
+        await pending.value
+        XCTAssertFalse(model.isStarting); XCTAssertNil(model.activeID); XCTAssertNil(model.error)
+        XCTAssertEqual(capture.starts, 0); XCTAssertTrue(model.records.isEmpty)
+    }
+
+    func testCaptureErrorsIdentifyTheFailingInputWithoutChangingOtherFailures() throws {
+        for microphone in [true, false] {
+            XCTAssertThrowsError(try MeetingCapture.withCaptureContext(microphone: microphone) { throw MeetingCaptureError.audio(-50) }) { error in
+                switch error {
+                case MeetingCaptureError.microphone(let status): XCTAssertTrue(microphone); XCTAssertEqual(status, -50)
+                case MeetingCaptureError.systemAudio(let status): XCTAssertFalse(microphone); XCTAssertEqual(status, -50)
+                default: XCTFail("Expected the failing input and its support code")
+                }
+                XCTAssertTrue(MeetingCoordinator.captureErrorMessage(error).contains("-50"))
+            }
+            XCTAssertThrowsError(try MeetingCapture.withCaptureContext(microphone: microphone) { throw MeetingCaptureError.diskSpace }) {
+                guard case MeetingCaptureError.diskSpace = $0 else { return XCTFail("Keep unrelated errors unchanged") }
+            }
+        }
+    }
+
+    func testMeetingMicrophoneUsesConnectedDeviceAndFollowsRepairedUID() {
+        let connected = AudioInputDevice(uid: "connected-uid", name: "Synthetic microphone")
+        var devices = [connected]
+        let app = AppCoordinator(recorder: MicrophoneRecorder(), transcriber: nil,
+            historyStore: DictationHistoryStore(directory: directory), dictionaryStore: DictionaryStore(directory: directory),
+            settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil, inputDeviceProvider: { devices })
+        app.settings.pinnedInputDevice = PinnedInputDevice(uid: "old-uid", name: connected.name)
+        XCTAssertEqual(app.meetings.microphoneUID(), connected.uid)
+        XCTAssertEqual(app.settings.pinnedInputDevice?.uid, connected.uid)
+        devices = []
+        XCTAssertNil(app.meetings.microphoneUID(), "A disconnected pin must use the system default, not a stale UID")
+        XCTAssertEqual(app.settings.pinnedInputDevice?.uid, connected.uid, "Remember the preferred microphone for reconnection")
+        devices = [connected]
+        XCTAssertEqual(app.meetings.microphoneUID(), connected.uid)
+    }
+
+    func testNewMeetingResetsDraftButReturningToLibraryDoesNotStopAnActiveRecording() async throws {
+        let model = make(FixtureMeetingCapture())
+        model.title = "Previous title"; model.sourcePID = 0
+        model.prepareNewMeeting()
+        XCTAssertEqual(model.title, ""); XCTAssertEqual(model.audioSource, .systemAudio)
+        XCTAssertNotNil(model.setupRequest)
+        model.dismissSetup()
+        XCTAssertNil(model.setupRequest)
+        model.prepareNewMeeting(title: "Calendar title")
+        await model.start()
+        defer { model.stop() }
+        let id = try XCTUnwrap(model.activeID)
+        model.dismissSetup()
+        XCTAssertEqual(model.activeID, id)
+        XCTAssertNil(model.selectedID)
+        XCTAssertEqual(try model.store.load(id).title, "Calendar title")
     }
 
     func testSmallAudioCallbacksSurviveHalfSecondWriterStallWithoutLosingSamples() throws {
@@ -274,6 +404,7 @@ final class MeetingTests: XCTestCase {
         await model.start()
         XCTAssertNil(model.activeID); XCTAssertNil(capture.id); XCTAssertFalse(model.isStarting)
         XCTAssertTrue(model.records.isEmpty); XCTAssertNotNil(model.error)
+        XCTAssertEqual(model.startupAudioPermission, .microphone)
     }
 
     func testCancelledTranscriptionKeepsRecordingAndLateResultCannotResurrectDeletion() async throws {
