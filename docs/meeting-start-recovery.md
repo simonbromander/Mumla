@@ -5,7 +5,8 @@
 Make starting a Mac meeting recording predictable, including Slack calls, and
 remove unrelated setup choices from the path to Start recording. Preserve both
 Classic and Native styles, the meeting library, live transcription, existing
-recordings and on-device processing. No release is requested by this change.
+recordings and on-device processing. The initial implementation did not request
+a release; publication followed a separate user request below.
 
 ## Confirmed Code Problems
 
@@ -77,4 +78,13 @@ or automatic global-audio fallback in this change.
 - Existing private meetings were not opened or changed. No actual microphone,
   system-audio capture or Slack call was used for these checks. The exact
   reported Slack error and real-call acceptance remain outstanding.
-- No release was published or installed over the production app.
+- At implementation verification, no release was published or installed over
+  the production app.
+
+## Release Follow-Up: 2026-11-17
+
+The user subsequently requested a release. Mac direct beta `1.0.1 (53)` is now
+published with verified public downloads, a signed update feed and website
+links. See the [release receipt](mac-direct-release.md#meeting-start-recovery-beta-2026-11-17)
+for source, CI, signatures and remaining acceptance checks. No iOS upload or
+production-app replacement was performed.

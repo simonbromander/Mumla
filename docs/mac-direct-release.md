@@ -1,5 +1,60 @@
 # Full-Capability Mac Distribution
 
+## Meeting Start Recovery Beta: 2026-11-17
+
+- Universal direct `1.0.1 (53)` is published as a prerelease in both public
+  repositories from `f18ea7cec876da4cef33f2c6e1f5e32ac7a565d0`. PR #19 merged
+  as `e709b45dde09ac885cfb668d1fd7113f99014e86`; its tree matches the tested
+  source. Exact-source Contributor CI `44046310294` passed full-history secret
+  scanning, package/helper tests, iOS/Mac/Watch builds and Watch test compilation.
+- Meeting setup now shows a microphone picker, keeps title/source/options
+  available after a failed start, and opens the document only after capture
+  starts. Disconnected preferred microphones resolve to the system default;
+  partial and unindexed recovery audio is retained. Stage-specific errors show
+  useful support codes. Detection, calendar and speaker-model settings moved
+  into a separate, themed Meeting preferences panel. Headphones are not required
+  to start; the exact reported Slack error remains unverified.
+- Local checks: 381 Swift tests, nine optional model/hardware skips, no failures;
+  35 release-helper tests, 84 assertions. CI runs 381 tests with ten skips and
+  no failures; its additional denied-Input-Monitoring check skips because the
+  hosted process already has permission. The first CI attempt hit an existing
+  paste test's fixed 100 ms timing assumption; that code and test are unchanged
+  by this release. Six focused paste tests passed locally and one unchanged-source
+  rerun passed the full CI. No test or permission was changed to obtain a pass.
+- Both Mac Debug targets and the hosted UI test runner compile. Actual isolated
+  native-app checks cover Classic/Native, light/dark, compact/wide, Swedish,
+  source/microphone selection, failed-start retry, preferences and recording
+  controls with synthetic capture. UI XCTest execution could not initialize
+  automation mode; compilation is not claimed as a passing UI XCTest run.
+- Apple notarization `1c9bb5d4-659c-41cb-96cc-e03e41cf78ac` was Accepted.
+  Developer ID signing, hardened runtime, both architectures, matching dSYMs,
+  entitlements, permission descriptions, updater metadata, licenses, MLX kernels,
+  stapled ticket and Gatekeeper pass on staging, a fresh ZIP extraction and a
+  fresh anonymous public download. New meeting controls are present; model
+  weights, credentials, DEBUG fixtures and unreleased cloud-summary controls
+  are absent. Only ZIP and checksum are public assets; symbols remain private.
+- ZIP size: 38,183,369 bytes. SHA-256:
+  `8172e6234c5a1b81da503ebf46cb7b9c3a1be5f25a5ddb6d5d539d39c94ce4d3`.
+  Both repositories report the matching asset digest; the anonymous download
+  and checksum match staging. Feed commit `f0b41b10dee1abaa3bd7d9b76d28cf16364b4c81`
+  is live and byte-identical to signed staging. Anonymous download and Ed25519
+  checks pass for builds 53, 52 and 51 before and after feed publication.
+- Website commit `10eef508a225e3060a80acf7b69260873d3d793c` updates only Mac
+  download/version references and their tests. All 21 unit and 48 browser checks
+  pass locally, as do the production build and publishing preflight. Production
+  worker version `18f28c72-7e85-4f6d-891d-d76edf3438f4` was published manually.
+  Live index, JavaScript and CSS match the tested build; the rendered download
+  section and all Mac links show build 53. No DNS or hosting configuration
+  changed. Separate GitHub website checks were still running at this readback;
+  the prior Git-connected publishing issue is not claimed fixed.
+- Actual Slack capture, hardware routing/permissions, privacy traffic auditing
+  and updater installation/relaunch remain target-Mac acceptance checks.
+  No existing private meeting was opened, no permissions were changed, and the
+  installed production app was not replaced. iOS/TestFlight is unchanged.
+  Evidence and symbols remain under ignored `.build/mac53-*` and
+  `.build/ReleaseAuditMac53/`.
+  [Download and testing notes](https://github.com/simonbromander/Mumla-Releases/releases/tag/macos-1.0.1-53).
+
 ## Paste Confirmation Beta: 2026-11-13
 
 - Universal direct `1.0.1 (52)` is published as a prerelease in both public
