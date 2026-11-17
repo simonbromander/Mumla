@@ -18,6 +18,7 @@
 		0FBD275E6C1317187229E825 /* MeetingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261B6C08DBA2968A74578BBF /* MeetingCoordinator.swift */; };
 		10FEB133574973D69352B44D /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
 		117531B18AB84C6E90AD0065 /* MeetingDetectionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 937D91D3294555A17A37F970 /* MeetingDetectionSettingsView.swift */; };
+		142E3E099DF51EBF02148990 /* MeetingSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D31F83E741FA69F1683DF2 /* MeetingSetupView.swift */; };
 		1695597D3B29BB8DD65AD23E /* WatchModel.json in Resources */ = {isa = PBXBuildFile; fileRef = 6B55A1101B1E059C59AA84A6 /* WatchModel.json */; };
 		16B8240C2B01CC857D124132 /* VoiceNotes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A32DBC5EFE1D123A3C0D2D2D /* VoiceNotes.swift */; };
 		19D868E6B2A7ACA32F0BB865 /* MumlaMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */; };
@@ -49,6 +50,7 @@
 		4C360FB45B6D0C7DBACB2491 /* ClipboardTextInserter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED87806BE4C21D18F289C16 /* ClipboardTextInserter.swift */; };
 		4E2291D64BBE014A4FF6BE7D /* MumlaHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */; };
 		4EBDD6C2EDE4DD83B5E10F48 /* MacUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04055FB8BA15C8D1036D8CD3 /* MacUpdateController.swift */; };
+		5060F087D6AEEDAC128BC455 /* MeetingSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D31F83E741FA69F1683DF2 /* MeetingSetupView.swift */; };
 		519EED2B4FA161D8F567BD70 /* MeetingDetectionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C74EED481940E1D50AAAB61 /* MeetingDetectionCoordinator.swift */; };
 		5383AD414A7C20B2C8D57A59 /* FocusedTextTargetInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8382049E23AFEAADB46B0B4 /* FocusedTextTargetInspector.swift */; };
 		53B809D47C29BFD1DFDB420E /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98CC6F600C41A98D21E9289 /* AccessibilityPermission.swift */; };
@@ -118,6 +120,7 @@
 		B5201BB10944B9325AFAA8FC /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
 		B769CDE18330B935CA9E7D19 /* KeyboardSessionSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD72BF9A49E892842340380F /* KeyboardSessionSignalTests.swift */; };
 		B7A29B34EE46B28B15AE4581 /* FocusedFieldEditObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9E201F7873D3990316137D /* FocusedFieldEditObserver.swift */; };
+		B99892FCA9B7F7B2E6360FB7 /* MeetingSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D31F83E741FA69F1683DF2 /* MeetingSetupView.swift */; };
 		BA3F945570826A391E965859 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26F840006A86E01CDD6438C /* MainView.swift */; };
 		BA4A463F52329D27F854092F /* SkinUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2B4377237EF07416C86B40 /* SkinUITests.swift */; };
 		BAF45AE8EA58B812265D4A8B /* DJIMicButtonMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2599F6380447F5D512C92F /* DJIMicButtonMonitor.swift */; };
@@ -271,6 +274,7 @@
 		5A3A2CDBEC82B9925A49C8C4 /* Mumla */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Mumla; path = .; sourceTree = SOURCE_ROOT; };
 		5F0C3ED11C5B2FA89DB25EC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		68ACD3D29BE320734D8C94AC /* MumlaIOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MumlaIOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		68D31F83E741FA69F1683DF2 /* MeetingSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingSetupView.swift; sourceTree = "<group>"; };
 		6B55A1101B1E059C59AA84A6 /* WatchModel.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = WatchModel.json; sourceTree = "<group>"; };
 		6C2B4377237EF07416C86B40 /* SkinUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinUITests.swift; sourceTree = "<group>"; };
 		6EBC9893C10E28C33680B55C /* MumlaHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MumlaHomeView.swift; sourceTree = "<group>"; };
@@ -545,6 +549,7 @@
 				7025DF64291B6DF679F52827 /* MeetingLibraryView.swift */,
 				74599A41F3B9EF4F793DD6FF /* MeetingPanels.swift */,
 				2671ACB896D9C341F33928B5 /* MeetingPromptWindowController.swift */,
+				68D31F83E741FA69F1683DF2 /* MeetingSetupView.swift */,
 				804E372DD8AD0896153309C4 /* MeetingsView.swift */,
 				8CABE61830264A5E94E1AE0A /* MumlaMacApp.swift */,
 				749B69E10CE6D1D7FC443EBA /* PillView.swift */,
@@ -1050,6 +1055,7 @@
 				1CFE9F5971EA8F6D6A7FA329 /* MeetingLibraryView.swift in Sources */,
 				DF1C8AA4F844A968A89A1C85 /* MeetingPanels.swift in Sources */,
 				9785D1C40BD3469406DD84DC /* MeetingPromptWindowController.swift in Sources */,
+				142E3E099DF51EBF02148990 /* MeetingSetupView.swift in Sources */,
 				F8AD0B82F7896BB4370BA03F /* MeetingsView.swift in Sources */,
 				D3354B508BC8C7CD6753E616 /* MumlaMacApp.swift in Sources */,
 				AD90C06988792860C1D9F6FD /* PillView.swift in Sources */,
@@ -1118,6 +1124,7 @@
 				708EBA2DD60A26B8D7A27303 /* MeetingLibraryView.swift in Sources */,
 				C18C55A9AFB1C16D0A758EF1 /* MeetingPanels.swift in Sources */,
 				72F5019F990CCC24350225FD /* MeetingPromptWindowController.swift in Sources */,
+				5060F087D6AEEDAC128BC455 /* MeetingSetupView.swift in Sources */,
 				60E8D8F3B86278030204ACED /* MeetingsView.swift in Sources */,
 				9D8C7D1E1AED519A9E38EB96 /* MumlaMacApp.swift in Sources */,
 				878FDC7CBA62CBF55E0E65FE /* PillView.swift in Sources */,
@@ -1175,6 +1182,7 @@
 				70C7283C9EBC09DEDB7AFB7B /* MeetingLibraryView.swift in Sources */,
 				93957BC43E0DEA1550CED3AE /* MeetingPanels.swift in Sources */,
 				F1A7C237A77AB642C954173A /* MeetingPromptWindowController.swift in Sources */,
+				B99892FCA9B7F7B2E6360FB7 /* MeetingSetupView.swift in Sources */,
 				561CF5FA45259F313B77D6DE /* MeetingsView.swift in Sources */,
 				19D868E6B2A7ACA32F0BB865 /* MumlaMacApp.swift in Sources */,
 				B35A13B0268D4F610D5B8C38 /* PillView.swift in Sources */,

@@ -6,10 +6,14 @@ import Foundation
 import MumlaCore
 
 public enum MeetingCaptureError: Error, LocalizedError {
-    case audio(OSStatus), sourceUnavailable, overloaded, diskSpace
+    case audio(OSStatus), microphone(OSStatus), systemAudio(OSStatus)
+    case microphoneUnavailable, sourceUnavailable, overloaded, diskSpace
     public var errorDescription: String? {
         switch self {
         case .audio: "Could not capture audio. Check microphone and system audio recording permissions."
+        case .microphone(let status): "The microphone could not start. Check microphone access and the input device. (\(status))"
+        case .systemAudio(let status): "Computer audio could not start. Check Screen & System Audio Recording in System Settings. (\(status))"
+        case .microphoneUnavailable: "The selected microphone is unavailable. Choose a connected microphone and try again."
         case .sourceUnavailable: "No audio process was found for this app. Start your call, then try again."
         case .overloaded: "Audio could not be saved fast enough. The recording has been stopped and saved."
         case .diskSpace: "There is not enough disk space to safely continue recording."
@@ -66,20 +70,24 @@ public final class MeetingCapture: MeetingCapturing, @unchecked Sendable {
             offset: offset, onChunk: onChunk, onFailure: onFailure)
         writers[.microphone] = micWriter
         do {
-            let input = try MeetingMicrophoneInput(deviceUID: microphoneUID, writer: micWriter)
+            let input = try Self.withCaptureContext(microphone: true) {
+                try MeetingMicrophoneInput(deviceUID: microphoneUID, writer: micWriter)
+            }
             microphone = input
             if let source {
                 guard #available(macOS 14.2, *) else { throw MeetingCaptureError.sourceUnavailable }
                 let writer = MeetingTrackWriter(store: store, meetingID: meetingID, track: .system,
                     offset: offset, onChunk: onChunk, onFailure: onFailure)
                 writers[.system] = writer
-                system = try MeetingSystemInput(source: source, writer: writer)
+                system = try Self.withCaptureContext(microphone: false) {
+                    try MeetingSystemInput(source: source, writer: writer)
+                }
             }
             // Both writers share the same monotonic origin; startup skew is retained.
             let origin = ProcessInfo.processInfo.systemUptime
             for writer in writers.values { writer.origin = origin }
-            try system?.start()
-            try input.start()
+            try Self.withCaptureContext(microphone: false) { try system?.start() }
+            try Self.withCaptureContext(microphone: true) { try input.start() }
         } catch {
             stop()
             throw error
@@ -94,6 +102,13 @@ public final class MeetingCapture: MeetingCapturing, @unchecked Sendable {
     }
 
     public func level(_ track: MeetingTrack) -> Double { writers[track]?.level ?? 0 }
+
+    static func withCaptureContext<T>(microphone: Bool, _ operation: () throws -> T) throws -> T {
+        do { return try operation() }
+        catch MeetingCaptureError.audio(let status) {
+            throw microphone ? MeetingCaptureError.microphone(status) : MeetingCaptureError.systemAudio(status)
+        }
+    }
 
     @available(macOS 14.2, *)
     static func tapDescription(for source: MeetingAudioSource, processObjectIDs: [AudioObjectID]) throws -> CATapDescription {
@@ -191,11 +206,11 @@ private final class MeetingTrackWriter: @unchecked Sendable {
         self.format = format
         converter = AVAudioConverter(from: format, to: target)
         conversionInput = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity)
-        guard converter != nil, conversionInput != nil else { throw MeetingCaptureError.sourceUnavailable }
+        guard converter != nil, conversionInput != nil else { throw MeetingCaptureError.audio(kAudioDeviceUnsupportedFormatError) }
         // Fill roughly 100 ms per slot, not one slot per tiny hardware callback.
         batchFrameLimit = min(capacity, max(1, AVAudioFrameCount(format.sampleRate / 10)))
         buffers = (0..<24).compactMap { _ in AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) }
-        guard buffers.count == 24 else { throw MeetingCaptureError.sourceUnavailable }
+        guard buffers.count == 24 else { throw MeetingCaptureError.overloaded }
     }
 
     func receive(_ data: UnsafePointer<AudioBufferList>, frames: AVAudioFrameCount) {
@@ -375,19 +390,21 @@ private final class MeetingMicrophoneInput {
 
     init(deviceUID: String?, writer: MeetingTrackWriter) throws {
         self.writer = writer
-        if let deviceUID, AudioInputDevices.deviceID(forUID: deviceUID) == nil { throw MeetingCaptureError.sourceUnavailable }
+        if let deviceUID, AudioInputDevices.deviceID(forUID: deviceUID) == nil { throw MeetingCaptureError.microphoneUnavailable }
         var device = deviceUID.flatMap(AudioInputDevices.deviceID(forUID:)) ?? 0
         if device == 0 {
             var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultInputDevice, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
             var size = UInt32(MemoryLayout<AudioDeviceID>.size)
             try meetingAudioCheck(AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device))
         }
+        guard device != 0 else { throw MeetingCaptureError.microphoneUnavailable }
         var description = AudioComponentDescription(componentType: kAudioUnitType_Output,
             componentSubType: kAudioUnitSubType_HALOutput, componentManufacturer: kAudioUnitManufacturer_Apple,
             componentFlags: 0, componentFlagsMask: 0)
         var instance: AudioUnit?
-        guard let component = AudioComponentFindNext(nil, &description),
-              AudioComponentInstanceNew(component, &instance) == noErr, let unit = instance else { throw MeetingCaptureError.sourceUnavailable }
+        guard let component = AudioComponentFindNext(nil, &description) else { throw MeetingCaptureError.microphoneUnavailable }
+        try meetingAudioCheck(AudioComponentInstanceNew(component, &instance))
+        guard let unit = instance else { throw MeetingCaptureError.microphoneUnavailable }
         self.unit = unit
         do {
             var yes: UInt32 = 1; var no: UInt32 = 0
@@ -398,7 +415,7 @@ private final class MeetingMicrophoneInput {
             try meetingAudioCheck(AudioUnitGetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 1, &native, &size))
             guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: native.mSampleRate,
                 channels: native.mChannelsPerFrame, interleaved: false),
-                  let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16_384) else { throw MeetingCaptureError.sourceUnavailable }
+                  let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16_384) else { throw MeetingCaptureError.microphoneUnavailable }
             self.buffer = buffer
             try meetingAudioCheck(AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1,
                 format.streamDescription, UInt32(MemoryLayout<AudioStreamBasicDescription>.size)))
@@ -455,7 +472,7 @@ private final class MeetingSystemInput: MeetingSystemCapturing {
             var address = AudioObjectPropertyAddress(mSelector: kAudioTapPropertyFormat, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
             var stream = AudioStreamBasicDescription(); var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
             try meetingAudioCheck(AudioObjectGetPropertyData(tap, &address, 0, nil, &size, &stream))
-            guard let format = AVAudioFormat(streamDescription: &stream) else { throw MeetingCaptureError.sourceUnavailable }
+            guard let format = AVAudioFormat(streamDescription: &stream) else { throw MeetingCaptureError.systemAudio(kAudioDeviceUnsupportedFormatError) }
             try writer.prepare(format: format, capacity: 16_384)
             let aggregate: [String: Any] = [kAudioAggregateDeviceNameKey: "Mumla Meeting",
                 kAudioAggregateDeviceUIDKey: UUID().uuidString, kAudioAggregateDeviceIsPrivateKey: true,

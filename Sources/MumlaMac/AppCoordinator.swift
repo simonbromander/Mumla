@@ -53,7 +53,10 @@ final class AppCoordinator: ObservableObject {
     }()
     lazy var meetings: MeetingCoordinator = {
         let result = MeetingCoordinator(directory: historyStore.directory, modelDirectory: { [weak self] in self?.modelDirectory })
-        result.microphoneUID = { [weak self] in self?.settings.pinnedInputDevice?.uid }
+        result.microphoneUID = { [weak self] in
+            self?.refreshInputDevices()
+            return self?.connectedPinnedInputDeviceUID()
+        }
         result.canStart = { [weak self] in
             guard let self else { return false }
             return !self.isInstallingAppUpdate && self.activeMode == nil && self.pendingStartID == nil && self.inFlightOperations == 0
@@ -137,6 +140,7 @@ final class AppCoordinator: ObservableObject {
     private var inFlightOperations = 0 { didSet { refreshUpdateActivity() } }
     private var insertionTarget: FocusedTextTargetSnapshot?
     private var inputDeviceObserver: AnyObject?
+    private let inputDeviceProvider: () -> [AudioInputDevice]
 
     init(
         recorder: MicrophoneRecorder,
@@ -151,7 +155,8 @@ final class AppCoordinator: ObservableObject {
         textModel: QwenTextModel = QwenTextModel(),
         dictationFormatter: LocalTranscriptFormatter? = nil,
         appleFormatter: LocalTranscriptFormatter = .apple,
-        textPreferences: UserDefaults = .standard
+        textPreferences: UserDefaults = .standard,
+        inputDeviceProvider: @escaping () -> [AudioInputDevice] = AudioInputDevices.available
     ) {
         self.recorder = recorder
         self.transcriber = transcriber
@@ -166,6 +171,7 @@ final class AppCoordinator: ObservableObject {
         self.dictationFormatter = dictationFormatter ?? textModel.formatter
         self.appleFormatter = appleFormatter
         self.textPreferences = textPreferences
+        self.inputDeviceProvider = inputDeviceProvider
     }
 
     func bootstrap() {
@@ -678,8 +684,8 @@ final class AppCoordinator: ObservableObject {
         return AudioInputDevices.match(pinned, in: inputDevices) != nil
     }
 
-    private func refreshInputDevices() {
-        let devices = AudioInputDevices.available()
+    func refreshInputDevices() {
+        let devices = inputDeviceProvider()
         if devices != inputDevices { inputDevices = devices }
     }
 

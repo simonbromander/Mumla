@@ -15,7 +15,7 @@ struct MeetingsView: View {
     @State private var copied = false
     @State private var libraryQuery = ""
     @State private var showingSetup = false
-    @State private var sourcesOpen = false
+    @State private var preferencesOpen = false
     @State private var speakersOpen = false
     @State private var assigningSpeakerID: String?
     @State private var actionsOpen = false
@@ -27,7 +27,7 @@ struct MeetingsView: View {
         GeometryReader { geometry in
             VStack(alignment: .leading, spacing: 14) {
                 if let message = meetings.availabilityMessage { notice(message, symbol: "info.circle") }
-                if let error = meetings.error {
+                if let error = meetings.error, !showingSetup {
                     HStack(alignment: .top, spacing: 12) {
                         notice(error, symbol: "exclamationmark.triangle")
                         Spacer(minLength: 0)
@@ -47,7 +47,13 @@ struct MeetingsView: View {
                 } else { library(compact: false) }
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .onAppear { meetings.refreshSources() }
+        .onAppear {
+            meetings.refreshSources()
+            if meetings.setupRequest != nil && meetings.selectedID == nil { showingSetup = true }
+        }
+        .onChange(of: meetings.setupRequest) { _, request in
+            if request != nil { showingSetup = true }
+        }
         .onChange(of: meetings.selectedID) { _, id in
             query = ""; speakerFilter = ""; copied = false; assigningSpeakerID = nil
             if id != nil { showingSetup = false }
@@ -73,7 +79,7 @@ struct MeetingsView: View {
         HStack(spacing: 10) {
             if meetings.selected != nil || showingSetup {
                 Button {
-                    meetings.selectedID = nil; showingSetup = false
+                    meetings.dismissSetup(); showingSetup = false
                 } label: {
                     Label(mText("Alla möten", "All meetings"), systemImage: "chevron.left")
                         .mumlaFont(size: 12).padding(.horizontal, 12).frame(minHeight: 44)
@@ -91,115 +97,23 @@ struct MeetingsView: View {
                 }.buttonStyle(MumlaKeyStyle(radius: 8)).disabled(meetings.selectedID == id)
                     .accessibilityIdentifier("meeting.current")
             }
-            Button {
-                meetings.selectedID = nil; showingSetup = true; meetings.refreshSources()
-            } label: {
-                Label(mText("Nytt möte", "New meeting"), systemImage: "plus")
-                    .mumlaFont(size: 12).padding(.horizontal, 12).frame(minHeight: 44)
-            }.buttonStyle(MumlaKeyStyle(radius: 8)).disabled(meetings.isCapturing)
-                .accessibilityIdentifier("meeting.new")
+            if !showingSetup {
+                Button {
+                    meetings.prepareNewMeeting(); meetings.refreshSources()
+                } label: {
+                    Label(mText("Nytt möte", "New meeting"), systemImage: "plus")
+                        .mumlaFont(size: 12).padding(.horizontal, 12).frame(minHeight: 44)
+                }.buttonStyle(MumlaKeyStyle(radius: 8)).disabled(meetings.isCapturing)
+                    .accessibilityIdentifier("meeting.new")
+            }
+            MumlaIconButton("gearshape", label: mText("Mötesinställningar", "Meeting preferences")) { preferencesOpen.toggle() }
+                .accessibilityIdentifier("meeting.preferences")
+                .sheet(isPresented: $preferencesOpen) { MeetingPreferencesView(meetings: meetings, app: app) }
         }
     }
 
     private var setup: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Label("STANDBY", systemImage: "record.circle")
-                        Spacer()
-                        Label("SV / PCM", systemImage: "lock.fill")
-                    }.mumlaFont(size: 12).foregroundStyle(palette.secondary)
-                    TextField(mText("Mötets namn", "Meeting title"), text: $meetings.title, axis: .vertical)
-                        .textFieldStyle(.plain).mumlaFont(size: 18)
-                        .lineLimit(1...4).padding(16).mumlaRecess(radius: 8).accessibilityIdentifier("meeting.title")
-                        .accessibilityLabel(mText("Mötets namn", "Meeting title"))
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .top, spacing: 10) {
-                            Button { sourcesOpen.toggle() } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: meetings.sourcePID == 0 ? "mic" : "speaker.wave.2")
-                                    Text(meetings.sourceName)
-                                        .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
-                                    Image(systemName: "chevron.down").font(.system(size: 11))
-                                }.padding(14).frame(maxWidth: .infinity, minHeight: 44)
-                            }.buttonStyle(MumlaKeyStyle(radius: 8)).accessibilityIdentifier("meeting.source")
-                                .popover(isPresented: $sourcesOpen) {
-                                    MeetingPopover(title: mText("Ljudkälla", "Audio source")) {
-                                        ScrollView {
-                                            VStack(spacing: 8) {
-                                                choice(mText("Systemljud + mikrofon", "System audio + microphone"), symbol: "speaker.wave.2", selected: meetings.audioSource == .systemAudio) {
-                                                    meetings.sourcePID = MeetingAudioSource.systemAudio.id; sourcesOpen = false
-                                                }.accessibilityIdentifier("meeting.source.system")
-                                                choice(mText("Endast mikrofon", "Microphone only"), symbol: "mic", selected: meetings.sourcePID == 0) {
-                                                    meetings.sourcePID = 0; sourcesOpen = false
-                                                }.accessibilityIdentifier("meeting.source.microphone")
-                                                ForEach(meetings.sources) { source in
-                                                    choice(source.name, symbol: "speaker.wave.2", selected: meetings.sourcePID == source.id) {
-                                                        meetings.sourcePID = source.id; sourcesOpen = false
-                                                    }
-                                                }
-                                            }.padding(4)
-                                        }.frame(maxHeight: 320)
-                                    }
-                                }
-                            MumlaIconButton("arrow.clockwise", label: mText("Uppdatera appar", "Refresh apps")) { meetings.refreshSources() }
-                            MumlaIconButton("mic", label: mText("Välj mikrofon", "Choose microphone")) { app.openSettings() }
-                        }
-                        if meetings.audioSource == .systemAudio {
-                            notice(mText("Spelar in din mikrofon och allt systemljud, även ljud från andra appar.", "Records your microphone and all system audio, including sounds from other apps."), symbol: "info.circle")
-                        } else if meetings.sourcePID != 0 {
-                            notice(mText("Webbläsarens andra flikar kan också höras.", "Other browser tabs may also be captured."), symbol: "info.circle")
-                        }
-                    }
-                    Divider()
-                    Toggle(isOn: $meetings.liveTranscription) {
-                        Text(mText("Transkribera live", "Live transcription")).fixedSize(horizontal: false, vertical: true)
-                    }.toggleStyle(MumlaSwitchStyle()).mumlaFont(size: 13)
-                    Toggle(isOn: $meetings.keepAudio) {
-                        Text(mText("Behåll ljud i 7 dagar", "Keep audio for 7 days"))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }.toggleStyle(MumlaSwitchStyle()).mumlaFont(size: 13)
-                        .help(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"))
-                        .accessibilityLabel(mText("Behåll ljud 7 dagar efter transkribering", "Keep audio 7 days after transcription"))
-                    Divider()
-                    MeetingDetectionSettingsView(app: app, detection: app.meetingDetection)
-                    Divider()
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: meetings.speakersInstalled ? "person.2.fill" : "person.2").padding(.top, 3)
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(meetings.speakersInstalled ? mText("Talarmodell installerad", "Speaker model installed") : mText("Talarmodell · 45 MB", "Speaker model · 45 MB"))
-                                .mumlaFont(size: 13).fixedSize(horizontal: false, vertical: true)
-                            if let fraction = meetings.speakerDownload {
-                                MumlaDownloadGauge(fraction: fraction)
-                                Text("\(Int(fraction * 100)) %").mumlaFont(size: 12).monospacedDigit()
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        if meetings.speakerDownload == nil && !meetings.speakersInstalled {
-                            MumlaIconButton("arrow.down", label: mText("Hämta talarmodell", "Download speaker model")) { meetings.installSpeakers() }
-                                .disabled(meetings.isProcessing)
-                        } else if meetings.speakersInstalled { Image(systemName: "checkmark").foregroundStyle(palette.accent) }
-                    }
-                    if app.modelDirectory == nil {
-                        choice(mText("Hämta svensk språkmodell", "Download Swedish speech model"), symbol: "arrow.down.circle", selected: false) { app.installModel() }
-                            .disabled(app.isInstallingModel)
-                    }
-                }.padding(4).padding(.bottom, 12)
-            }
-            Divider()
-            HStack(spacing: 12) {
-                MumlaIconButton(copied ? "checkmark" : "person.crop.circle.badge.checkmark", label: mText("Kopiera samtyckesmeddelande", "Copy consent message")) {
-                    copy(mText("Jag vill transkribera vårt möte lokalt med Mumla. Är alla okej med det?", "I'd like to transcribe our meeting locally with Mumla. Is everyone comfortable with that?"))
-                }
-                Spacer(minLength: 0)
-                Button { Task { await meetings.start() } } label: {
-                    Label(meetings.isStarting ? mText("Förbereder", "Preparing") : mText("Spela in möte", "Record meeting"), systemImage: "record.circle.fill")
-                        .foregroundStyle(palette.recording).fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 18).padding(.vertical, 14)
-                }.buttonStyle(MumlaKeyStyle(radius: 8))
-                    .disabled(meetings.isCapturing || meetings.availabilityMessage != nil).accessibilityIdentifier("meeting.start")
-            }
-        }.disabled(meetings.isStarting)
+        MeetingSetupView(meetings: meetings, app: app)
     }
 
     private func library(compact: Bool) -> some View {

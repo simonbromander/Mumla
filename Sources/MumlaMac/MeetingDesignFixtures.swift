@@ -59,8 +59,12 @@ enum MeetingDesignFixtures {
 }
 
 final class MeetingUICapture: MeetingCapturing {
+    private var failNextStart: Bool
+    init(failNextStart: Bool = false) { self.failNextStart = failNextStart }
     func start(store: MeetingStore, meetingID: UUID, microphoneUID: String?, source: MeetingAudioSource?, offset: TimeInterval,
-               onChunk: @escaping @Sendable () -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {}
+               onChunk: @escaping @Sendable () -> Void, onFailure: @escaping @Sendable (String) -> Void) throws {
+        if failNextStart { failNextStart = false; throw MeetingCaptureError.systemAudio(-50) }
+    }
     func stop() {}
     func level(_ track: MeetingTrack) -> Double { 0.3 }
 }

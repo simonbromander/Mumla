@@ -1,6 +1,7 @@
 import AppKit
 import MumlaAudio
 import MumlaCore
+import MumlaUI
 import SwiftUI
 import XCTest
 @testable import MumlaMac
@@ -134,6 +135,28 @@ final class MeetingPresentationTests: XCTestCase {
             XCTAssertLessThan(size.height, 500)
             view.frame = NSRect(origin: .zero, size: size); view.layoutSubtreeIfNeeded()
             XCTAssertLessThanOrEqual(view.fittingSize.height, size.height)
+        }
+    }
+
+    func testMeetingPreferencesPanelFitsBothSkinsAndAppearances() throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let app = AppCoordinator(recorder: MicrophoneRecorder(), transcriber: nil,
+            historyStore: DictationHistoryStore(directory: directory), dictionaryStore: DictionaryStore(directory: directory),
+            settingsStore: AppSettingsStore(directory: directory), modelDirectory: nil, inputDeviceProvider: { [] })
+        for skin in MumlaSkin.allCases {
+            for scheme in [ColorScheme.light, .dark] {
+                let view = NSHostingView(rootView: MeetingPreferencesView(meetings: app.meetings, app: app)
+                    .environment(\.mumlaSkin, skin).environment(\.colorScheme, scheme))
+                let size = NSSize(width: 480, height: 460)
+                view.frame = NSRect(origin: .zero, size: size); view.layoutSubtreeIfNeeded()
+                XCTAssertEqual(view.fittingSize.width, size.width)
+                XCTAssertEqual(view.fittingSize.height, size.height)
+                let bitmap = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+                view.cacheDisplay(in: view.bounds, to: bitmap)
+                XCTAssertGreaterThan(bitmap.pixelsWide, 0); XCTAssertGreaterThan(bitmap.pixelsHigh, 0)
+            }
         }
     }
 
